@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Concerns\GeneratesUniqueSlug;
+use App\Concerns\HandlesMediaUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAnnouncementRequest;
 use App\Http\Requests\Admin\UpdateAnnouncementRequest;
@@ -14,7 +15,7 @@ use Inertia\Response;
 
 class AnnouncementController extends Controller
 {
-    use GeneratesUniqueSlug;
+    use GeneratesUniqueSlug, HandlesMediaUploads;
 
     public function index(): Response
     {
@@ -48,7 +49,7 @@ class AnnouncementController extends Controller
     public function edit(Announcement $announcement): Response
     {
         return Inertia::render('admin/announcements/edit', [
-            'announcement' => $announcement,
+            'announcement' => $announcement->load('media'),
         ]);
     }
 
@@ -71,6 +72,8 @@ class AnnouncementController extends Controller
 
     public function destroy(Announcement $announcement): RedirectResponse
     {
+        $announcement->media->each(fn ($media) => $this->detachMedia($media));
+
         $announcement->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Announcement deleted.')]);

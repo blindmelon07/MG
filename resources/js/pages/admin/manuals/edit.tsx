@@ -1,7 +1,9 @@
 import { Form, Head } from '@inertiajs/react';
 import ManualController from '@/actions/App/Http/Controllers/Admin/ManualController';
+import ManualMediaController from '@/actions/App/Http/Controllers/Admin/ManualMediaController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import MediaManager from '@/components/media-manager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,12 +17,21 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { edit, index as manualsIndex } from '@/routes/admin/manuals';
 
+type Media = {
+    id: number;
+    type: 'image' | 'video';
+    path: string;
+    caption: string | null;
+    url: string;
+};
+
 type Manual = {
     id: number;
     title: string;
     content: string;
     status: 'draft' | 'published';
     manual_category_id: number;
+    media: Media[];
 };
 
 export default function ManualsEdit({
@@ -134,6 +145,22 @@ export default function ManualsEdit({
                         </>
                     )}
                 </Form>
+
+                <div className="max-w-2xl space-y-3">
+                    <Heading variant="small" title="Media" />
+                    <MediaManager
+                        media={manual.media}
+                        uploadForm={ManualMediaController.store.form(
+                            manual.id,
+                        )}
+                        deleteForm={(mediaId) =>
+                            ManualMediaController.destroy.form([
+                                manual.id,
+                                mediaId,
+                            ])
+                        }
+                    />
+                </div>
             </div>
         </>
     );

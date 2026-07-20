@@ -2,12 +2,26 @@
 
 namespace App\Models;
 
+use Database\Factories\AnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $title
+ * @property string $content
+ * @property string $type
+ * @property string $status
+ * @property string|null $location
+ * @property Carbon|null $event_start_at
+ * @property Carbon|null $event_end_at
+ * @property Carbon|null $published_at
+ */
 #[Fillable([
     'created_by',
     'title',
@@ -22,6 +36,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 ])]
 class Announcement extends Model
 {
+    /** @use HasFactory<AnnouncementFactory> */
+    use HasFactory;
+
     /**
      * @return array<string, string>
      */

@@ -1,8 +1,10 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AnnouncementController from '@/actions/App/Http/Controllers/Admin/AnnouncementController';
+import AnnouncementMediaController from '@/actions/App/Http/Controllers/Admin/AnnouncementMediaController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import MediaManager from '@/components/media-manager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +21,14 @@ import {
     index as announcementsIndex,
 } from '@/routes/admin/announcements';
 
+type Media = {
+    id: number;
+    type: 'image' | 'video';
+    path: string;
+    caption: string | null;
+    url: string;
+};
+
 type Announcement = {
     id: number;
     title: string;
@@ -28,6 +38,7 @@ type Announcement = {
     event_start_at: string | null;
     event_end_at: string | null;
     location: string | null;
+    media: Media[];
 };
 
 function toDatetimeLocal(value: string | null): string {
@@ -198,6 +209,22 @@ export default function AnnouncementsEdit({
                         </>
                     )}
                 </Form>
+
+                <div className="max-w-2xl space-y-3">
+                    <Heading variant="small" title="Media" />
+                    <MediaManager
+                        media={announcement.media}
+                        uploadForm={AnnouncementMediaController.store.form(
+                            announcement.id,
+                        )}
+                        deleteForm={(mediaId) =>
+                            AnnouncementMediaController.destroy.form([
+                                announcement.id,
+                                mediaId,
+                            ])
+                        }
+                    />
+                </div>
             </div>
         </>
     );

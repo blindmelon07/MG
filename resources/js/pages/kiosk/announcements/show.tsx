@@ -1,7 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
+import MediaGallery from '@/components/media-gallery';
 import { Badge } from '@/components/ui/badge';
 import { index as announcementsIndex } from '@/routes/announcements';
+
+type Media = {
+    id: number;
+    type: 'image' | 'video';
+    caption: string | null;
+    url: string;
+};
 
 type Announcement = {
     id: number;
@@ -11,6 +19,7 @@ type Announcement = {
     event_start_at: string | null;
     event_end_at: string | null;
     location: string | null;
+    media: Media[];
 };
 
 function formatDateTime(value: string): string {
@@ -77,6 +86,8 @@ export default function KioskAnnouncementsShow({
                 <div className="rounded-xl border border-sidebar-border/70 p-6 whitespace-pre-wrap dark:border-sidebar-border">
                     {announcement.content}
                 </div>
+
+                <MediaGallery media={announcement.media} />
             </div>
         </>
     );

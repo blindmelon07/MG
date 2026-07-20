@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Database\Factories\ManualFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -11,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 #[Fillable(['manual_category_id', 'created_by', 'title', 'slug', 'content', 'status', 'published_at'])]
 class Manual extends Model
 {
+    /** @use HasFactory<ManualFactory> */
+    use HasFactory;
+
     /**
      * @return array<string, string>
      */

@@ -1,7 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
+import MediaGallery from '@/components/media-gallery';
 import { Badge } from '@/components/ui/badge';
 import { index as manualsIndex } from '@/routes/manuals';
+
+type Media = {
+    id: number;
+    type: 'image' | 'video';
+    caption: string | null;
+    url: string;
+};
 
 type Manual = {
     id: number;
@@ -9,6 +17,7 @@ type Manual = {
     content: string;
     published_at: string | null;
     category: { id: number; name: string; slug: string };
+    media: Media[];
 };
 
 export default function KioskManualsShow({ manual }: { manual: Manual }) {
@@ -36,6 +45,8 @@ export default function KioskManualsShow({ manual }: { manual: Manual }) {
                 <div className="rounded-xl border border-sidebar-border/70 p-6 whitespace-pre-wrap dark:border-sidebar-border">
                     {manual.content}
                 </div>
+
+                <MediaGallery media={manual.media} />
             </div>
         </>
     );

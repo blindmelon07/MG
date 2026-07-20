@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Concerns\GeneratesUniqueSlug;
+use App\Concerns\HandlesMediaUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreManualRequest;
 use App\Http\Requests\Admin\UpdateManualRequest;
@@ -15,7 +16,7 @@ use Inertia\Response;
 
 class ManualController extends Controller
 {
-    use GeneratesUniqueSlug;
+    use GeneratesUniqueSlug, HandlesMediaUploads;
 
     public function index(): Response
     {
@@ -51,7 +52,7 @@ class ManualController extends Controller
     public function edit(Manual $manual): Response
     {
         return Inertia::render('admin/manuals/edit', [
-            'manual' => $manual,
+            'manual' => $manual->load('media'),
             'categories' => ManualCategory::orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -75,6 +76,8 @@ class ManualController extends Controller
 
     public function destroy(Manual $manual): RedirectResponse
     {
+        $manual->media->each(fn ($media) => $this->detachMedia($media));
+
         $manual->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Manual deleted.')]);

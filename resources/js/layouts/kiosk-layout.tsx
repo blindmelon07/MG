@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import ChatbotWidget from '@/components/chatbot-widget';
 import { home } from '@/routes';
 import { index as announcementsIndex } from '@/routes/announcements';
 import { index as manualsIndex } from '@/routes/manuals';
@@ -82,6 +83,8 @@ export default function KioskLayout({
                 Aemilianum College Inc. &mdash; AI-Powered Smart Information
                 Kiosk
             </footer>
+
+            <ChatbotWidget />
         </div>
     );
 }
