@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -18,6 +19,15 @@ class Manual extends Model
         return [
             'published_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @param  Builder<Manual>  $query
+     * @return Builder<Manual>
+     */
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', 'published');
     }
 
     /**
