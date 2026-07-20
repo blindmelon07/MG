@@ -36,6 +36,7 @@ return [
     ],
 
     'anthropic' => [
+        'enabled' => env('CHATBOT_USE_CLAUDE', false),
         'api_key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-opus-4-8'),
     ],

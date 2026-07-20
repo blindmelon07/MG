@@ -34,13 +34,20 @@ export default function KioskLayout({
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             <header className="border-b border-sidebar-border/70 dark:border-sidebar-border">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-                    <Link href={home()} className="flex flex-col">
-                        <span className="text-lg font-semibold tracking-tight">
-                            Aemilianum College Inc.
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                            Smart Information Kiosk
-                        </span>
+                    <Link href={home()} className="flex items-center gap-3">
+                        <img
+                            src="/logo.png"
+                            alt="Aemilianum College Inc."
+                            className="size-12"
+                        />
+                        <div className="flex flex-col">
+                            <span className="text-lg font-semibold tracking-tight">
+                                Aemilianum College Inc.
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                Smart Information Kiosk
+                            </span>
+                        </div>
                     </Link>
 
                     <nav className="flex flex-wrap items-center gap-2">
