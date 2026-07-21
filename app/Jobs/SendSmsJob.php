@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use RuntimeException;
 
 class SendSmsJob implements ShouldQueue
 {
@@ -22,6 +23,8 @@ class SendSmsJob implements ShouldQueue
 
     public function handle(SmsService $sms): void
     {
-        $sms->send($this->recipient, $this->message);
+        if (! $sms->send($this->recipient, $this->message)) {
+            throw new RuntimeException("Failed to send SMS to {$this->recipient}.");
+        }
     }
 }
