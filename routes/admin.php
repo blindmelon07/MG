@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
 use App\Http\Controllers\Admin\ManualMediaController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudentImportController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     Route::resource('students', StudentController::class)
         ->except(['show']);
+
+    Route::get('students/import/template', [StudentImportController::class, 'template'])->name('students.import.template');
+    Route::post('students/import', [StudentImportController::class, 'store'])->name('students.import.store');
 
     Route::middleware('super_admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);

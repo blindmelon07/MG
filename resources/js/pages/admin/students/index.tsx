@@ -1,8 +1,10 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Download, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import StudentController from '@/actions/App/Http/Controllers/Admin/StudentController';
+import StudentImportController from '@/actions/App/Http/Controllers/Admin/StudentImportController';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +16,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { create, edit, index as studentsIndex } from '@/routes/admin/students';
+import { template as importTemplate } from '@/routes/admin/students/import';
 import type { Paginated } from '@/types/pagination';
 
 type Guardian = {
@@ -43,6 +47,7 @@ export default function StudentsIndex({
 }) {
     const [deleting, setDeleting] = useState<Student | null>(null);
     const [searchTerm, setSearchTerm] = useState(search);
+    const [importing, setImporting] = useState(false);
 
     return (
         <>
@@ -55,11 +60,19 @@ export default function StudentsIndex({
                         description="Manage student records and their parent/guardian contacts."
                     />
 
-                    <Button asChild>
-                        <Link href={create()}>
-                            <Plus /> New Student
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setImporting(true)}
+                        >
+                            <Upload /> Import
+                        </Button>
+                        <Button asChild>
+                            <Link href={create()}>
+                                <Plus /> New Student
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 <form
@@ -246,6 +259,59 @@ export default function StudentsIndex({
                             )}
                         </Form>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={importing} onOpenChange={setImporting}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Import students</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        Upload a CSV file with student and guardian info.
+                        Rows matching an existing student # are skipped.
+                    </p>
+                    <a
+                        href={importTemplate().url}
+                        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                        <Download className="size-4" /> Download CSV template
+                    </a>
+                    <Form
+                        {...StudentImportController.store.form()}
+                        onSuccess={() => setImporting(false)}
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="import-file">
+                                        CSV file
+                                    </Label>
+                                    <Input
+                                        id="import-file"
+                                        name="file"
+                                        type="file"
+                                        accept=".csv,text/csv"
+                                        required
+                                    />
+                                    <InputError message={errors.file} />
+                                </div>
+                                <DialogFooter className="mt-4">
+                                    <DialogClose asChild>
+                                        <Button variant="secondary">
+                                            Cancel
+                                        </Button>
+                                    </DialogClose>
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                    >
+                                        <Upload /> Import
+                                    </Button>
+                                </DialogFooter>
+                            </>
+                        )}
+                    </Form>
                 </DialogContent>
             </Dialog>
         </>
