@@ -26,6 +26,9 @@ class UpdateAnnouncementRequest extends FormRequest
             'event_end_at' => ['nullable', 'date', 'after_or_equal:event_start_at'],
             'location' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['draft', 'published'])],
+            'audience' => ['required', Rule::in(['all', 'targeted'])],
+            'student_ids' => ['required_if:audience,targeted', 'array'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
         ];
     }
 }

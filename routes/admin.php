@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AnnouncementMediaController;
 use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
 use App\Http\Controllers\Admin\ManualMediaController;
+use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     Route::post('announcements/{announcement}/media', [AnnouncementMediaController::class, 'store'])->name('announcements.media.store');
     Route::delete('announcements/{announcement}/media/{media}', [AnnouncementMediaController::class, 'destroy'])->name('announcements.media.destroy');
+
+    Route::resource('students', StudentController::class)
+        ->except(['show']);
 
     Route::middleware('super_admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);

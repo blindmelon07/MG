@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
@@ -17,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string $content
  * @property string $type
  * @property string $status
+ * @property string $audience
  * @property string|null $location
  * @property Carbon|null $event_start_at
  * @property Carbon|null $event_end_at
@@ -32,6 +34,7 @@ use Illuminate\Support\Carbon;
     'event_end_at',
     'location',
     'status',
+    'audience',
     'published_at',
 ])]
 class Announcement extends Model
@@ -74,5 +77,13 @@ class Announcement extends Model
     public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'mediable');
+    }
+
+    /**
+     * @return BelongsToMany<Student, $this>
+     */
+    public function students(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'announcement_student');
     }
 }

@@ -1,5 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, LayoutGrid, Megaphone, Tags, Users } from 'lucide-react';
+import {
+    BookOpen,
+    GraduationCap,
+    LayoutGrid,
+    Megaphone,
+    Tags,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -16,6 +23,7 @@ import { dashboard } from '@/routes';
 import { index as announcementsIndex } from '@/routes/admin/announcements';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
 import { index as manualsIndex } from '@/routes/admin/manuals';
+import { index as studentsIndex } from '@/routes/admin/students';
 import { index as usersIndex } from '@/routes/admin/users';
 import type { Auth, NavItem } from '@/types';
 
@@ -42,6 +50,11 @@ export function AppSidebar() {
             title: 'Announcements',
             href: announcementsIndex(),
             icon: Megaphone,
+        },
+        {
+            title: 'Students',
+            href: studentsIndex(),
+            icon: GraduationCap,
         },
         ...(auth.user.role === 'super_admin'
             ? [
