@@ -541,7 +541,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-BfPMVlTH.js",
+    "file": "assets/app-5_6GImEm.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1084,7 +1084,7 @@
     ]
   },
   "resources/js/pages/kiosk/maps/index.tsx": {
-    "file": "assets/maps-B03BPfDV.js",
+    "file": "assets/maps-yCT_Bg6j.js",
     "name": "maps",
     "src": "resources/js/pages/kiosk/maps/index.tsx",
     "isDynamicEntry": true,

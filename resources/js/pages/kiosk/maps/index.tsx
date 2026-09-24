@@ -38,6 +38,14 @@ function nearestLocation(
     return nearest;
 }
 
+/** Phones and tablets carry GPS and move with the visitor; kiosks don't. */
+function isHandheld() {
+    return (
+        typeof navigator !== 'undefined' &&
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    );
+}
+
 const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
     locating: 'Finding your location…',
     unsupported: "This device can't share its location.",
@@ -62,8 +70,10 @@ export default function KioskMapsIndex({
         () => createGeoProjector(referencePoints),
         [referencePoints],
     );
-    const [tracking, setTracking] = useState(false);
-    const geo = useGeolocation(tracking);
+    // Start locating straight away on phones; kiosks use the button.
+    const [tracking, setTracking] = useState(isHandheld);
+    // No GPS request until an admin has calibrated the map.
+    const geo = useGeolocation(tracking && projector !== null);
 
     const userPoint =
         projector && geo.fix
@@ -80,7 +90,9 @@ export default function KioskMapsIndex({
             ? nearestLocation(locations, userPoint, NEAR_RADIUS)
             : null;
 
-    let locationMessage = STATUS_MESSAGES[geo.status] ?? null;
+    let locationMessage = projector
+        ? (STATUS_MESSAGES[geo.status] ?? null)
+        : "Your location can't be shown yet: the school still needs to set up GPS for this map.";
 
     if (geo.status === 'active' && geo.fix) {
         const accuracy = `(accurate to about ${Math.round(geo.fix.accuracy)} m)`;
@@ -110,24 +122,21 @@ export default function KioskMapsIndex({
                         </p>
                     </div>
 
-                    {/* Only offered once an admin has calibrated GPS. */}
-                    {projector && (
-                        <Button
-                            variant={tracking ? 'secondary' : 'default'}
-                            onClick={() => {
-                                if (tracking) {
-                                    geo.reset();
-                                }
+                    <Button
+                        variant={tracking ? 'secondary' : 'default'}
+                        onClick={() => {
+                            if (tracking) {
+                                geo.reset();
+                            }
 
-                                setTracking(!tracking);
-                            }}
-                        >
-                            {tracking ? <LocateOff /> : <LocateFixed />}
-                            {tracking
-                                ? 'Stop showing my location'
-                                : 'Show my location'}
-                        </Button>
-                    )}
+                            setTracking(!tracking);
+                        }}
+                    >
+                        {tracking ? <LocateOff /> : <LocateFixed />}
+                        {tracking
+                            ? 'Stop showing my location'
+                            : 'Show my location'}
+                    </Button>
                 </div>
 
                 {tracking && locationMessage && (
