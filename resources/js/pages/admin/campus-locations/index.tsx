@@ -4,6 +4,8 @@ import { useState } from 'react';
 import CampusLocationController from '@/actions/App/Http/Controllers/Admin/CampusLocationController';
 import { CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
+import { GpsCalibration } from '@/components/gps-calibration';
+import type { MapReferencePoint } from '@/components/gps-calibration';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -25,8 +27,10 @@ type CampusLocation = CampusMapPoint & { sort_order: number };
 
 export default function CampusLocationsIndex({
     locations,
+    referencePoints,
 }: {
     locations: CampusLocation[];
+    referencePoints: MapReferencePoint[];
 }) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editing, setEditing] = useState<CampusLocation | null>(null);
@@ -179,6 +183,11 @@ export default function CampusLocationsIndex({
                             locations.find((l) => l.id === point.id) ?? null,
                         )
                     }
+                />
+
+                <GpsCalibration
+                    referencePoints={referencePoints}
+                    locations={locations}
                 />
 
                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CampusLocationController;
 use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
 use App\Http\Controllers\Admin\ManualMediaController;
+use App\Http\Controllers\Admin\MapReferencePointController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentImportController;
 use App\Http\Controllers\Admin\UserController;
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     Route::resource('campus-locations', CampusLocationController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::resource('map-reference-points', MapReferencePointController::class)
+        ->only(['store', 'destroy']);
 
     Route::get('students/import/template', [StudentImportController::class, 'template'])->name('students.import.template');
     Route::post('students/import', [StudentImportController::class, 'store'])->name('students.import.store');

@@ -18,8 +18,8 @@ export type CampusMapPoint = {
 // them is flat SVG or a real 3D world.
 // Proportions follow the printed Aemilianum College site plan (north = top),
 // including the frontage road along the bottom edge.
-const SITE_WIDTH = 16;
-const SITE_DEPTH = 12.8;
+export const SITE_WIDTH = 16;
+export const SITE_DEPTH = 12.8;
 
 function percentToWorld(x: number, y: number) {
     return {
@@ -150,6 +150,7 @@ const WALKWAYS: GridBox[] = [
 const PATCHES: (GridBox & { color: number })[] = [
     { col: 0, row: 12.1, w: SITE_WIDTH, d: 0.7, color: 0x4b5563 }, // road to Sorsogon City proper
     { col: 6.96, row: 9.36, w: 1.41, d: 2.74, color: 0x8b8e92 }, // main driveway
+    { col: 2.8, row: 9.4, w: 3.6, d: 2.7, color: 0x8b8e92 }, // lot between the gym and College of Law
     { col: 6.4, row: 9.36, w: 0.56, d: 1.5, color: 0x7d8084 }, // parking space
     { col: 11.36, row: 6.12, w: 3.3, d: 2.16, color: 0x7d8084 }, // ACI quadrangle (asphalt)
     { col: 11.7, row: 6.56, w: 1.96, d: 1.08, color: 0x93969a }, // volleyball court
@@ -179,8 +180,6 @@ const PALMS: { col: number; row: number }[] = [
     { col: 0.6, row: 3 },
     { col: 0.9, row: 5.2 },
     { col: 1.1, row: 7.4 },
-    { col: 1.2, row: 9.6 },
-    { col: 1.6, row: 11.4 },
     { col: 15.6, row: 0.8 },
     { col: 15.2, row: 2.2 },
     { col: 15.6, row: 5.9 },
@@ -249,7 +248,7 @@ function createCorridorTexture() {
 type Disposable = THREE.BufferGeometry | THREE.Material | THREE.Texture;
 
 /** Returns a helper that adds a shadowed mesh and tracks its geometry. */
-function meshAdder(scene: THREE.Scene, disposables: Disposable[]) {
+function meshAdder(scene: THREE.Object3D, disposables: Disposable[]) {
     return function add(
         geo: THREE.BufferGeometry,
         mat: THREE.Material | THREE.Material[],
@@ -720,6 +719,162 @@ function createCollegeSignTexture() {
     return texture;
 }
 
+/** Green wrought-iron bars with scrollwork, on a transparent background. */
+function createIronGrilleTexture(width: number, height: number) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.strokeStyle = '#1f5f45';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(2.5, 2.5, width - 5, height - 5);
+
+    ctx.lineWidth = 3;
+
+    for (let x = 12; x < width - 6; x += 12) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+
+    // Scroll motifs between the bars
+    ctx.lineWidth = 2;
+
+    for (let x = 18; x < width - 6; x += 24) {
+        for (let y = 20; y < height - 10; y += 40) {
+            ctx.beginPath();
+            ctx.ellipse(x, y, 5, 10, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return texture;
+}
+
+function createEntranceSignTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = '#f5f5f4';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = 'bold 40px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText('ENTRANCE', 128, 34);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return texture;
+}
+
+/**
+ * The doorway under the entrance canopy: a dark stair hall behind green
+ * iron double gates swung open, a grilled transom, and an ENTRANCE sign.
+ */
+function buildEntranceDoorway(
+    scene: THREE.Scene,
+    disposables: Disposable[],
+    doorX: number,
+    face: number,
+) {
+    const doorWidth = 0.3;
+    const doorHeight = 0.55;
+    const add = meshAdder(scene, disposables);
+
+    const openingMat = new THREE.MeshStandardMaterial({ color: 0x1c1b19 });
+    const gateTexture = createIronGrilleTexture(64, 128);
+    const transomTexture = createIronGrilleTexture(192, 48);
+    const grilleOptions = {
+        transparent: true,
+        alphaTest: 0.4,
+        side: THREE.DoubleSide,
+    };
+    const gateMat = new THREE.MeshStandardMaterial({
+        map: gateTexture,
+        ...grilleOptions,
+    });
+    const transomMat = new THREE.MeshStandardMaterial({
+        map: transomTexture,
+        ...grilleOptions,
+    });
+    const signTexture = createEntranceSignTexture();
+    const signMat = new THREE.MeshStandardMaterial({ map: signTexture });
+    disposables.push(
+        openingMat,
+        gateTexture,
+        transomTexture,
+        gateMat,
+        transomMat,
+        signTexture,
+        signMat,
+    );
+
+    // Dark opening into the stair hall
+    add(
+        new THREE.BoxGeometry(doorWidth, doorHeight, 0.02),
+        openingMat,
+        doorX,
+        doorHeight / 2,
+        face + 0.01,
+    );
+
+    // Grilled transom over the door, backed by the dark hall
+    const transomHeight = 0.12;
+    const transomY = doorHeight + 0.02 + transomHeight / 2;
+    add(
+        new THREE.BoxGeometry(doorWidth + 0.06, transomHeight, 0.02),
+        openingMat,
+        doorX,
+        transomY,
+        face + 0.01,
+    );
+    add(
+        new THREE.PlaneGeometry(doorWidth + 0.06, transomHeight),
+        transomMat,
+        doorX,
+        transomY,
+        face + 0.025,
+    );
+
+    // Two gate leaves hinged at the jambs, swung outward
+    const leafWidth = doorWidth / 2;
+    const leafGeo = new THREE.PlaneGeometry(leafWidth, doorHeight);
+    leafGeo.translate(leafWidth / 2, 0, 0); // pivot on the hinge edge
+
+    for (const side of [-1, 1]) {
+        const leaf = add(
+            leafGeo,
+            gateMat,
+            doorX + (side * doorWidth) / 2,
+            doorHeight / 2,
+            face + 0.02,
+        );
+        // Swung out past square: left leaf toward the west, right toward
+        // the east. (Rotation turns the leaf's +x toward +z, i.e. south.)
+        leaf.rotation.y = side < 0 ? -Math.PI * 0.55 : -Math.PI * 0.45;
+        // A plain shadow would ignore the grille's cut-outs.
+        leaf.castShadow = false;
+    }
+
+    // ENTRANCE sign on the wall beside the door
+    add(
+        new THREE.PlaneGeometry(0.3, 0.075),
+        signMat,
+        doorX - doorWidth / 2 - 0.18,
+        0.4,
+        face + 0.005,
+    );
+}
+
 /**
  * The Main Building's front entrance: a raised parapet block, a projecting
  * signed canopy on two columns, and the golden statue of St. Jerome
@@ -785,6 +940,8 @@ function buildMainEntrance(scene: THREE.Scene, disposables: Disposable[]) {
             face + 0.42,
         );
     }
+
+    buildEntranceDoorway(scene, disposables, cx - 0.3, face);
 
     // Statue of St. Jerome Emiliani, cross raised, with two children
     const statueZ = face + 0.12;
@@ -955,6 +1112,240 @@ function buildLoveAciSign(scene: THREE.Scene, disposables: Disposable[]) {
     }
 }
 
+// College of Law: runs north–south on the west edge of the south-west lot,
+// its balconies facing east across the lot toward the gym.
+const LAW_BUILDING: GridBox = { col: 1.6, row: 9.5, w: 1.2, d: 2.6 };
+const LAW_WALL_COLOR = '#efe3a6';
+const LAW_TRIM_COLOR = 0xe8cf3a;
+
+/**
+ * One bay, one storey of the College of Law's balcony side: yellow slab
+ * edge, wooden door and curtained window behind a dark metal railing.
+ */
+function createLawBalconyTexture() {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = LAW_WALL_COLOR;
+    ctx.fillRect(0, 0, size, size);
+
+    // Yellow slab edge and the shaded soffit under it
+    ctx.fillStyle = '#e8cf3a';
+    ctx.fillRect(0, 0, size, 14);
+    ctx.fillStyle = '#cbbf8a';
+    ctx.fillRect(0, 14, size, 8);
+
+    // Wooden door
+    ctx.fillStyle = '#9a6a3c';
+    ctx.fillRect(18, 40, 26, 88);
+
+    // Window with green curtains
+    ctx.fillStyle = '#2d3e50';
+    ctx.fillRect(58, 42, 54, 40);
+    ctx.fillStyle = '#3f9a55';
+    ctx.fillRect(60, 60, 50, 20);
+
+    // Dark metal balcony railing
+    ctx.strokeStyle = '#3a3a3a';
+    ctx.lineWidth = 3;
+
+    for (const y of [78, 94, 110]) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(size, y);
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(0, 76, 5, 52);
+    ctx.fillRect(size - 5, 76, 5, 52);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = 4;
+
+    return texture;
+}
+
+/** Grey stone-mosaic cladding on the end pillars. */
+function createStoneMosaicTexture() {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const tile = 8;
+
+    for (let y = 0; y < size; y += tile) {
+        for (let x = 0; x < size; x += tile) {
+            const shade = 110 + Math.floor(Math.random() * 90);
+            ctx.fillStyle = `rgb(${shade},${shade},${shade + 8})`;
+            ctx.fillRect(x, y, tile - 1, tile - 1);
+        }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+
+    return texture;
+}
+
+function createLawSignTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 48;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = '#e8cf3a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = 'bold 34px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#3f3a1c';
+    ctx.fillText('AEMILIANUM COLLEGE INC. - COLLEGE OF LAW', 512, 26);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return texture;
+}
+
+/**
+ * The College of Law: two storeys of open balconies facing the lot,
+ * yellow slab edges and roof fascia, stone-clad end pillars, a signboard
+ * on the upper slab, and a front stair beside a red planter curb.
+ */
+function buildLawBuilding(scene: THREE.Scene, disposables: Disposable[]) {
+    // Modelled lengthwise along local x with the balconies on local -z,
+    // then the whole group is turned so the balconies face east.
+    const w = LAW_BUILDING.d;
+    const d = LAW_BUILDING.w;
+    const cx = 0;
+    const cz = 0;
+    const front = -d / 2;
+    const height = 1.6;
+
+    const balconyTexture = createLawBalconyTexture();
+    const stoneTexture = createStoneMosaicTexture();
+    const signTexture = createLawSignTexture();
+    const balconyMat = new THREE.MeshStandardMaterial({
+        map: balconyTexture,
+        roughness: 0.9,
+    });
+    const wallMat = new THREE.MeshStandardMaterial({
+        color: LAW_WALL_COLOR,
+        roughness: 0.9,
+    });
+    const trimMat = new THREE.MeshStandardMaterial({
+        color: LAW_TRIM_COLOR,
+        roughness: 0.8,
+    });
+    const stoneMat = new THREE.MeshStandardMaterial({
+        map: stoneTexture,
+        roughness: 0.8,
+    });
+    const signMat = new THREE.MeshStandardMaterial({ map: signTexture });
+    const curbMat = new THREE.MeshStandardMaterial({ color: 0xc2410c });
+    const stepMat = new THREE.MeshStandardMaterial({ color: 0x9c9992 });
+    disposables.push(
+        balconyTexture,
+        stoneTexture,
+        signTexture,
+        balconyMat,
+        wallMat,
+        trimMat,
+        stoneMat,
+        signMat,
+        curbMat,
+        stepMat,
+    );
+
+    const group = new THREE.Group();
+    const center = gridCenter(LAW_BUILDING);
+    group.position.set(center.x, 0, center.z);
+    group.rotation.y = -Math.PI / 2; // local -z (balconies) → world +x (east)
+    scene.add(group);
+
+    const add = meshAdder(group, disposables);
+
+    // Main block, balconies on the front face
+    const blockGeo = new THREE.BoxGeometry(w, height, d);
+    tileWallUVs(blockGeo, { w, h: height, d });
+    add(
+        blockGeo,
+        [wallMat, wallMat, trimMat, wallMat, wallMat, balconyMat],
+        cx,
+        height / 2,
+        cz,
+    );
+
+    // Projecting roof slab with yellow fascia
+    add(
+        new THREE.BoxGeometry(w + 0.2, 0.08, d + 0.2),
+        trimMat,
+        cx,
+        height + 0.04,
+        cz - 0.05,
+    );
+
+    // Second-floor slab edge carrying the signboard
+    add(
+        new THREE.BoxGeometry(w, 0.07, 0.1),
+        trimMat,
+        cx,
+        STOREY_HEIGHT,
+        front - 0.05,
+    );
+    add(
+        new THREE.PlaneGeometry(1.5, 0.05),
+        signMat,
+        cx - 0.2,
+        STOREY_HEIGHT,
+        front - 0.101,
+    ).rotation.y = Math.PI; // face the front
+
+    // Stone-clad pillars at both ends
+    const pillarGeo = new THREE.BoxGeometry(0.3, height + 0.05, d + 0.1);
+    tileWallUVs(pillarGeo, { w: 0.3, h: height + 0.05, d: d + 0.1 }, 0.3, 0.3);
+
+    for (const side of [-1, 1]) {
+        add(
+            pillarGeo,
+            stoneMat,
+            cx + side * (w / 2 - 0.15),
+            (height + 0.05) / 2,
+            cz,
+        );
+    }
+
+    // Front stair up to the ground-floor walkway
+    for (let i = 0; i < 3; i++) {
+        add(
+            new THREE.BoxGeometry(0.5, 0.04 * (3 - i), 0.08),
+            stepMat,
+            cx - 0.9,
+            0.02 * (3 - i),
+            front - 0.04 - i * 0.08,
+        );
+    }
+
+    // Red planter curb along the front
+    add(
+        new THREE.BoxGeometry(1.2, 0.05, 0.06),
+        curbMat,
+        cx + 0.45,
+        0.025,
+        front - 0.2,
+    );
+}
+
 /** Builds the static campus scene once — the ground, buildings, trees. */
 function buildScene(scene: THREE.Scene) {
     const disposables: Disposable[] = [];
@@ -1081,6 +1472,7 @@ function buildScene(scene: THREE.Scene) {
     buildChapel(scene, disposables);
     buildMainEntrance(scene, disposables);
     buildLoveAciSign(scene, disposables);
+    buildLawBuilding(scene, disposables);
 
     const trunkGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.5, 6);
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x7c5a3a });
@@ -1147,6 +1539,7 @@ export function CampusMap({
     onPointClick,
     onMapClick,
     previewPoint,
+    userLocation,
     className,
 }: {
     points: CampusMapPoint[];
@@ -1154,16 +1547,20 @@ export function CampusMap({
     onPointClick?: (point: CampusMapPoint) => void;
     onMapClick?: (coords: { x: number; y: number }) => void;
     previewPoint?: { x: number; y: number } | null;
+    /** The viewer's own live position, drawn as a pulsing blue dot. */
+    userLocation?: { x: number; y: number } | null;
     className?: string;
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const pinRefs = useRef(new Map<number, HTMLButtonElement>());
     const previewRef = useRef<HTMLDivElement | null>(null);
+    const userRef = useRef<HTMLDivElement | null>(null);
 
     // Kept in refs so the render loop and event listeners (set up once)
     // always see the latest props without tearing down the WebGL scene.
     const pointsRef = useRef(points);
     const previewPointRef = useRef(previewPoint);
+    const userLocationRef = useRef(userLocation);
     const onPointClickRef = useRef(onPointClick);
     const onMapClickRef = useRef(onMapClick);
 
@@ -1174,6 +1571,10 @@ export function CampusMap({
     useEffect(() => {
         previewPointRef.current = previewPoint;
     }, [previewPoint]);
+
+    useEffect(() => {
+        userLocationRef.current = userLocation;
+    }, [userLocation]);
 
     useEffect(() => {
         onPointClickRef.current = onPointClick;
@@ -1272,6 +1673,12 @@ export function CampusMap({
 
             if (preview) {
                 positionPin(previewRef.current, preview.x, preview.y);
+            }
+
+            const user = userLocationRef.current;
+
+            if (user) {
+                positionPin(userRef.current, user.x, user.y);
             }
 
             renderer.render(scene, camera);
@@ -1395,6 +1802,18 @@ export function CampusMap({
                     className="pointer-events-none absolute -translate-x-1/2 -translate-y-full animate-bounce"
                 >
                     <MapPin className="size-7 fill-emerald-400 text-emerald-600 drop-shadow-sm" />
+                </div>
+            )}
+
+            {userLocation && (
+                <div
+                    ref={userRef}
+                    style={{ display: 'none' }}
+                    className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2"
+                >
+                    <span className="absolute inset-0 animate-ping rounded-full bg-sky-400 opacity-75" />
+                    <span className="relative block size-4 rounded-full border-2 border-white bg-sky-500 shadow-md" />
+                    <span className="sr-only">Your location</span>
                 </div>
             )}
         </div>

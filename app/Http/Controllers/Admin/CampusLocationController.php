@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCampusLocationRequest;
 use App\Http\Requests\Admin\UpdateCampusLocationRequest;
 use App\Models\CampusLocation;
+use App\Models\MapReferencePoint;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,6 +19,7 @@ class CampusLocationController extends Controller
             'locations' => CampusLocation::orderBy('sort_order')
                 ->orderBy('name')
                 ->get(),
+            'referencePoints' => MapReferencePoint::latest()->get(),
         ]);
     }
 

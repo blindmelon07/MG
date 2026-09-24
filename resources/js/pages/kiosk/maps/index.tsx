@@ -1,20 +1,30 @@
 import { Head } from '@inertiajs/react';
-import { MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { LocateFixed, LocateOff, MapPin } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useGeolocation } from '@/hooks/use-geolocation';
+import type { GeolocationStatus } from '@/hooks/use-geolocation';
+import { createGeoProjector } from '@/lib/campus-geo';
+import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { cn } from '@/lib/utils';
 
 // How close (in map percent) a tap must land to select a location.
 const TAP_RADIUS = 8;
+// How close the visitor must be to a location to say they're "near" it.
+const NEAR_RADIUS = 10;
+// How far outside the map edge still counts as being on campus.
+const CAMPUS_MARGIN = 5;
 
 function nearestLocation(
     locations: CampusMapPoint[],
     { x, y }: { x: number; y: number },
+    radius = TAP_RADIUS,
 ) {
     let nearest: CampusMapPoint | null = null;
-    let nearestDistance = TAP_RADIUS;
+    let nearestDistance = radius;
 
     for (const location of locations) {
         const distance = Math.hypot(location.x - x, location.y - y);
@@ -28,28 +38,107 @@ function nearestLocation(
     return nearest;
 }
 
+const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
+    locating: 'Finding your location…',
+    unsupported: "This device can't share its location.",
+    insecure:
+        'Location only works when this page is opened over a secure (https) link.',
+    denied: 'Location permission was blocked. Allow it in your browser settings to see where you are.',
+    unavailable:
+        "Couldn't get a GPS signal. Try moving outdoors, away from buildings.",
+};
+
 export default function KioskMapsIndex({
     locations,
+    referencePoints,
 }: {
     locations: CampusMapPoint[];
+    referencePoints: GeoReferencePoint[];
 }) {
     const [activeId, setActiveId] = useState<number | null>(null);
     const active = locations.find((location) => location.id === activeId);
+
+    const projector = useMemo(
+        () => createGeoProjector(referencePoints),
+        [referencePoints],
+    );
+    const [tracking, setTracking] = useState(false);
+    const geo = useGeolocation(tracking);
+
+    const userPoint =
+        projector && geo.fix
+            ? projector.project(geo.fix.latitude, geo.fix.longitude)
+            : null;
+    const onCampus =
+        userPoint !== null &&
+        userPoint.x >= -CAMPUS_MARGIN &&
+        userPoint.x <= 100 + CAMPUS_MARGIN &&
+        userPoint.y >= -CAMPUS_MARGIN &&
+        userPoint.y <= 100 + CAMPUS_MARGIN;
+    const nearby =
+        onCampus && userPoint
+            ? nearestLocation(locations, userPoint, NEAR_RADIUS)
+            : null;
+
+    let locationMessage = STATUS_MESSAGES[geo.status] ?? null;
+
+    if (geo.status === 'active' && geo.fix) {
+        const accuracy = `(accurate to about ${Math.round(geo.fix.accuracy)} m)`;
+
+        if (!onCampus) {
+            locationMessage = `You appear to be outside the campus ${accuracy}.`;
+        } else if (nearby) {
+            locationMessage = `You're near ${nearby.name} ${accuracy}.`;
+        } else {
+            locationMessage = `You're the blue dot on the map ${accuracy}.`;
+        }
+    }
 
     return (
         <>
             <Head title="Campus Map" />
 
             <div className="flex flex-col gap-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Campus Map
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Tap a place on the map or a location below to find your
-                        way around Aemilianum College Inc.
-                    </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h1 className="text-2xl font-semibold tracking-tight">
+                            Campus Map
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Tap a place on the map or a location below to find
+                            your way around Aemilianum College Inc.
+                        </p>
+                    </div>
+
+                    {/* Only offered once an admin has calibrated GPS. */}
+                    {projector && (
+                        <Button
+                            variant={tracking ? 'secondary' : 'default'}
+                            onClick={() => {
+                                if (tracking) {
+                                    geo.reset();
+                                }
+
+                                setTracking(!tracking);
+                            }}
+                        >
+                            {tracking ? <LocateOff /> : <LocateFixed />}
+                            {tracking
+                                ? 'Stop showing my location'
+                                : 'Show my location'}
+                        </Button>
+                    )}
                 </div>
+
+                {tracking && locationMessage && (
+                    <p
+                        role="status"
+                        className="-mt-3 flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                        <LocateFixed className="size-4 shrink-0 text-sky-500" />
+                        {locationMessage}
+                    </p>
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
@@ -65,6 +154,7 @@ export default function KioskMapsIndex({
                                         null,
                                 )
                             }
+                            userLocation={onCampus ? userPoint : null}
                         />
                     </div>
 
