@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             ManualSeeder::class,
             AnnouncementSeeder::class,
+            CampusLocationSeeder::class,
         ]);
     }
 }

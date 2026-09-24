@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen, CalendarDays, ChevronRight, Megaphone } from 'lucide-react';
+import { BookOpen, CalendarDays, ChevronRight, MapPin, Megaphone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { index as announcementsIndex, show as announcementShow } from '@/routes/announcements';
 import { index as manualsIndex } from '@/routes/manuals';
+import { index as mapsIndex } from '@/routes/maps';
 
 type Category = {
     id: number;
@@ -42,7 +43,7 @@ export default function KioskHome({
                     </p>
                 </section>
 
-                <section className="grid gap-6 sm:grid-cols-2">
+                <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     <Link href={manualsIndex()}>
                         <Card className="h-full transition-colors hover:border-primary">
                             <CardHeader>
@@ -69,6 +70,21 @@ export default function KioskHome({
                             <CardContent className="text-muted-foreground">
                                 Stay up to date with the latest school news
                                 and upcoming events.
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    <Link href={mapsIndex()}>
+                        <Card className="h-full transition-colors hover:border-primary">
+                            <CardHeader>
+                                <MapPin className="size-10 text-primary" />
+                                <CardTitle className="text-xl">
+                                    Campus Map
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-muted-foreground">
+                                Find your way around the campus and locate
+                                key buildings and offices.
                             </CardContent>
                         </Card>
                     </Link>

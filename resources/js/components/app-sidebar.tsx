@@ -3,6 +3,7 @@ import {
     BookOpen,
     GraduationCap,
     LayoutGrid,
+    MapPin,
     Megaphone,
     Tags,
     Users,
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as announcementsIndex } from '@/routes/admin/announcements';
+import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
 import { index as manualsIndex } from '@/routes/admin/manuals';
 import { index as studentsIndex } from '@/routes/admin/students';
@@ -55,6 +57,11 @@ export function AppSidebar() {
             title: 'Students',
             href: studentsIndex(),
             icon: GraduationCap,
+        },
+        {
+            title: 'Campus Map',
+            href: campusLocationsIndex(),
+            icon: MapPin,
         },
         ...(auth.user.role === 'super_admin'
             ? [

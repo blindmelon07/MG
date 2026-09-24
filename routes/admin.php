@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementMediaController;
+use App\Http\Controllers\Admin\CampusLocationController;
 use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
 use App\Http\Controllers\Admin\ManualMediaController;
@@ -28,6 +29,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     Route::resource('students', StudentController::class)
         ->except(['show']);
+
+    Route::resource('campus-locations', CampusLocationController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
 
     Route::get('students/import/template', [StudentImportController::class, 'template'])->name('students.import.template');
     Route::post('students/import', [StudentImportController::class, 'store'])->name('students.import.store');

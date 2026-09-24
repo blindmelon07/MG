@@ -4,11 +4,13 @@ import ChatbotWidget from '@/components/chatbot-widget';
 import { home } from '@/routes';
 import { index as announcementsIndex } from '@/routes/announcements';
 import { index as manualsIndex } from '@/routes/manuals';
+import { index as mapsIndex } from '@/routes/maps';
 
 const navItems = [
     { title: 'Home', href: home() },
     { title: 'School Manual', href: manualsIndex() },
     { title: 'Announcements & Events', href: announcementsIndex() },
+    { title: 'Campus Map', href: mapsIndex() },
 ];
 
 function useClock() {
