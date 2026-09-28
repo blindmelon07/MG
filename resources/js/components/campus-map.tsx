@@ -2,6 +2,7 @@ import { MapPin } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import type { WalkingAreas } from '@/lib/campus-route';
 import { cn } from '@/lib/utils';
 
 export type CampusMapPoint = {
@@ -67,6 +68,120 @@ const POSITION_EASING = 0.06;
 const TURN_EASING = 0.15;
 // Degrees turned per pixel when dragging to look around.
 const DRAG_DEGREES_PER_PIXEL = 0.25;
+
+// Navigation camera, Waze style: behind and above the walker, looking ahead.
+const FOLLOW_FOV = 55;
+const FOLLOW_BACK = 1.7;
+const FOLLOW_HEIGHT = 2.1;
+const FOLLOW_AHEAD = 0.9;
+
+const ROUTE_COLOR = 0x2563eb;
+const ROUTE_WIDTH = 0.11;
+// Just above the paved patches, so the line doesn't flicker into them.
+const ROUTE_HEIGHT = 0.03;
+
+/** A flat ribbon along the route, with round joints so bends look smooth. */
+function createRouteGeometry(points: { x: number; z: number }[]) {
+    const positions: number[] = [];
+    const half = ROUTE_WIDTH / 2;
+    const y = ROUTE_HEIGHT;
+
+    for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1];
+        const b = points[i];
+        const length = Math.hypot(b.x - a.x, b.z - a.z);
+
+        if (length === 0) {
+            continue;
+        }
+
+        const nx = (-(b.z - a.z) / length) * half;
+        const nz = ((b.x - a.x) / length) * half;
+
+        positions.push(
+            a.x + nx,
+            y,
+            a.z + nz,
+            a.x - nx,
+            y,
+            a.z - nz,
+            b.x + nx,
+            y,
+            b.z + nz,
+            b.x + nx,
+            y,
+            b.z + nz,
+            a.x - nx,
+            y,
+            a.z - nz,
+            b.x - nx,
+            y,
+            b.z - nz,
+        );
+    }
+
+    const segments = 10;
+
+    for (const point of points) {
+        for (let k = 0; k < segments; k++) {
+            const t0 = (k / segments) * Math.PI * 2;
+            const t1 = ((k + 1) / segments) * Math.PI * 2;
+            positions.push(
+                point.x,
+                y,
+                point.z,
+                point.x + Math.cos(t1) * half,
+                y,
+                point.z + Math.sin(t1) * half,
+                point.x + Math.cos(t0) * half,
+                y,
+                point.z + Math.sin(t0) * half,
+            );
+        }
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(positions, 3),
+    );
+
+    return geometry;
+}
+
+/** Blue navigation arrow with a white rim, lying flat and pointing along -z. */
+function createWalkerMarker() {
+    const arrow = (scale: number) => {
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0.2 * scale);
+        shape.lineTo(0.14 * scale, -0.14 * scale);
+        shape.lineTo(0, -0.06 * scale);
+        shape.lineTo(-0.14 * scale, -0.14 * scale);
+        shape.closePath();
+
+        const geometry = new THREE.ShapeGeometry(shape);
+        geometry.rotateX(-Math.PI / 2);
+
+        return geometry;
+    };
+
+    const rimGeometry = arrow(1.3);
+    const bodyGeometry = arrow(1);
+    const rimMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const bodyMaterial = new THREE.MeshBasicMaterial({ color: ROUTE_COLOR });
+
+    const group = new THREE.Group();
+    const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = 0.005;
+    group.add(rim, body);
+    group.visible = false;
+
+    return {
+        group,
+        disposables: [rimGeometry, bodyGeometry, rimMaterial, bodyMaterial],
+    };
+}
 
 /** Shortest signed difference between two angles, in radians. */
 function angleDelta(from: number, to: number) {
@@ -1565,6 +1680,26 @@ function buildScene(scene: THREE.Scene) {
     return { disposables };
 }
 
+/**
+ * Where people can walk, taken from the same layout the scene is drawn
+ * from, so routes always match the buildings on screen.
+ */
+export const CAMPUS_WALKING: WalkingAreas = {
+    width: SITE_WIDTH,
+    depth: SITE_DEPTH,
+    blocked: [
+        ...BUILDINGS.filter((b) => !b.corridors),
+        GYM,
+        CHAPEL,
+        LAW_BUILDING,
+    ],
+    corridors: BUILDINGS.filter((b) => b.corridors),
+    // The main entrance doorway through the south wing into the quadrangle.
+    passages: [{ col: MAIN_ENTRANCE.col - 0.15, row: 8.2, w: 0.3, d: 1.3 }],
+    preferred: [...WALKWAYS, ...PATCHES.slice(1)],
+    avoided: [PATCHES[0]],
+};
+
 export function CampusMap({
     points,
     activeId,
@@ -1573,6 +1708,8 @@ export function CampusMap({
     previewPoint,
     userLocation,
     firstPerson,
+    follow,
+    route,
     onLookDrag,
     className,
 }: {
@@ -1588,6 +1725,10 @@ export function CampusMap({
     userLocation?: { x: number; y: number; stale?: boolean } | null;
     /** When set, the camera stands here at eye level instead of orbiting. */
     firstPerson?: FirstPersonView | null;
+    /** Navigation: the camera follows from behind and above, Waze style. */
+    follow?: FirstPersonView | null;
+    /** Walking route to draw on the ground, in map percent. */
+    route?: { x: number; y: number }[] | null;
     /** First person only: the viewer dragged to look around (degrees, + = right). */
     onLookDrag?: (deltaDegrees: number) => void;
     className?: string;
@@ -1603,6 +1744,8 @@ export function CampusMap({
     const previewPointRef = useRef(previewPoint);
     const userLocationRef = useRef(userLocation);
     const firstPersonRef = useRef(firstPerson);
+    const followRef = useRef(follow);
+    const sceneRef = useRef<THREE.Scene | null>(null);
     const onLookDragRef = useRef(onLookDrag);
     const onPointClickRef = useRef(onPointClick);
     const onMapClickRef = useRef(onMapClick);
@@ -1622,6 +1765,10 @@ export function CampusMap({
     useEffect(() => {
         firstPersonRef.current = firstPerson;
     }, [firstPerson]);
+
+    useEffect(() => {
+        followRef.current = follow;
+    }, [follow]);
 
     useEffect(() => {
         onLookDragRef.current = onLookDrag;
@@ -1666,6 +1813,10 @@ export function CampusMap({
         controls.maxPolarAngle = Math.PI / 2 - 0.04;
 
         const { disposables } = buildScene(scene);
+        const walker = createWalkerMarker();
+        scene.add(walker.group);
+        disposables.push(...walker.disposables);
+        sceneRef.current = scene;
         const raycaster = new THREE.Raycaster();
 
         const resize = () => {
@@ -1711,17 +1862,23 @@ export function CampusMap({
             el.style.top = `${top}px`;
         }
 
-        // First-person state lives here, outside React, so the camera can
-        // ease smoothly every frame.
-        let inFirstPerson = false;
+        // Camera state lives here, outside React, so it can ease every frame.
+        // `focus` is the walker's smoothed position on the ground.
+        let mode: 'overview' | 'first-person' | 'follow' = 'overview';
+        const focus = new THREE.Vector3();
         let yaw = 0;
 
         function updateCamera() {
-            const view = firstPersonRef.current;
+            const view = followRef.current ?? firstPersonRef.current;
+            const next = followRef.current
+                ? 'follow'
+                : firstPersonRef.current
+                  ? 'first-person'
+                  : 'overview';
 
-            if (!view) {
-                if (inFirstPerson) {
-                    inFirstPerson = false;
+            if (!view || next === 'overview') {
+                if (mode !== 'overview') {
+                    mode = 'overview';
                     camera.fov = OVERVIEW_FOV;
                     camera.updateProjectionMatrix();
                     camera.position.copy(OVERVIEW_POSITION);
@@ -1729,6 +1886,7 @@ export function CampusMap({
                     controls.enabled = true;
                 }
 
+                walker.group.visible = false;
                 controls.update();
 
                 return;
@@ -1737,27 +1895,52 @@ export function CampusMap({
             const spot = percentToWorld(view.x, view.y);
             const targetYaw = Math.atan2(view.forward.x, view.forward.z);
 
-            if (!inFirstPerson) {
-                // Jump straight to eye level on entry, then ease from there.
-                inFirstPerson = true;
-                controls.enabled = false;
-                camera.fov = FIRST_PERSON_FOV;
-                camera.updateProjectionMatrix();
-                camera.position.set(spot.x, EYE_HEIGHT, spot.z);
+            if (mode === 'overview') {
+                // Jump straight to the walker on entry, then ease from there.
+                focus.set(spot.x, 0, spot.z);
                 yaw = targetYaw;
+                controls.enabled = false;
             } else {
-                camera.position.x +=
-                    (spot.x - camera.position.x) * POSITION_EASING;
-                camera.position.z +=
-                    (spot.z - camera.position.z) * POSITION_EASING;
-                camera.position.y = EYE_HEIGHT;
+                focus.x += (spot.x - focus.x) * POSITION_EASING;
+                focus.z += (spot.z - focus.z) * POSITION_EASING;
                 yaw += angleDelta(yaw, targetYaw) * TURN_EASING;
             }
 
+            if (mode !== next) {
+                mode = next;
+                camera.fov = next === 'follow' ? FOLLOW_FOV : FIRST_PERSON_FOV;
+                camera.updateProjectionMatrix();
+            }
+
+            const dirX = Math.sin(yaw);
+            const dirZ = Math.cos(yaw);
+
+            if (mode === 'first-person') {
+                walker.group.visible = false;
+                camera.position.set(focus.x, EYE_HEIGHT, focus.z);
+                camera.lookAt(
+                    focus.x + dirX,
+                    EYE_HEIGHT + FIRST_PERSON_PITCH,
+                    focus.z + dirZ,
+                );
+
+                return;
+            }
+
+            walker.group.visible = true;
+            walker.group.position.set(focus.x, ROUTE_HEIGHT + 0.01, focus.z);
+            // The arrow's tip points along -z; turn it to face `yaw`.
+            walker.group.rotation.y = Math.atan2(-dirX, -dirZ);
+
+            camera.position.set(
+                focus.x - dirX * FOLLOW_BACK,
+                FOLLOW_HEIGHT,
+                focus.z - dirZ * FOLLOW_BACK,
+            );
             camera.lookAt(
-                camera.position.x + Math.sin(yaw),
-                EYE_HEIGHT + FIRST_PERSON_PITCH,
-                camera.position.z + Math.cos(yaw),
+                focus.x + dirX * FOLLOW_AHEAD,
+                0,
+                focus.z + dirZ * FOLLOW_AHEAD,
             );
         }
 
@@ -1777,8 +1960,9 @@ export function CampusMap({
 
             const user = userLocationRef.current;
 
-            // In first person the viewer is the camera, so no dot.
-            if (user && !firstPersonRef.current) {
+            // In first person and navigation the walker is the camera or
+            // the 3D arrow, so no dot.
+            if (user && !firstPersonRef.current && !followRef.current) {
                 positionPin(userRef.current, user.x, user.y);
             }
 
@@ -1879,9 +2063,39 @@ export function CampusMap({
             controls.dispose();
             renderer.dispose();
             disposables.forEach((d) => d.dispose());
+            sceneRef.current = null;
             container.removeChild(renderer.domElement);
         };
     }, []);
+
+    useEffect(() => {
+        const scene = sceneRef.current;
+
+        if (!scene || !route || route.length < 2) {
+            return;
+        }
+
+        const geometry = createRouteGeometry(
+            route.map((p) => percentToWorld(p.x, p.y)),
+        );
+        const material = new THREE.MeshBasicMaterial({
+            color: ROUTE_COLOR,
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false,
+            // Leg direction decides which way the triangles face; show both.
+            side: THREE.DoubleSide,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.renderOrder = 1;
+        scene.add(mesh);
+
+        return () => {
+            scene.remove(mesh);
+            geometry.dispose();
+            material.dispose();
+        };
+    }, [route]);
 
     return (
         <div
@@ -1935,7 +2149,7 @@ export function CampusMap({
                 </div>
             )}
 
-            {userLocation && !firstPerson && (
+            {userLocation && !firstPerson && !follow && (
                 <div
                     ref={userRef}
                     style={{ display: 'none' }}

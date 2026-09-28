@@ -8,15 +8,19 @@ import {
     Map as MapIcon,
     MapPin,
     MoveHorizontal,
+    Navigation,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { CampusMap } from '@/components/campus-map';
+import { useMemo, useRef, useState } from 'react';
+import { CAMPUS_WALKING, CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
+import { NavigationHud } from '@/components/navigation-hud';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useCampusNavigation } from '@/hooks/use-campus-navigation';
 import { useDeviceHeading } from '@/hooks/use-device-heading';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import type { GeolocationStatus } from '@/hooks/use-geolocation';
+import { useSpeech } from '@/hooks/use-speech';
 import {
     bearingDegrees,
     compassDirection,
@@ -25,6 +29,8 @@ import {
     relativeDirection,
 } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
+import { createRouter } from '@/lib/campus-route';
+import { isHandheld } from '@/lib/device';
 import { cn } from '@/lib/utils';
 
 // How close (in map percent) a tap must land to select a location.
@@ -54,14 +60,6 @@ function nearestLocation(
     }
 
     return nearest;
-}
-
-/** Phones and tablets carry GPS and move with the visitor; kiosks don't. */
-function isHandheld() {
-    return (
-        typeof navigator !== 'undefined' &&
-        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-    );
 }
 
 const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
@@ -118,7 +116,33 @@ export default function KioskMapsIndex({
     // First person needs a phone that knows where it is on campus.
     const firstPersonAvailable =
         handheld && projector !== null && onCampus && userPoint !== null;
-    const firstPersonOn = view === 'first-person' && firstPersonAvailable;
+    // The walking grid is built on the first route request, not on page load.
+    const routerRef = useRef<ReturnType<typeof createRouter> | null>(null);
+    const router = useMemo(
+        () => ({
+            route: (
+                from: { x: number; y: number },
+                to: { x: number; y: number },
+            ) =>
+                (routerRef.current ??= createRouter(CAMPUS_WALKING)).route(
+                    from,
+                    to,
+                ),
+        }),
+        [],
+    );
+    const speech = useSpeech();
+    const mapRef = useRef<HTMLDivElement>(null);
+    const navigation = useCampusNavigation({
+        router,
+        projector,
+        position: firstPersonAvailable ? userPoint : null,
+        speak: speech.speak,
+    });
+    const navigating = navigation.trip !== null;
+
+    const firstPersonOn =
+        view === 'first-person' && firstPersonAvailable && !navigating;
     const compass = useDeviceHeading(firstPersonOn);
 
     // Without a compass, start out facing the chosen place or the campus centre.
@@ -246,15 +270,29 @@ export default function KioskMapsIndex({
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="relative lg:col-span-2">
+                    <div
+                        ref={mapRef}
+                        className="relative scroll-mt-2 lg:col-span-2"
+                    >
                         {/* Pins stay hidden until a location is chosen,
                             either from the list or by tapping the map. */}
                         <CampusMap
                             className={
-                                firstPersonOn
+                                firstPersonOn || navigating
                                     ? 'aspect-[3/4] sm:aspect-[4/3]'
                                     : undefined
                             }
+                            follow={
+                                navigation.trip && projector && userPoint
+                                    ? {
+                                          ...userPoint,
+                                          forward: projector.headingToWorld(
+                                              navigation.heading,
+                                          ),
+                                      }
+                                    : null
+                            }
+                            route={navigation.trip?.guide.points ?? null}
                             firstPerson={
                                 firstPersonOn && projector && userPoint
                                     ? {
@@ -276,7 +314,13 @@ export default function KioskMapsIndex({
                                           )
                                     : undefined
                             }
-                            points={active ? [active] : []}
+                            points={
+                                navigation.trip
+                                    ? [navigation.trip.destination]
+                                    : active
+                                      ? [active]
+                                      : []
+                            }
                             activeId={activeId}
                             onPointClick={(point) => setActiveId(point.id)}
                             onMapClick={(coords) =>
@@ -292,7 +336,23 @@ export default function KioskMapsIndex({
                             }
                         />
 
-                        {firstPersonAvailable && (
+                        {navigation.trip && (
+                            <NavigationHud
+                                destination={navigation.trip.destination.name}
+                                instruction={navigation.instruction}
+                                remaining={navigation.remaining}
+                                minutes={navigation.minutes}
+                                arrived={navigation.trip.arrived}
+                                muted={speech.muted}
+                                canSpeak={speech.supported}
+                                onToggleMute={() =>
+                                    speech.setMuted(!speech.muted)
+                                }
+                                onEnd={navigation.stop}
+                            />
+                        )}
+
+                        {firstPersonAvailable && !navigating && (
                             <Button
                                 size="sm"
                                 variant="secondary"
@@ -387,6 +447,34 @@ export default function KioskMapsIndex({
                                             {active.description && (
                                                 <p className="mt-1 text-sm text-muted-foreground">
                                                     {active.description}
+                                                </p>
+                                            )}
+                                            {firstPersonAvailable &&
+                                                navigation.trip?.destination
+                                                    .id !== active.id && (
+                                                    <Button
+                                                        className="mt-3"
+                                                        onClick={() => {
+                                                            navigation.start(
+                                                                active,
+                                                            );
+                                                            // The button sits below the map; bring the map up.
+                                                            mapRef.current?.scrollIntoView(
+                                                                {
+                                                                    behavior:
+                                                                        'smooth',
+                                                                    block: 'start',
+                                                                },
+                                                            );
+                                                        }}
+                                                    >
+                                                        <Navigation /> Start
+                                                        navigation
+                                                    </Button>
+                                                )}
+                                            {navigation.error && (
+                                                <p className="mt-2 text-sm text-destructive">
+                                                    {navigation.error}
                                                 </p>
                                             )}
                                         </>

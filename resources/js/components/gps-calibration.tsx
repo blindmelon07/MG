@@ -1,11 +1,18 @@
 import { Form } from '@inertiajs/react';
-import { LocateFixed, Plus, Trash2 } from 'lucide-react';
+import {
+    ClipboardPaste,
+    ExternalLink,
+    LocateFixed,
+    Plus,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import MapReferencePointController from '@/actions/App/Http/Controllers/Admin/MapReferencePointController';
 import { CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,14 +26,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useGeolocation } from '@/hooks/use-geolocation';
-import { createGeoProjector } from '@/lib/campus-geo';
+import { createGeoProjector, parseCoordinates } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
+import { isHandheld } from '@/lib/device';
+import { cn } from '@/lib/utils';
 
 export type MapReferencePoint = GeoReferencePoint & {
     id: number;
     label: string | null;
     accuracy: number | null;
 };
+
+type Source = 'paste' | 'gps';
 
 const GPS_STATUS: Record<string, string> = {
     locating: 'Waiting for a GPS signal…',
@@ -38,8 +49,9 @@ const GPS_STATUS: Record<string, string> = {
 };
 
 /**
- * Lets an admin line the campus map up with real GPS: stand somewhere on
- * campus, take a GPS reading, tap the same spot on the map, save.
+ * Lines the campus map up with real GPS. Each reference point pairs a real
+ * position with the same spot on the map. The position can be pasted from
+ * Google Maps (from any computer) or read from a phone standing at the spot.
  */
 export function GpsCalibration({
     referencePoints,
@@ -54,15 +66,34 @@ export function GpsCalibration({
     );
 
     const [open, setOpen] = useState(false);
+    const [source, setSource] = useState<Source>(() =>
+        isHandheld() ? 'gps' : 'paste',
+    );
+    const [pasted, setPasted] = useState('');
     const [sampling, setSampling] = useState(false);
     const [mapPoint, setMapPoint] = useState<{ x: number; y: number } | null>(
         null,
     );
-    const geo = useGeolocation(open && sampling, { keepBest: true });
+    const geo = useGeolocation(open && source === 'gps' && sampling, {
+        keepBest: true,
+    });
+
+    const parsed = pasted.trim() === '' ? null : parseCoordinates(pasted);
+    const reading =
+        source === 'paste'
+            ? parsed?.ok
+                ? {
+                      latitude: parsed.latitude,
+                      longitude: parsed.longitude,
+                      accuracy: null,
+                  }
+                : null
+            : geo.fix;
 
     const close = () => {
         setOpen(false);
         setSampling(false);
+        setPasted('');
         setMapPoint(null);
         geo.reset();
     };
@@ -88,7 +119,7 @@ export function GpsCalibration({
                 <Heading
                     variant="small"
                     title="GPS calibration"
-                    description="Lines the map up with real GPS so students can see their own location on their phones. Stand at an easy-to-spot place, like a building corner or the main gate, take a reading, then tap that same place on the map. Use 3–4 places spread around the campus."
+                    description="Lines the map up with real GPS so students can see where they are on their phones. For 3–4 easy-to-spot places spread around the campus (the main gate, building corners), give their real coordinates and click the same place on the map."
                 />
 
                 <Dialog
@@ -104,8 +135,9 @@ export function GpsCalibration({
                         <DialogHeader>
                             <DialogTitle>Add GPS reference point</DialogTitle>
                             <DialogDescription>
-                                Do this on your phone while standing at the
-                                spot, outdoors if possible.
+                                Pick a landmark that&apos;s easy to find both on
+                                Google Maps and on this map, like the main gate
+                                or a building corner.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -116,18 +148,18 @@ export function GpsCalibration({
                                     onMapClick={setMapPoint}
                                     previewPoint={mapPoint}
                                     userLocation={
-                                        projector && geo.fix
+                                        projector && reading
                                             ? projector.project(
-                                                  geo.fix.latitude,
-                                                  geo.fix.longitude,
+                                                  reading.latitude,
+                                                  reading.longitude,
                                               )
                                             : null
                                     }
                                 />
                                 <p className="mt-2 text-xs text-muted-foreground">
-                                    Tap the map exactly where you are standing.
+                                    Click the map at that landmark.
                                     {projector &&
-                                        ' The blue dot shows where the current calibration places you.'}
+                                        ' The blue dot shows where the current calibration puts those coordinates.'}
                                 </p>
                             </div>
 
@@ -139,28 +171,178 @@ export function GpsCalibration({
                                 {({ processing, errors }) => (
                                     <>
                                         <div className="grid gap-2">
-                                            <Label>1. GPS reading</Label>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    geo.reset();
-                                                    setSampling(true);
-                                                }}
+                                            <Label>1. Real coordinates</Label>
+
+                                            <div
+                                                className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
+                                                role="tablist"
+                                                aria-label="Where the coordinates come from"
                                             >
-                                                <LocateFixed />
-                                                {sampling
-                                                    ? 'Restart reading'
-                                                    : 'Use my GPS'}
-                                            </Button>
-                                            {sampling && (
-                                                <p className="text-sm text-muted-foreground">
-                                                    {geo.fix
-                                                        ? `Accurate to about ${Math.round(geo.fix.accuracy)} m. Hold still for a few seconds — the best reading is kept.`
-                                                        : (GPS_STATUS[
-                                                              geo.status
-                                                          ] ?? null)}
-                                                </p>
+                                                {(
+                                                    [
+                                                        [
+                                                            'paste',
+                                                            'From Google Maps',
+                                                            ClipboardPaste,
+                                                        ],
+                                                        [
+                                                            'gps',
+                                                            "My phone's GPS",
+                                                            LocateFixed,
+                                                        ],
+                                                    ] as const
+                                                ).map(
+                                                    ([value, label, Icon]) => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            role="tab"
+                                                            aria-selected={
+                                                                source === value
+                                                            }
+                                                            onClick={() => {
+                                                                setSource(
+                                                                    value,
+                                                                );
+                                                                setSampling(
+                                                                    false,
+                                                                );
+                                                                geo.reset();
+                                                            }}
+                                                            className={cn(
+                                                                'flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+                                                                source === value
+                                                                    ? 'bg-background shadow-sm'
+                                                                    : 'text-muted-foreground hover:text-foreground',
+                                                            )}
+                                                        >
+                                                            <Icon className="size-4" />
+                                                            {label}
+                                                        </button>
+                                                    ),
+                                                )}
+                                            </div>
+
+                                            {source === 'paste' ? (
+                                                <div className="grid gap-2">
+                                                    <ol className="list-decimal space-y-0.5 pl-5 text-xs text-muted-foreground">
+                                                        <li>
+                                                            Open{' '}
+                                                            <a
+                                                                href="https://www.google.com/maps/@?api=1&map_action=map&basemap=satellite"
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="font-medium text-primary underline-offset-4 hover:underline"
+                                                            >
+                                                                Google Maps
+                                                            </a>{' '}
+                                                            on satellite view.
+                                                        </li>
+                                                        <li>
+                                                            Right-click exactly
+                                                            on the landmark (on
+                                                            a phone: press and
+                                                            hold).
+                                                        </li>
+                                                        <li>
+                                                            Click the numbers at
+                                                            the top of the menu
+                                                            to copy them, then
+                                                            paste them here.
+                                                        </li>
+                                                    </ol>
+                                                    <Input
+                                                        aria-label="Coordinates"
+                                                        placeholder="13.036512, 124.003298"
+                                                        value={pasted}
+                                                        onChange={(e) =>
+                                                            setPasted(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        inputMode="decimal"
+                                                        autoComplete="off"
+                                                    />
+                                                    {parsed && !parsed.ok && (
+                                                        <p className="text-sm text-destructive">
+                                                            {parsed.error}
+                                                        </p>
+                                                    )}
+                                                    {parsed?.ok && (
+                                                        <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                                                            Latitude{' '}
+                                                            {parsed.latitude.toFixed(
+                                                                6,
+                                                            )}
+                                                            , longitude{' '}
+                                                            {parsed.longitude.toFixed(
+                                                                6,
+                                                            )}
+                                                            <a
+                                                                href={`https://www.google.com/maps/search/?api=1&query=${parsed.latitude},${parsed.longitude}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+                                                            >
+                                                                Check on Google
+                                                                Maps
+                                                                <ExternalLink className="size-3" />
+                                                            </a>
+                                                        </p>
+                                                    )}
+                                                    {parsed?.ok &&
+                                                        parsed.fromLink && (
+                                                            <Alert>
+                                                                <AlertDescription>
+                                                                    A Maps link
+                                                                    gives the
+                                                                    centre of
+                                                                    the screen,
+                                                                    which may
+                                                                    not be the
+                                                                    landmark.
+                                                                    Right-click
+                                                                    the exact
+                                                                    spot and
+                                                                    copy its
+                                                                    numbers
+                                                                    instead for
+                                                                    a precise
+                                                                    point.
+                                                                </AlertDescription>
+                                                            </Alert>
+                                                        )}
+                                                </div>
+                                            ) : (
+                                                <div className="grid gap-2">
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Stand at the landmark
+                                                        with your phone,
+                                                        outdoors if possible.
+                                                    </p>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            geo.reset();
+                                                            setSampling(true);
+                                                        }}
+                                                    >
+                                                        <LocateFixed />
+                                                        {sampling
+                                                            ? 'Restart reading'
+                                                            : 'Use my GPS'}
+                                                    </Button>
+                                                    {sampling && (
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {geo.fix
+                                                                ? `Accurate to about ${Math.round(geo.fix.accuracy)} m. Hold still for a few seconds — the best reading is kept.`
+                                                                : (GPS_STATUS[
+                                                                      geo.status
+                                                                  ] ?? null)}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             )}
                                             <InputError
                                                 message={errors.latitude}
@@ -168,11 +350,13 @@ export function GpsCalibration({
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label>2. Spot on the map</Label>
+                                            <Label>
+                                                2. Same spot on this map
+                                            </Label>
                                             <p className="text-sm text-muted-foreground">
                                                 {mapPoint
                                                     ? `Marked at ${mapPoint.x.toFixed(1)}%, ${mapPoint.y.toFixed(1)}%.`
-                                                    : 'Tap the map where you are standing.'}
+                                                    : 'Click the map at the landmark.'}
                                             </p>
                                             <InputError message={errors.x} />
                                         </div>
@@ -194,17 +378,17 @@ export function GpsCalibration({
                                         <input
                                             type="hidden"
                                             name="latitude"
-                                            value={geo.fix?.latitude ?? ''}
+                                            value={reading?.latitude ?? ''}
                                         />
                                         <input
                                             type="hidden"
                                             name="longitude"
-                                            value={geo.fix?.longitude ?? ''}
+                                            value={reading?.longitude ?? ''}
                                         />
                                         <input
                                             type="hidden"
                                             name="accuracy"
-                                            value={geo.fix?.accuracy ?? ''}
+                                            value={reading?.accuracy ?? ''}
                                         />
                                         <input
                                             type="hidden"
@@ -222,7 +406,7 @@ export function GpsCalibration({
                                                 type="submit"
                                                 disabled={
                                                     processing ||
-                                                    !geo.fix ||
+                                                    !reading ||
                                                     !mapPoint
                                                 }
                                             >
@@ -253,8 +437,9 @@ export function GpsCalibration({
                                 <div className="text-xs text-muted-foreground">
                                     {point.latitude.toFixed(6)},{' '}
                                     {point.longitude.toFixed(6)}
-                                    {point.accuracy !== null &&
-                                        ` (±${Math.round(point.accuracy)} m)`}{' '}
+                                    {point.accuracy !== null
+                                        ? ` (phone GPS, ±${Math.round(point.accuracy)} m)`
+                                        : ' (entered)'}{' '}
                                     → map {point.x.toFixed(1)}%,{' '}
                                     {point.y.toFixed(1)}%
                                 </div>

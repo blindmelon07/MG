@@ -155,6 +155,73 @@ export function createGeoProjector(
     return { project, offsetMeters, headingToWorld, errorMeters };
 }
 
+export type ParsedCoordinates =
+    | {
+          ok: true;
+          latitude: number;
+          longitude: number;
+          /** From a Maps link: that's the view's centre, not an exact spot. */
+          fromLink: boolean;
+      }
+    | { ok: false; error: string };
+
+/**
+ * Reads coordinates pasted from Google Maps: the "13.0365, 124.0032" it
+ * copies on right-click, a Maps link ("…/@13.0365,124.0032,17z…"), or the
+ * "13.0365° N, 124.0032° E" style.
+ */
+export function parseCoordinates(input: string): ParsedCoordinates {
+    const text = input.trim();
+
+    if (text === '') {
+        return { ok: false, error: 'Paste the coordinates first.' };
+    }
+
+    const number = String.raw`(-?\d{1,3}(?:\.\d+)?)`;
+    const fromLink =
+        text.match(new RegExp(String.raw`@${number},${number}`)) ??
+        text.match(
+            new RegExp(String.raw`[?&](?:q|query|ll)=${number},${number}`),
+        );
+    const plain = text.match(
+        new RegExp(
+            String.raw`^${number}\s*°?\s*([NS])?\s*[,;\s]\s*${number}\s*°?\s*([EW])?$`,
+            'i',
+        ),
+    );
+
+    let latitude: number;
+    let longitude: number;
+
+    if (fromLink) {
+        latitude = Number(fromLink[1]);
+        longitude = Number(fromLink[2]);
+    } else if (plain) {
+        latitude =
+            Number(plain[1]) * (plain[2]?.toUpperCase() === 'S' ? -1 : 1);
+        longitude =
+            Number(plain[3]) * (plain[4]?.toUpperCase() === 'W' ? -1 : 1);
+    } else {
+        return {
+            ok: false,
+            error: 'Couldn’t read that. It should look like 13.0365, 124.0032.',
+        };
+    }
+
+    if (Math.abs(latitude) > 90 && Math.abs(longitude) <= 90) {
+        return {
+            ok: false,
+            error: 'The numbers look swapped. Latitude (the smaller number here) comes first.',
+        };
+    }
+
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+        return { ok: false, error: 'Those aren’t valid coordinates.' };
+    }
+
+    return { ok: true, latitude, longitude, fromLink: fromLink !== null };
+}
+
 /** Compass bearing, in degrees clockwise from north, of an east/north offset. */
 export function bearingDegrees({
     east,

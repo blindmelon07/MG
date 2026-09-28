@@ -81,3 +81,18 @@ test('kiosk map receives reference points without extra details', function () {
             )
         );
 });
+
+test('a point with coordinates entered from Google Maps needs no accuracy reading', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->post(route('admin.map-reference-points.store'), [
+        'label' => 'Chapel corner',
+        'latitude' => 13.036512,
+        'longitude' => 124.003298,
+        'accuracy' => '',
+        'x' => 40.0,
+        'y' => 55.5,
+    ])->assertRedirect(route('admin.campus-locations.index'));
+
+    expect(MapReferencePoint::sole()->accuracy)->toBeNull();
+});
