@@ -17,7 +17,7 @@ class StudentImportController extends Controller
 
     public function template(): StreamedResponse
     {
-        $headers = ['name', 'student_number', 'grade_level', 'section', 'status', 'phone_number'];
+        $headers = ['name', 'student_number', 'grade_level', 'section', 'grading_system', 'status', 'phone_number'];
 
         for ($i = 1; $i <= self::GUARDIAN_SLOTS; $i++) {
             $headers[] = "guardian_{$i}_name";
@@ -26,7 +26,7 @@ class StudentImportController extends Controller
         }
 
         $sample = [
-            'Juan Dela Cruz', 'LRN-00012345', 'Grade 8', 'St. Thomas', 'active', '',
+            'Juan Dela Cruz', 'LRN-00012345', 'Grade 8', 'St. Thomas', 'k12', 'active', '',
             'Maria Dela Cruz', 'Mother', '09171234567',
             'Jose Dela Cruz', 'Father', '09181234567',
         ];
@@ -146,12 +146,19 @@ class StudentImportController extends Controller
             $status = 'active';
         }
 
-        DB::transaction(function () use ($name, $studentNumber, $data, $status, $phoneNumber, $guardians): void {
+        $gradingSystem = strtolower($this->clean($data['grading_system'] ?? null) ?? 'k12');
+
+        if (! in_array($gradingSystem, Student::GRADING_SYSTEMS, true)) {
+            return ['status' => 'error', 'message' => 'Grading system must be k12 or college.'];
+        }
+
+        DB::transaction(function () use ($name, $studentNumber, $data, $status, $gradingSystem, $phoneNumber, $guardians): void {
             $student = Student::create([
                 'name' => $name,
                 'student_number' => $studentNumber,
                 'grade_level' => $this->clean($data['grade_level'] ?? null),
                 'section' => $this->clean($data['section'] ?? null),
+                'grading_system' => $gradingSystem,
                 'phone_number' => $phoneNumber,
                 'status' => $status,
             ]);

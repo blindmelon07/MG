@@ -1,0 +1,1 @@
+var e={k12:`K-12 (quarterly)`,college:`College (semestral)`};function t(e,t){if(e==null||e===``)return`—`;let n=Number(e);return t===`college`?n.toFixed(2):String(n)}function n(e){return e==null||e===``?`—`:String(Number(e))}function r(e){return e!==null&&e.toLowerCase()===`failed`}export{r as i,n,e as r,t};

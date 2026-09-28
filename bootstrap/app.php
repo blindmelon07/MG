@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureStudentPasswordChanged;
+use App\Http\Middleware\EnsureTwoFactorEnabled;
+use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecureStudentSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,7 +30,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'super_admin' => EnsureUserIsSuperAdmin::class,
+            'role' => EnsureUserHasRole::class,
+            'two_factor' => EnsureTwoFactorEnabled::class,
+            'student.password_changed' => EnsureStudentPasswordChanged::class,
+            'student.secure' => SecureStudentSession::class,
         ]);
+
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('student', 'student/*')
+            ? route('student.login', $request->boolean('kiosk') ? ['kiosk' => 1] : [])
+            : route('login'));
+
+        $middleware->redirectUsersTo(fn (Request $request) => $request->is('student', 'student/*')
+            ? route('student.grades')
+            : route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

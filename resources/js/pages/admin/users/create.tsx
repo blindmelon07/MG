@@ -13,6 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { roleLabels } from '@/lib/roles';
 import { create, index as usersIndex } from '@/routes/admin/users';
 
 export default function UsersCreate() {
@@ -59,19 +60,20 @@ export default function UsersCreate() {
                             <div className="grid gap-2">
                                 <Label htmlFor="role">Role</Label>
                                 <Select name="role" defaultValue="admin">
-                                    <SelectTrigger
-                                        id="role"
-                                        className="w-full"
-                                    >
+                                    <SelectTrigger id="role" className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="admin">
-                                            Admin
-                                        </SelectItem>
-                                        <SelectItem value="super_admin">
-                                            Super Admin
-                                        </SelectItem>
+                                        {Object.entries(roleLabels).map(
+                                            ([value, label]) => (
+                                                <SelectItem
+                                                    key={value}
+                                                    value={value}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            ),
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.role} />

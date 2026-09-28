@@ -6,12 +6,24 @@ use App\Models\Announcement;
 use App\Models\ChatbotLog;
 use App\Models\Manual;
 use App\Models\ManualCategory;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response|RedirectResponse
+    {
+        // Teachers and registrar staff land on the module they work in.
+        return match ($request->user('web')->role) {
+            'teacher' => to_route('admin.grades.index'),
+            'registrar' => to_route('admin.students.index'),
+            default => $this->overview(),
+        };
+    }
+
+    private function overview(): Response
     {
         return Inertia::render('dashboard', [
             'stats' => [

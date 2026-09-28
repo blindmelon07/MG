@@ -1,10 +1,21 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen, CalendarDays, ChevronRight, MapPin, Megaphone } from 'lucide-react';
+import {
+    BookOpen,
+    CalendarDays,
+    ChevronRight,
+    GraduationCap,
+    MapPin,
+    Megaphone,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { index as announcementsIndex, show as announcementShow } from '@/routes/announcements';
+import {
+    index as announcementsIndex,
+    show as announcementShow,
+} from '@/routes/announcements';
 import { index as manualsIndex } from '@/routes/manuals';
 import { index as mapsIndex } from '@/routes/maps';
+import { login as studentLogin } from '@/routes/student';
 
 type Category = {
     id: number;
@@ -38,12 +49,12 @@ export default function KioskHome({
                         Welcome to Aemilianum College Inc.
                     </h1>
                     <p className="mt-2 text-muted-foreground">
-                        Touch a tile below to browse the school manual or see
-                        the latest announcements and events.
+                        Touch a tile below to browse the school manual, see the
+                        latest announcements, or check your grades.
                     </p>
                 </section>
 
-                <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <Link href={manualsIndex()}>
                         <Card className="h-full transition-colors hover:border-primary">
                             <CardHeader>
@@ -68,8 +79,8 @@ export default function KioskHome({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="text-muted-foreground">
-                                Stay up to date with the latest school news
-                                and upcoming events.
+                                Stay up to date with the latest school news and
+                                upcoming events.
                             </CardContent>
                         </Card>
                     </Link>
@@ -83,8 +94,23 @@ export default function KioskHome({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="text-muted-foreground">
-                                Find your way around the campus and locate
-                                key buildings and offices.
+                                Find your way around the campus and locate key
+                                buildings and offices.
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    <Link href={studentLogin({ query: { kiosk: 1 } })}>
+                        <Card className="h-full transition-colors hover:border-primary">
+                            <CardHeader>
+                                <GraduationCap className="size-10 text-primary" />
+                                <CardTitle className="text-xl">
+                                    My Grades
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-muted-foreground">
+                                Sign in with your student number to check your
+                                grades.
                             </CardContent>
                         </Card>
                     </Link>
@@ -131,9 +157,7 @@ export default function KioskHome({
                             {latestAnnouncements.map((announcement) => (
                                 <Link
                                     key={announcement.id}
-                                    href={announcementShow(
-                                        announcement.slug,
-                                    )}
+                                    href={announcementShow(announcement.slug)}
                                 >
                                     <Card className="transition-colors hover:border-primary">
                                         <CardContent className="flex items-center justify-between gap-4">

@@ -28,6 +28,7 @@ class UpdateStudentRequest extends FormRequest
             'student_number' => ['nullable', 'string', 'max:255', Rule::unique('students', 'student_number')->ignore($student)],
             'grade_level' => ['nullable', 'string', 'max:255'],
             'section' => ['nullable', 'string', 'max:255'],
+            'grading_system' => ['sometimes', 'required', Rule::in(Student::GRADING_SYSTEMS)],
             'phone_number' => ['nullable', 'string', new PhilippineMobileNumber],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'guardians' => ['required', 'array', 'min:1'],

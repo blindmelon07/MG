@@ -80,6 +80,8 @@ export function useGeolocation(enabled: boolean, { keepBest = false } = {}) {
     return {
         status,
         fix: enabled ? fix : null,
+        /** The signal dropped out; `fix` is the last known position. */
+        stale: enabled && error === 'unavailable' && fix !== null,
         /** Forget the current fix, e.g. before taking a fresh reading. */
         reset: () => {
             setFix(null);

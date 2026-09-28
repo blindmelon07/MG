@@ -17,7 +17,13 @@ class UserController extends Controller
     public function index(): Response
     {
         return Inertia::render('admin/users/index', [
-            'users' => User::orderBy('name')->get(['id', 'name', 'email', 'role', 'created_at']),
+            'users' => User::orderBy('name')
+                ->get(['id', 'name', 'email', 'role', 'two_factor_confirmed_at', 'created_at'])
+                ->map(fn (User $user) => [
+                    ...$user->only(['id', 'name', 'email', 'role', 'created_at']),
+                    'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
+                    'two_factor_required' => $user->requiresTwoFactor(),
+                ]),
         ]);
     }
 
@@ -42,7 +48,10 @@ class UserController extends Controller
     public function edit(User $user): Response
     {
         return Inertia::render('admin/users/edit', [
-            'editedUser' => $user->only(['id', 'name', 'email', 'role']),
+            'editedUser' => [
+                ...$user->only(['id', 'name', 'email', 'role']),
+                'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
+            ],
         ]);
     }
 

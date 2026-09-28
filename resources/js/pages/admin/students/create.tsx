@@ -14,11 +14,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { gradingSystemLabels } from '@/lib/grades';
 import { create, index as studentsIndex } from '@/routes/admin/students';
 
 type GuardianRow = { name: string; relationship: string; phone_number: string };
 
-const emptyGuardian: GuardianRow = { name: '', relationship: '', phone_number: '' };
+const emptyGuardian: GuardianRow = {
+    name: '',
+    relationship: '',
+    phone_number: '',
+};
 
 export default function StudentsCreate() {
     const [guardians, setGuardians] = useState<GuardianRow[]>([
@@ -69,9 +74,7 @@ export default function StudentsCreate() {
                                         name="phone_number"
                                         placeholder="09171234567"
                                     />
-                                    <InputError
-                                        message={errors.phone_number}
-                                    />
+                                    <InputError message={errors.phone_number} />
                                 </div>
                             </div>
 
@@ -84,15 +87,39 @@ export default function StudentsCreate() {
                                         id="grade_level"
                                         name="grade_level"
                                     />
-                                    <InputError
-                                        message={errors.grade_level}
-                                    />
+                                    <InputError message={errors.grade_level} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="section">Section</Label>
                                     <Input id="section" name="section" />
                                     <InputError message={errors.section} />
                                 </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="grading_system">
+                                    Grading system
+                                </Label>
+                                <Select
+                                    name="grading_system"
+                                    defaultValue={'k12'}
+                                >
+                                    <SelectTrigger
+                                        id="grading_system"
+                                        className="w-full"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="k12">
+                                            {gradingSystemLabels.k12}
+                                        </SelectItem>
+                                        <SelectItem value="college">
+                                            {gradingSystemLabels.college}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.grading_system} />
                             </div>
 
                             <div className="grid gap-2">

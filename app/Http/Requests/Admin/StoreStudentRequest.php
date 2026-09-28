@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Student;
 use App\Rules\PhilippineMobileNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,7 @@ class StoreStudentRequest extends FormRequest
             'student_number' => ['nullable', 'string', 'max:255', 'unique:students,student_number'],
             'grade_level' => ['nullable', 'string', 'max:255'],
             'section' => ['nullable', 'string', 'max:255'],
+            'grading_system' => ['sometimes', 'required', Rule::in(Student::GRADING_SYSTEMS)],
             'phone_number' => ['nullable', 'string', new PhilippineMobileNumber],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'guardians' => ['required', 'array', 'min:1'],

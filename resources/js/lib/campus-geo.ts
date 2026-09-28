@@ -11,6 +11,11 @@ export type GeoReferencePoint = {
 export type GeoProjector = {
     /** Converts a GPS fix to map x/y percent (may fall outside 0–100). */
     project: (latitude: number, longitude: number) => { x: number; y: number };
+    /** Real-world offset, in metres east and north, between two map points. */
+    offsetMeters: (
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+    ) => { east: number; north: number };
     /** Average distance, in metres, between the reference points and the fit. */
     errorMeters: number;
 };
@@ -113,7 +118,55 @@ export function createGeoProjector(
             }),
         ) / scale;
 
-    return { project, errorMeters };
+    // Inverse of the rotation + scale: z = w / a.
+    const offsetMeters = (
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+    ) => {
+        const dRe = ((to.x - from.x) / 100) * SITE_WIDTH;
+        const dIm = -((to.y - from.y) / 100) * SITE_DEPTH;
+        const aa = a.re * a.re + a.im * a.im;
+
+        return {
+            east: (dRe * a.re + dIm * a.im) / aa,
+            north: (dIm * a.re - dRe * a.im) / aa,
+        };
+    };
+
+    return { project, offsetMeters, errorMeters };
+}
+
+const COMPASS = [
+    'north',
+    'north-east',
+    'east',
+    'south-east',
+    'south',
+    'south-west',
+    'west',
+    'north-west',
+];
+
+/** Nearest of the eight compass directions for an east/north offset. */
+export function compassDirection({
+    east,
+    north,
+}: {
+    east: number;
+    north: number;
+}) {
+    const degrees = (Math.atan2(east, north) * 180) / Math.PI;
+
+    return COMPASS[((Math.round(degrees / 45) % 8) + 8) % 8];
+}
+
+/** "80 m", "350 m", "1.2 km" — rounded to what GPS can honestly claim. */
+export function formatDistance(meters: number) {
+    if (meters < 1000) {
+        return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
+    }
+
+    return `${(meters / 1000).toFixed(1)} km`;
 }
 
 function mean(values: number[]) {

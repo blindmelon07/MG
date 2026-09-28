@@ -14,7 +14,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { gradingSystemLabels } from '@/lib/grades';
 import { edit, index as studentsIndex } from '@/routes/admin/students';
+import type { GradingSystem } from '@/types/auth';
 
 type GuardianRow = {
     id?: number;
@@ -29,6 +31,7 @@ type EditedStudent = {
     student_number: string | null;
     grade_level: string | null;
     section: string | null;
+    grading_system: GradingSystem;
     phone_number: string | null;
     status: 'active' | 'inactive';
     guardians: GuardianRow[];
@@ -96,9 +99,7 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                             student.phone_number ?? ''
                                         }
                                     />
-                                    <InputError
-                                        message={errors.phone_number}
-                                    />
+                                    <InputError message={errors.phone_number} />
                                 </div>
                             </div>
 
@@ -110,13 +111,9 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                     <Input
                                         id="grade_level"
                                         name="grade_level"
-                                        defaultValue={
-                                            student.grade_level ?? ''
-                                        }
+                                        defaultValue={student.grade_level ?? ''}
                                     />
-                                    <InputError
-                                        message={errors.grade_level}
-                                    />
+                                    <InputError message={errors.grade_level} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="section">Section</Label>
@@ -127,6 +124,32 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                     />
                                     <InputError message={errors.section} />
                                 </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="grading_system">
+                                    Grading system
+                                </Label>
+                                <Select
+                                    name="grading_system"
+                                    defaultValue={student.grading_system}
+                                >
+                                    <SelectTrigger
+                                        id="grading_system"
+                                        className="w-full"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="k12">
+                                            {gradingSystemLabels.k12}
+                                        </SelectItem>
+                                        <SelectItem value="college">
+                                            {gradingSystemLabels.college}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.grading_system} />
                             </div>
 
                             <div className="grid gap-2">

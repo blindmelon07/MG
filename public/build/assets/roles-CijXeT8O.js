@@ -1,0 +1,1 @@
+var e={super_admin:`Super Admin`,admin:`Admin`,registrar:`Registrar`,teacher:`Teacher`};function t(e,...t){return e.role===`super_admin`||t.includes(e.role)}export{e as n,t};

@@ -1,10 +1,23 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { Download, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import {
+    Download,
+    KeyRound,
+    Pencil,
+    Plus,
+    Printer,
+    Trash2,
+    Upload,
+} from 'lucide-react';
 import { useState } from 'react';
 import StudentController from '@/actions/App/Http/Controllers/Admin/StudentController';
 import StudentImportController from '@/actions/App/Http/Controllers/Admin/StudentImportController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import {
+    IssueCredentialsDialog,
+    IssuedCredentialsDialog,
+    PrintCredentialsDialog,
+} from '@/components/student-credentials';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,19 +48,47 @@ type Student = {
     grade_level: string | null;
     section: string | null;
     status: 'active' | 'inactive';
+    grading_system: 'k12' | 'college';
+    must_change_password: boolean;
+    has_password: boolean;
+    last_login_at: string | null;
     guardians: Guardian[];
 };
+
+function accountStatus(student: Student): string {
+    if (!student.student_number) {
+        return 'No login (needs student #)';
+    }
+
+    if (!student.has_password) {
+        return 'No password issued';
+    }
+
+    if (student.must_change_password) {
+        return 'Temporary password';
+    }
+
+    return student.last_login_at
+        ? `Last sign-in ${new Date(student.last_login_at).toLocaleDateString()}`
+        : 'Active';
+}
 
 export default function StudentsIndex({
     students,
     search,
+    sections,
+    awaitingCredentials,
 }: {
     students: Paginated<Student>;
     search: string;
+    sections: string[];
+    awaitingCredentials: number;
 }) {
     const [deleting, setDeleting] = useState<Student | null>(null);
     const [searchTerm, setSearchTerm] = useState(search);
     const [importing, setImporting] = useState(false);
+    const [issuing, setIssuing] = useState<Student | null>(null);
+    const [printing, setPrinting] = useState(false);
 
     return (
         <>
@@ -61,6 +102,12 @@ export default function StudentsIndex({
                     />
 
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setPrinting(true)}
+                        >
+                            <Printer /> Login slips
+                        </Button>
                         <Button
                             variant="outline"
                             onClick={() => setImporting(true)}
@@ -111,6 +158,9 @@ export default function StudentsIndex({
                                     Status
                                 </th>
                                 <th className="px-4 py-2 font-medium">
+                                    Portal account
+                                </th>
+                                <th className="px-4 py-2 font-medium">
                                     <span className="sr-only">Actions</span>
                                 </th>
                             </tr>
@@ -119,7 +169,7 @@ export default function StudentsIndex({
                             {students.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={6}
+                                        colSpan={7}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         No students yet.
@@ -160,8 +210,26 @@ export default function StudentsIndex({
                                             {student.status}
                                         </Badge>
                                     </td>
+                                    <td className="px-4 py-2 text-muted-foreground">
+                                        {accountStatus(student)}
+                                    </td>
                                     <td className="px-4 py-2">
                                         <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                disabled={
+                                                    !student.student_number
+                                                }
+                                                onClick={() =>
+                                                    setIssuing(student)
+                                                }
+                                            >
+                                                <KeyRound />
+                                                <span className="sr-only">
+                                                    Issue portal password
+                                                </span>
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -262,14 +330,28 @@ export default function StudentsIndex({
                 </DialogContent>
             </Dialog>
 
+            <IssueCredentialsDialog
+                student={issuing}
+                onClose={() => setIssuing(null)}
+            />
+            <IssuedCredentialsDialog />
+            <PrintCredentialsDialog
+                open={printing}
+                onOpenChange={setPrinting}
+                sections={sections}
+                awaiting={awaitingCredentials}
+            />
+
             <Dialog open={importing} onOpenChange={setImporting}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Import students</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Upload a CSV file with student and guardian info.
-                        Rows matching an existing student # are skipped.
+                        Upload a CSV file with student and guardian info. Rows
+                        matching an existing student # are skipped. Use
+                        &ldquo;Login slips&rdquo; afterwards to create portal
+                        passwords for the new students.
                     </p>
                     <a
                         href={importTemplate().url}
@@ -302,10 +384,7 @@ export default function StudentsIndex({
                                             Cancel
                                         </Button>
                                     </DialogClose>
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                    >
+                                    <Button type="submit" disabled={processing}>
                                         <Upload /> Import
                                     </Button>
                                 </DialogFooter>

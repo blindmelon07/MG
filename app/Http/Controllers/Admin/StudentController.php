@@ -25,8 +25,14 @@ class StudentController extends Controller
                 })
                 ->orderBy('name')
                 ->paginate(15)
-                ->withQueryString(),
+                ->withQueryString()
+                ->through(fn (Student $student) => [
+                    ...$student->toArray(),
+                    'has_password' => $student->password !== null,
+                ]),
             'search' => $search,
+            'sections' => Student::whereNotNull('section')->distinct()->orderBy('section')->pluck('section'),
+            'awaitingCredentials' => Student::active()->awaitingCredentials()->count(),
         ]);
     }
 

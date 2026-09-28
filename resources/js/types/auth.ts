@@ -1,8 +1,12 @@
+export type UserRole = 'super_admin' | 'admin' | 'registrar' | 'teacher';
+
+export type GradingSystem = 'k12' | 'college';
+
 export type User = {
     id: number;
     name: string;
     email: string;
-    role: 'super_admin' | 'admin';
+    role: UserRole;
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
@@ -13,6 +17,16 @@ export type User = {
 
 export type Auth = {
     user: User;
+    student: StudentAccount | null;
+};
+
+export type StudentAccount = {
+    id: number;
+    name: string;
+    student_number: string;
+    grade_level: string | null;
+    section: string | null;
+    grading_system: GradingSystem;
 };
 
 /* @chisel-passkeys */

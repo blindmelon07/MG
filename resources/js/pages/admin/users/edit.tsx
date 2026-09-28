@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
+import UserTwoFactorController from '@/actions/App/Http/Controllers/Admin/UserTwoFactorController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -13,20 +14,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { roleLabels } from '@/lib/roles';
 import { edit, index as usersIndex } from '@/routes/admin/users';
+import type { UserRole } from '@/types/auth';
 
 type ManagedUser = {
     id: number;
     name: string;
     email: string;
-    role: 'super_admin' | 'admin';
+    role: UserRole;
+    two_factor_enabled: boolean;
 };
 
-export default function UsersEdit({
-    editedUser,
-}: {
-    editedUser: ManagedUser;
-}) {
+export default function UsersEdit({ editedUser }: { editedUser: ManagedUser }) {
     return (
         <>
             <Head title={`Edit ${editedUser.name}`} />
@@ -75,28 +75,27 @@ export default function UsersEdit({
                                     name="role"
                                     defaultValue={editedUser.role}
                                 >
-                                    <SelectTrigger
-                                        id="role"
-                                        className="w-full"
-                                    >
+                                    <SelectTrigger id="role" className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="admin">
-                                            Admin
-                                        </SelectItem>
-                                        <SelectItem value="super_admin">
-                                            Super Admin
-                                        </SelectItem>
+                                        {Object.entries(roleLabels).map(
+                                            ([value, label]) => (
+                                                <SelectItem
+                                                    key={value}
+                                                    value={value}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            ),
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.role} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">
-                                    New password
-                                </Label>
+                                <Label htmlFor="password">New password</Label>
                                 <PasswordInput
                                     id="password"
                                     name="password"
@@ -128,6 +127,37 @@ export default function UsersEdit({
                         </>
                     )}
                 </Form>
+
+                {editedUser.two_factor_enabled && (
+                    <div className="max-w-md space-y-3 border-t border-sidebar-border/70 pt-6 dark:border-sidebar-border">
+                        <Heading
+                            variant="small"
+                            title="Two-factor authentication"
+                            description="Reset it if this person lost their phone and recovery codes. Confirm who they are first; anyone with their password could then sign in without a code until 2FA is set up again."
+                        />
+                        <Form
+                            {...UserTwoFactorController.destroy.form(
+                                editedUser.id,
+                            )}
+                            options={{ preserveScroll: true }}
+                            onBefore={() =>
+                                confirm(
+                                    `Reset two-factor authentication for ${editedUser.name}?`,
+                                )
+                            }
+                        >
+                            {({ processing }) => (
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                >
+                                    Reset two-factor
+                                </Button>
+                            )}
+                        </Form>
+                    </div>
+                )}
             </div>
         </>
     );

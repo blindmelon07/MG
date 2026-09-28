@@ -50,9 +50,49 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    public const ROLES = ['super_admin', 'admin', 'registrar', 'teacher'];
+
+    /** Roles that change grades must protect their accounts with two-factor authentication. */
+    public const TWO_FACTOR_ROLES = ['registrar', 'teacher'];
+
+    public function requiresTwoFactor(): bool
+    {
+        return in_array($this->role, self::TWO_FACTOR_ROLES, true);
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';
+    }
+
+    public function isTeacher(): bool
+    {
+        return $this->role === 'teacher';
+    }
+
+    /**
+     * Super admins implicitly hold every role.
+     */
+    public function hasRole(string ...$roles): bool
+    {
+        return $this->isSuperAdmin() || in_array($this->role, $roles, true);
+    }
+
+    /**
+     * Registrar staff and admins can manage grades for any student;
+     * teachers are limited to their teaching assignments.
+     */
+    public function canManageAllGrades(): bool
+    {
+        return $this->hasRole('admin', 'registrar');
+    }
+
+    /**
+     * @return HasMany<TeachingAssignment, $this>
+     */
+    public function teachingAssignments(): HasMany
+    {
+        return $this->hasMany(TeachingAssignment::class);
     }
 
     /**

@@ -1547,8 +1547,11 @@ export function CampusMap({
     onPointClick?: (point: CampusMapPoint) => void;
     onMapClick?: (coords: { x: number; y: number }) => void;
     previewPoint?: { x: number; y: number } | null;
-    /** The viewer's own live position, drawn as a pulsing blue dot. */
-    userLocation?: { x: number; y: number } | null;
+    /**
+     * The viewer's own position: a pulsing blue dot, or a still grey one
+     * when `stale` (GPS lost; last known position).
+     */
+    userLocation?: { x: number; y: number; stale?: boolean } | null;
     className?: string;
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -1811,9 +1814,20 @@ export function CampusMap({
                     style={{ display: 'none' }}
                     className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2"
                 >
-                    <span className="absolute inset-0 animate-ping rounded-full bg-sky-400 opacity-75" />
-                    <span className="relative block size-4 rounded-full border-2 border-white bg-sky-500 shadow-md" />
-                    <span className="sr-only">Your location</span>
+                    {!userLocation.stale && (
+                        <span className="absolute inset-0 animate-ping rounded-full bg-sky-400 opacity-75" />
+                    )}
+                    <span
+                        className={cn(
+                            'relative block size-4 rounded-full border-2 border-white shadow-md',
+                            userLocation.stale ? 'bg-slate-400' : 'bg-sky-500',
+                        )}
+                    />
+                    <span className="sr-only">
+                        {userLocation.stale
+                            ? 'Your last known location'
+                            : 'Your location'}
+                    </span>
                 </div>
             )}
         </div>

@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import type { GeolocationStatus } from '@/hooks/use-geolocation';
-import { createGeoProjector } from '@/lib/campus-geo';
+import {
+    compassDirection,
+    createGeoProjector,
+    formatDistance,
+} from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { cn } from '@/lib/utils';
 
@@ -94,11 +98,28 @@ export default function KioskMapsIndex({
         ? (STATUS_MESSAGES[geo.status] ?? null)
         : "Your location can't be shown yet: the school still needs to set up GPS for this map.";
 
-    if (geo.status === 'active' && geo.fix) {
+    if (projector && userPoint && geo.fix) {
         const accuracy = `(accurate to about ${Math.round(geo.fix.accuracy)} m)`;
 
-        if (!onCampus) {
-            locationMessage = `You appear to be outside the campus ${accuracy}.`;
+        if (geo.stale) {
+            locationMessage = onCampus
+                ? 'GPS signal lost — the grey dot shows where you were last seen.'
+                : 'GPS signal lost. Try moving outdoors, away from buildings.';
+        } else if (!onCampus) {
+            // Point the way back, to the Main Gate if it's on the map.
+            const gate = locations.find((l) => /main gate/i.test(l.name));
+            const offset = projector.offsetMeters(
+                userPoint,
+                gate ?? { x: 50, y: 50 },
+            );
+            const distance = formatDistance(
+                Math.hypot(offset.east, offset.north),
+            );
+            const direction = compassDirection(offset);
+
+            locationMessage = gate
+                ? `You're outside the campus, about ${distance} from the Main Gate. Head ${direction} to get there ${accuracy}.`
+                : `You're outside the campus, about ${distance} away. Head ${direction} to get there ${accuracy}.`;
         } else if (nearby) {
             locationMessage = `You're near ${nearby.name} ${accuracy}.`;
         } else {
@@ -163,7 +184,11 @@ export default function KioskMapsIndex({
                                         null,
                                 )
                             }
-                            userLocation={onCampus ? userPoint : null}
+                            userLocation={
+                                onCampus && userPoint
+                                    ? { ...userPoint, stale: geo.stale }
+                                    : null
+                            }
                         />
                     </div>
 

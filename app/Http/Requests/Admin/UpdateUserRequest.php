@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,7 @@ class UpdateUserRequest extends FormRequest
                 'required', 'string', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
-            'role' => ['required', Rule::in(['admin', 'super_admin'])],
+            'role' => ['required', Rule::in(User::ROLES)],
             'password' => ['nullable', 'string', Password::default(), 'confirmed'],
         ];
     }

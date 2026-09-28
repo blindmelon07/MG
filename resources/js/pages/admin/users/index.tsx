@@ -13,15 +13,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { roleLabels } from '@/lib/roles';
 import { create, edit, index as usersIndex } from '@/routes/admin/users';
 import type { Auth } from '@/types';
+import type { UserRole } from '@/types/auth';
 
 type ManagedUser = {
     id: number;
     name: string;
     email: string;
-    role: 'super_admin' | 'admin';
+    role: UserRole;
     created_at: string;
+    two_factor_enabled: boolean;
+    two_factor_required: boolean;
 };
 
 export default function UsersIndex({ users }: { users: ManagedUser[] }) {
@@ -36,7 +40,7 @@ export default function UsersIndex({ users }: { users: ManagedUser[] }) {
                 <div className="flex items-center justify-between">
                     <Heading
                         title="Users"
-                        description="Manage admin and super admin accounts."
+                        description="Manage staff accounts: admins, registrar staff, and teachers."
                     />
 
                     <Button asChild>
@@ -50,14 +54,11 @@ export default function UsersIndex({ users }: { users: ManagedUser[] }) {
                     <table className="w-full text-sm">
                         <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
                             <tr>
+                                <th className="px-4 py-2 font-medium">Name</th>
+                                <th className="px-4 py-2 font-medium">Email</th>
+                                <th className="px-4 py-2 font-medium">Role</th>
                                 <th className="px-4 py-2 font-medium">
-                                    Name
-                                </th>
-                                <th className="px-4 py-2 font-medium">
-                                    Email
-                                </th>
-                                <th className="px-4 py-2 font-medium">
-                                    Role
+                                    Two-factor
                                 </th>
                                 <th className="px-4 py-2 font-medium">
                                     <span className="sr-only">Actions</span>
@@ -78,9 +79,7 @@ export default function UsersIndex({ users }: { users: ManagedUser[] }) {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-2">
-                                        {user.email}
-                                    </td>
+                                    <td className="px-4 py-2">{user.email}</td>
                                     <td className="px-4 py-2">
                                         <Badge
                                             variant={
@@ -89,10 +88,23 @@ export default function UsersIndex({ users }: { users: ManagedUser[] }) {
                                                     : 'secondary'
                                             }
                                         >
-                                            {user.role === 'super_admin'
-                                                ? 'Super Admin'
-                                                : 'Admin'}
+                                            {roleLabels[user.role]}
                                         </Badge>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        {user.two_factor_enabled ? (
+                                            <span className="text-muted-foreground">
+                                                On
+                                            </span>
+                                        ) : user.two_factor_required ? (
+                                            <Badge variant="destructive">
+                                                Required — not set up
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                Off
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-2">
                                         <div className="flex justify-end gap-2">

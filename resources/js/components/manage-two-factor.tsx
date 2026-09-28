@@ -1,9 +1,10 @@
 import { Form } from '@inertiajs/react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import { disable, enable } from '@/routes/two-factor';
@@ -12,11 +13,13 @@ export type Props = {
     canManageTwoFactor?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
+    twoFactorRequired?: boolean;
 };
 
 export default function ManageTwoFactor(props: Props) {
     const requiresConfirmation = props.requiresConfirmation ?? false;
     const twoFactorEnabled = props.twoFactorEnabled ?? false;
+    const twoFactorRequired = props.twoFactorRequired ?? false;
 
     const {
         qrCodeSvg,
@@ -51,6 +54,21 @@ export default function ManageTwoFactor(props: Props) {
                 title="Two-factor authentication"
                 description="Manage your two-factor authentication settings"
             />
+            {twoFactorRequired && !twoFactorEnabled && (
+                <Alert>
+                    <ShieldAlert />
+                    <AlertTitle>
+                        Two-factor authentication is required
+                    </AlertTitle>
+                    <AlertDescription>
+                        Your role can change student grades, so you need to turn
+                        on two-factor authentication before you can use the
+                        dashboard. You&apos;ll need an authenticator app such as
+                        Google Authenticator or Microsoft Authenticator on your
+                        phone.
+                    </AlertDescription>
+                </Alert>
+            )}
             {twoFactorEnabled ? (
                 <div className="flex flex-col items-start justify-start space-y-4">
                     <p className="text-sm text-muted-foreground">
@@ -59,19 +77,28 @@ export default function ManageTwoFactor(props: Props) {
                         application on your phone.
                     </p>
 
-                    <div className="relative inline">
-                        <Form {...disable.form()}>
-                            {({ processing }) => (
-                                <Button
-                                    variant="destructive"
-                                    type="submit"
-                                    disabled={processing}
-                                >
-                                    Disable 2FA
-                                </Button>
-                            )}
-                        </Form>
-                    </div>
+                    {twoFactorRequired ? (
+                        <p className="text-sm text-muted-foreground">
+                            Two-factor authentication is required for your role
+                            and can&apos;t be turned off. If you lose your
+                            phone, use a recovery code or ask a super admin to
+                            reset it.
+                        </p>
+                    ) : (
+                        <div className="relative inline">
+                            <Form {...disable.form()}>
+                                {({ processing }) => (
+                                    <Button
+                                        variant="destructive"
+                                        type="submit"
+                                        disabled={processing}
+                                    >
+                                        Disable 2FA
+                                    </Button>
+                                )}
+                            </Form>
+                        </div>
+                    )}
 
                     <TwoFactorRecoveryCodes
                         recoveryCodesList={recoveryCodesList}
