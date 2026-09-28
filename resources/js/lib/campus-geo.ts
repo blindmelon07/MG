@@ -16,6 +16,11 @@ export type GeoProjector = {
         from: { x: number; y: number },
         to: { x: number; y: number },
     ) => { east: number; north: number };
+    /**
+     * Unit direction in the 3D scene (x/z world axes) for a compass heading,
+     * in degrees clockwise from north.
+     */
+    headingToWorld: (headingDegrees: number) => { x: number; z: number };
     /** Average distance, in metres, between the reference points and the fit. */
     errorMeters: number;
 };
@@ -133,7 +138,54 @@ export function createGeoProjector(
         };
     };
 
-    return { project, offsetMeters, errorMeters };
+    // Real-world north and east as scene directions: a·i and a·1, turned from
+    // w-space (y flipped) back into world x/z.
+    const north = { x: -a.im / scale, z: -a.re / scale };
+    const east = { x: a.re / scale, z: -a.im / scale };
+
+    const headingToWorld = (headingDegrees: number) => {
+        const h = (headingDegrees * Math.PI) / 180;
+
+        return {
+            x: Math.cos(h) * north.x + Math.sin(h) * east.x,
+            z: Math.cos(h) * north.z + Math.sin(h) * east.z,
+        };
+    };
+
+    return { project, offsetMeters, headingToWorld, errorMeters };
+}
+
+/** Compass bearing, in degrees clockwise from north, of an east/north offset. */
+export function bearingDegrees({
+    east,
+    north,
+}: {
+    east: number;
+    north: number;
+}) {
+    return ((Math.atan2(east, north) * 180) / Math.PI + 360) % 360;
+}
+
+/** Where a bearing lies relative to the way the viewer faces, in words. */
+export function relativeDirection(bearing: number, heading: number) {
+    // -180..180, negative = to the left.
+    const turn = ((bearing - heading + 540) % 360) - 180;
+    const side = turn < 0 ? 'left' : 'right';
+    const amount = Math.abs(turn);
+
+    if (amount <= 25) {
+        return { turn, label: 'straight ahead' };
+    }
+
+    if (amount <= 70) {
+        return { turn, label: `ahead on your ${side}` };
+    }
+
+    if (amount <= 135) {
+        return { turn, label: `on your ${side}` };
+    }
+
+    return { turn, label: 'behind you' };
 }
 
 const COMPASS = [

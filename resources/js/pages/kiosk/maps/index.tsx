@@ -1,16 +1,28 @@
 import { Head } from '@inertiajs/react';
-import { LocateFixed, LocateOff, MapPin } from 'lucide-react';
+import {
+    ArrowUp,
+    Compass,
+    Eye,
+    LocateFixed,
+    LocateOff,
+    Map as MapIcon,
+    MapPin,
+    MoveHorizontal,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useDeviceHeading } from '@/hooks/use-device-heading';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import type { GeolocationStatus } from '@/hooks/use-geolocation';
 import {
+    bearingDegrees,
     compassDirection,
     createGeoProjector,
     formatDistance,
+    relativeDirection,
 } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { cn } from '@/lib/utils';
@@ -21,6 +33,8 @@ const TAP_RADIUS = 8;
 const NEAR_RADIUS = 10;
 // How far outside the map edge still counts as being on campus.
 const CAMPUS_MARGIN = 5;
+// Within this many metres of a destination, you've arrived.
+const ARRIVED_METERS = 10;
 
 function nearestLocation(
     locations: CampusMapPoint[],
@@ -74,8 +88,15 @@ export default function KioskMapsIndex({
         () => createGeoProjector(referencePoints),
         [referencePoints],
     );
+    const [handheld] = useState(isHandheld);
     // Start locating straight away on phones; kiosks use the button.
-    const [tracking, setTracking] = useState(isHandheld);
+    const [tracking, setTracking] = useState(handheld);
+    // Phones default to seeing the campus through the visitor's own eyes.
+    const [view, setView] = useState<'first-person' | 'overview'>(
+        handheld ? 'first-person' : 'overview',
+    );
+    // Where the visitor has dragged to look, when there's no compass.
+    const [lookHeading, setLookHeading] = useState<number | null>(null);
     // No GPS request until an admin has calibrated the map.
     const geo = useGeolocation(tracking && projector !== null);
 
@@ -93,6 +114,49 @@ export default function KioskMapsIndex({
         onCampus && userPoint
             ? nearestLocation(locations, userPoint, NEAR_RADIUS)
             : null;
+
+    // First person needs a phone that knows where it is on campus.
+    const firstPersonAvailable =
+        handheld && projector !== null && onCampus && userPoint !== null;
+    const firstPersonOn = view === 'first-person' && firstPersonAvailable;
+    const compass = useDeviceHeading(firstPersonOn);
+
+    // Without a compass, start out facing the chosen place or the campus centre.
+    const initialHeading =
+        projector && userPoint
+            ? bearingDegrees(
+                  projector.offsetMeters(userPoint, active ?? { x: 50, y: 50 }),
+              )
+            : 0;
+    const heading = compass.heading ?? lookHeading ?? initialHeading;
+
+    const guidance = (() => {
+        if (!firstPersonOn || !active || !projector || !userPoint) {
+            return null;
+        }
+
+        const offset = projector.offsetMeters(userPoint, active);
+        const meters = Math.hypot(offset.east, offset.north);
+
+        if (meters < ARRIVED_METERS) {
+            return {
+                arrived: true,
+                turn: 0,
+                text: `You've arrived at ${active.name}.`,
+            };
+        }
+
+        const { turn, label } = relativeDirection(
+            bearingDegrees(offset),
+            heading,
+        );
+
+        return {
+            arrived: false,
+            turn,
+            text: `${active.name} is ${label}, about ${formatDistance(meters)} away.`,
+        };
+    })();
 
     let locationMessage = projector
         ? (STATUS_MESSAGES[geo.status] ?? null)
@@ -160,6 +224,17 @@ export default function KioskMapsIndex({
                     </Button>
                 </div>
 
+                {handheld &&
+                    view === 'first-person' &&
+                    tracking &&
+                    !firstPersonAvailable &&
+                    projector && (
+                        <p className="-mt-3 text-sm text-muted-foreground">
+                            First-person view starts once your phone finds you
+                            on campus.
+                        </p>
+                    )}
+
                 {tracking && locationMessage && (
                     <p
                         role="status"
@@ -171,10 +246,36 @@ export default function KioskMapsIndex({
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                    <div className="relative lg:col-span-2">
                         {/* Pins stay hidden until a location is chosen,
                             either from the list or by tapping the map. */}
                         <CampusMap
+                            className={
+                                firstPersonOn
+                                    ? 'aspect-[3/4] sm:aspect-[4/3]'
+                                    : undefined
+                            }
+                            firstPerson={
+                                firstPersonOn && projector && userPoint
+                                    ? {
+                                          ...userPoint,
+                                          forward:
+                                              projector.headingToWorld(heading),
+                                      }
+                                    : null
+                            }
+                            onLookDrag={
+                                compass.heading === null
+                                    ? (delta) =>
+                                          setLookHeading(
+                                              (prev) =>
+                                                  ((prev ?? heading) +
+                                                      delta +
+                                                      360) %
+                                                  360,
+                                          )
+                                    : undefined
+                            }
                             points={active ? [active] : []}
                             activeId={activeId}
                             onPointClick={(point) => setActiveId(point.id)}
@@ -190,6 +291,82 @@ export default function KioskMapsIndex({
                                     : null
                             }
                         />
+
+                        {firstPersonAvailable && (
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                className="absolute top-2 right-2 shadow-md"
+                                onClick={() =>
+                                    setView(
+                                        firstPersonOn
+                                            ? 'overview'
+                                            : 'first-person',
+                                    )
+                                }
+                            >
+                                {firstPersonOn ? <MapIcon /> : <Eye />}
+                                {firstPersonOn ? 'Overview' : 'First person'}
+                            </Button>
+                        )}
+
+                        {firstPersonOn && (
+                            <div className="pointer-events-none absolute inset-x-2 bottom-2 flex flex-col items-start gap-2">
+                                {guidance && (
+                                    <div
+                                        role="status"
+                                        className="flex items-center gap-2 rounded-lg bg-background/90 px-3 py-2 text-sm font-medium shadow-md backdrop-blur"
+                                    >
+                                        {guidance.arrived ? (
+                                            <MapPin className="size-5 shrink-0 text-primary" />
+                                        ) : (
+                                            <ArrowUp
+                                                className="size-5 shrink-0 text-primary transition-transform"
+                                                style={{
+                                                    transform: `rotate(${guidance.turn}deg)`,
+                                                }}
+                                            />
+                                        )}
+                                        {guidance.text}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-2 rounded-lg bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-md backdrop-blur">
+                                    {compass.heading !== null ? (
+                                        <>
+                                            <Compass className="size-4 shrink-0" />
+                                            Facing{' '}
+                                            {compassDirection({
+                                                east: Math.sin(
+                                                    (heading * Math.PI) / 180,
+                                                ),
+                                                north: Math.cos(
+                                                    (heading * Math.PI) / 180,
+                                                ),
+                                            })}
+                                            . Turn your phone to look around.
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MoveHorizontal className="size-4 shrink-0" />
+                                            Drag sideways to look around.
+                                        </>
+                                    )}
+                                </div>
+
+                                {compass.status === 'needs-permission' && (
+                                    <Button
+                                        size="sm"
+                                        className="pointer-events-auto shadow-md"
+                                        onClick={() =>
+                                            void compass.requestPermission()
+                                        }
+                                    >
+                                        <Compass /> Use my compass
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3">

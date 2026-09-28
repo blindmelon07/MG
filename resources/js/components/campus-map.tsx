@@ -41,6 +41,38 @@ function worldToPercent(x: number, z: number) {
     };
 }
 
+/**
+ * First-person camera: standing at a map spot, facing a scene direction
+ * (a unit x/z vector; see GeoProjector.headingToWorld).
+ */
+export type FirstPersonView = {
+    x: number;
+    y: number;
+    forward: { x: number; z: number };
+};
+
+// Overview camera, viewed from the main gate side like the printed map.
+const OVERVIEW_POSITION = new THREE.Vector3(0, 13, 13);
+const OVERVIEW_TARGET = new THREE.Vector3(0, 0.6, 0);
+const OVERVIEW_FOV = 45;
+
+// A storey is 0.8 units (about 3 m), so eye level (~1.6 m) is about 0.42.
+const EYE_HEIGHT = 0.42;
+const FIRST_PERSON_FOV = 70;
+// Slight downward glance, like looking ahead while walking.
+const FIRST_PERSON_PITCH = -0.08;
+// Per-frame easing toward the latest GPS spot and heading. GPS jumps a few
+// metres between fixes; easing turns that into a walk rather than a jolt.
+const POSITION_EASING = 0.06;
+const TURN_EASING = 0.15;
+// Degrees turned per pixel when dragging to look around.
+const DRAG_DEGREES_PER_PIXEL = 0.25;
+
+/** Shortest signed difference between two angles, in radians. */
+function angleDelta(from: number, to: number) {
+    return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
 type GridBox = { col: number; row: number; w: number; d: number };
 
 function gridCenter({ col, row, w, d }: GridBox) {
@@ -1540,6 +1572,8 @@ export function CampusMap({
     onMapClick,
     previewPoint,
     userLocation,
+    firstPerson,
+    onLookDrag,
     className,
 }: {
     points: CampusMapPoint[];
@@ -1552,6 +1586,10 @@ export function CampusMap({
      * when `stale` (GPS lost; last known position).
      */
     userLocation?: { x: number; y: number; stale?: boolean } | null;
+    /** When set, the camera stands here at eye level instead of orbiting. */
+    firstPerson?: FirstPersonView | null;
+    /** First person only: the viewer dragged to look around (degrees, + = right). */
+    onLookDrag?: (deltaDegrees: number) => void;
     className?: string;
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -1564,6 +1602,8 @@ export function CampusMap({
     const pointsRef = useRef(points);
     const previewPointRef = useRef(previewPoint);
     const userLocationRef = useRef(userLocation);
+    const firstPersonRef = useRef(firstPerson);
+    const onLookDragRef = useRef(onLookDrag);
     const onPointClickRef = useRef(onPointClick);
     const onMapClickRef = useRef(onMapClick);
 
@@ -1578,6 +1618,14 @@ export function CampusMap({
     useEffect(() => {
         userLocationRef.current = userLocation;
     }, [userLocation]);
+
+    useEffect(() => {
+        firstPersonRef.current = firstPerson;
+    }, [firstPerson]);
+
+    useEffect(() => {
+        onLookDragRef.current = onLookDrag;
+    }, [onLookDrag]);
 
     useEffect(() => {
         onPointClickRef.current = onPointClick;
@@ -1595,9 +1643,8 @@ export function CampusMap({
         }
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-        // Viewed from the main gate side, like the printed map.
-        camera.position.set(0, 13, 13);
+        const camera = new THREE.PerspectiveCamera(OVERVIEW_FOV, 1, 0.05, 100);
+        camera.position.copy(OVERVIEW_POSITION);
 
         const renderer = new THREE.WebGLRenderer({
             antialias: true,
@@ -1610,7 +1657,7 @@ export function CampusMap({
         container.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 0.6, 0);
+        controls.target.copy(OVERVIEW_TARGET);
         controls.enableDamping = true;
         controls.dampingFactor = 0.08;
         controls.enablePan = false;
@@ -1664,9 +1711,59 @@ export function CampusMap({
             el.style.top = `${top}px`;
         }
 
+        // First-person state lives here, outside React, so the camera can
+        // ease smoothly every frame.
+        let inFirstPerson = false;
+        let yaw = 0;
+
+        function updateCamera() {
+            const view = firstPersonRef.current;
+
+            if (!view) {
+                if (inFirstPerson) {
+                    inFirstPerson = false;
+                    camera.fov = OVERVIEW_FOV;
+                    camera.updateProjectionMatrix();
+                    camera.position.copy(OVERVIEW_POSITION);
+                    controls.target.copy(OVERVIEW_TARGET);
+                    controls.enabled = true;
+                }
+
+                controls.update();
+
+                return;
+            }
+
+            const spot = percentToWorld(view.x, view.y);
+            const targetYaw = Math.atan2(view.forward.x, view.forward.z);
+
+            if (!inFirstPerson) {
+                // Jump straight to eye level on entry, then ease from there.
+                inFirstPerson = true;
+                controls.enabled = false;
+                camera.fov = FIRST_PERSON_FOV;
+                camera.updateProjectionMatrix();
+                camera.position.set(spot.x, EYE_HEIGHT, spot.z);
+                yaw = targetYaw;
+            } else {
+                camera.position.x +=
+                    (spot.x - camera.position.x) * POSITION_EASING;
+                camera.position.z +=
+                    (spot.z - camera.position.z) * POSITION_EASING;
+                camera.position.y = EYE_HEIGHT;
+                yaw += angleDelta(yaw, targetYaw) * TURN_EASING;
+            }
+
+            camera.lookAt(
+                camera.position.x + Math.sin(yaw),
+                EYE_HEIGHT + FIRST_PERSON_PITCH,
+                camera.position.z + Math.cos(yaw),
+            );
+        }
+
         let raf = 0;
         function animate() {
-            controls.update();
+            updateCamera();
 
             for (const point of pointsRef.current) {
                 positionPin(pinRefs.current.get(point.id), point.x, point.y);
@@ -1680,7 +1777,8 @@ export function CampusMap({
 
             const user = userLocationRef.current;
 
-            if (user) {
+            // In first person the viewer is the camera, so no dot.
+            if (user && !firstPersonRef.current) {
                 positionPin(userRef.current, user.x, user.y);
             }
 
@@ -1692,12 +1790,31 @@ export function CampusMap({
         // Click-to-place: distinguish a tap from an orbit drag by movement
         // distance, then raycast onto the ground plane for the tapped spot.
         let downPos: { x: number; y: number } | null = null;
+        let lastDragX: number | null = null;
 
         function handlePointerDown(e: PointerEvent) {
             downPos = { x: e.clientX, y: e.clientY };
+            lastDragX = e.clientX;
+        }
+
+        // First person without a compass: drag sideways to turn. Dragging
+        // right pulls the scene right, so the view turns left.
+        function handlePointerMove(e: PointerEvent) {
+            if (lastDragX === null || !firstPersonRef.current) {
+                return;
+            }
+
+            const dx = e.clientX - lastDragX;
+            lastDragX = e.clientX;
+
+            if (dx !== 0) {
+                onLookDragRef.current?.(-dx * DRAG_DEGREES_PER_PIXEL);
+            }
         }
 
         function handlePointerUp(e: PointerEvent) {
+            lastDragX = null;
+
             if (!onMapClickRef.current || !downPos) {
                 downPos = null;
 
@@ -1737,6 +1854,8 @@ export function CampusMap({
 
         renderer.domElement.addEventListener('pointerdown', handlePointerDown);
         renderer.domElement.addEventListener('pointerup', handlePointerUp);
+        renderer.domElement.addEventListener('pointermove', handlePointerMove);
+        renderer.domElement.addEventListener('pointercancel', handlePointerUp);
 
         return () => {
             cancelAnimationFrame(raf);
@@ -1747,6 +1866,14 @@ export function CampusMap({
             );
             renderer.domElement.removeEventListener(
                 'pointerup',
+                handlePointerUp,
+            );
+            renderer.domElement.removeEventListener(
+                'pointermove',
+                handlePointerMove,
+            );
+            renderer.domElement.removeEventListener(
+                'pointercancel',
                 handlePointerUp,
             );
             controls.dispose();
@@ -1808,7 +1935,7 @@ export function CampusMap({
                 </div>
             )}
 
-            {userLocation && (
+            {userLocation && !firstPerson && (
                 <div
                     ref={userRef}
                     style={{ display: 'none' }}
