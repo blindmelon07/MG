@@ -1,5 +1,5 @@
 import { Form, router } from '@inertiajs/react';
-import { Copy, Printer } from 'lucide-react';
+import { Copy, FileDown, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import StudentCredentialController from '@/actions/App/Http/Controllers/Admin/StudentCredentialController';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -37,6 +37,7 @@ type IssuedCredentials = {
     student_number: string;
     password: string;
     sms_sent: boolean | null;
+    slip_url: string;
 };
 
 const ALL_SECTIONS = '__all__';
@@ -189,6 +190,13 @@ export function IssuedCredentialsDialog() {
                     </div>
                 )}
                 <DialogFooter>
+                    {issued && (
+                        <Button variant="outline" asChild>
+                            <a href={issued.slip_url}>
+                                <FileDown /> Print slip (PDF)
+                            </a>
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         onClick={() => {
@@ -210,7 +218,7 @@ export function IssuedCredentialsDialog() {
     );
 }
 
-/** Issues passwords for a whole section and downloads them as a CSV of slips. */
+/** Issues passwords for a whole section and downloads them as a PDF of printable slips. */
 export function PrintCredentialsDialog({
     open,
     onOpenChange,
@@ -236,7 +244,7 @@ export function PrintCredentialsDialog({
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
-                    Accept: 'text/csv',
+                    Accept: 'application/pdf',
                     'X-XSRF-TOKEN': xsrfToken(),
                 },
                 body: JSON.stringify({
@@ -251,8 +259,7 @@ export function PrintCredentialsDialog({
             const filename =
                 response.headers
                     .get('Content-Disposition')
-                    ?.match(/filename="?([^"]+)"?/)?.[1] ??
-                'student-credentials.csv';
+                    ?.match(/filename="?([^"]+)"?/)?.[1] ?? 'login-slips.pdf';
             const url = URL.createObjectURL(await response.blob());
             const link = document.createElement('a');
             link.href = url;
@@ -280,9 +287,10 @@ export function PrintCredentialsDialog({
                 <p className="text-sm text-muted-foreground">
                     Creates a random temporary password for each active student
                     who hasn&apos;t set their own password yet ({awaiting} right
-                    now), and downloads them as a CSV to print and hand out.
-                    Students who already chose a password aren&apos;t affected.
-                    Running this again replaces the earlier temporary passwords.
+                    now), and downloads them as a PDF to print and hand out:
+                    four slips per short bond page, with cut lines. Students who
+                    already chose a password aren&apos;t affected. Running this
+                    again replaces the earlier temporary passwords.
                 </p>
                 <div className="grid gap-2">
                     <Label htmlFor="credentials-section">Section</Label>
@@ -311,7 +319,7 @@ export function PrintCredentialsDialog({
                     </Alert>
                 )}
                 <p className="text-xs text-muted-foreground">
-                    The file contains passwords. Delete it once the slips are
+                    The PDF contains passwords. Delete it once the slips are
                     printed.
                 </p>
                 <DialogFooter>

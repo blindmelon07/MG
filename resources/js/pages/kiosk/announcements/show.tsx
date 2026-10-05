@@ -2,7 +2,9 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
 import MediaGallery from '@/components/media-gallery';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { index as announcementsIndex } from '@/routes/announcements';
+import { index as mapsIndex } from '@/routes/maps';
 
 type Media = {
     id: number;
@@ -18,7 +20,9 @@ type Announcement = {
     type: 'announcement' | 'event';
     event_start_at: string | null;
     event_end_at: string | null;
+    slug: string;
     location: string | null;
+    campus_location: { id: number; name: string } | null;
     media: Media[];
 };
 
@@ -74,11 +78,35 @@ export default function KioskAnnouncementsShow({
                                         ` – ${formatDateTime(announcement.event_end_at)}`}
                                 </span>
                             </div>
-                            {announcement.location && (
+                            {(announcement.campus_location ||
+                                announcement.location) && (
                                 <div className="flex items-center gap-2">
                                     <MapPin className="size-4 text-primary" />
-                                    <span>{announcement.location}</span>
+                                    <span>
+                                        {[
+                                            announcement.campus_location?.name,
+                                            announcement.location,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' — ')}
+                                    </span>
                                 </div>
+                            )}
+                            {announcement.campus_location && (
+                                <Button asChild className="mt-1 w-fit">
+                                    <Link
+                                        href={mapsIndex({
+                                            query: {
+                                                location:
+                                                    announcement.campus_location
+                                                        .id,
+                                                event: announcement.slug,
+                                            },
+                                        })}
+                                    >
+                                        <MapPin /> Show on campus map
+                                    </Link>
+                                </Button>
                             )}
                         </div>
                     )}

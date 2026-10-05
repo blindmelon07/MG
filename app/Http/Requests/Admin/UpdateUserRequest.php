@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\User;
+use App\Rules\PhilippineMobileNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,7 @@ class UpdateUserRequest extends FormRequest
                 'required', 'string', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
+            'phone_number' => ['nullable', 'string', new PhilippineMobileNumber],
             'role' => ['required', Rule::in(User::ROLES)],
             'password' => ['nullable', 'string', Password::default(), 'confirmed'],
         ];

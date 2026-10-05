@@ -33,12 +33,15 @@ class StudentController extends Controller
             'search' => $search,
             'sections' => Student::whereNotNull('section')->distinct()->orderBy('section')->pluck('section'),
             'awaitingCredentials' => Student::active()->awaitingCredentials()->count(),
+            'educationLevels' => Student::educationLevelOptions(),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('admin/students/create');
+        return Inertia::render('admin/students/create', [
+            'educationLevels' => Student::educationLevelOptions(),
+        ]);
     }
 
     public function store(StoreStudentRequest $request): RedirectResponse
@@ -59,6 +62,7 @@ class StudentController extends Controller
     {
         return Inertia::render('admin/students/edit', [
             'student' => $student->load('guardians'),
+            'educationLevels' => Student::educationLevelOptions(),
         ]);
     }
 

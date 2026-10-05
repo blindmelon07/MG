@@ -4,6 +4,7 @@ use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\View;
 
 test('registrar can issue a temporary password that is shown once', function () {
     $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
@@ -35,8 +36,25 @@ test('the temporary password can be texted to the first guardian', function () {
         && $request['recipient'] === '639171234567');
 });
 
+/**
+ * Capture the slips handed to the PDF view; the PDF itself is compressed.
+ *
+ * @return ArrayObject<int, mixed>
+ */
+function captureLoginSlips(): ArrayObject
+{
+    $captured = new ArrayObject;
+
+    View::composer('pdf.login-slips', function ($view) use ($captured): void {
+        $captured->exchangeArray($view->getData());
+    });
+
+    return $captured;
+}
+
 test('login slips cover students awaiting a password and skip those who set their own', function () {
     $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    $captured = captureLoginSlips();
 
     $new = Student::factory()->create(['name' => 'New Student', 'section' => 'St. Thomas']);
     $settled = Student::factory()->create(['name' => 'Settled Student', 'section' => 'St. Thomas']);
@@ -49,27 +67,46 @@ test('login slips cover students awaiting a password and skip those who set thei
         ->post(route('admin.students.credentials.batch'), ['section' => 'St. Thomas']);
 
     $response->assertOk();
-    expect($response->headers->get('Cache-Control'))->toContain('no-store');
+    $response->assertHeader('content-type', 'application/pdf');
+    expect($response->headers->get('Cache-Control'))->toContain('no-store')
+        ->and($response->getContent())->toStartWith('%PDF');
 
-    $csv = $response->streamedContent();
-    expect($csv)->toContain('New Student')
-        ->not->toContain('Settled Student')
-        ->not->toContain('Other Section')
+    $names = array_column($captured['slips'], 'name');
+    expect($names)->toBe(['New Student'])
+        ->and($captured['perPage'])->toBe(4)
+        ->and($captured['school']['name'])->toBe(config('school.name'))
         ->and($new->fresh()->hasAccount())->toBeTrue()
         ->and(password_verify('my-own-password', (string) $settled->fresh()->password))->toBeTrue();
 });
 
-test('exported names cannot inject spreadsheet formulas', function () {
+test('a single student slip can be downloaded right after issuing the password', function () {
     $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
-    Student::factory()->create(['name' => '=HYPERLINK("http://evil.test","Click")']);
+    $student = Student::factory()->create(['student_number' => 'LRN-0001', 'education_level' => 'jhs', 'grade_level' => 'Grade 8']);
+    $captured = captureLoginSlips();
 
-    $csv = $this->actingAs($registrar)
-        ->post(route('admin.students.credentials.batch'))
-        ->streamedContent();
+    $this->actingAs($registrar)->post(route('admin.students.credentials.store', $student));
 
-    expect($csv)->toContain("'=HYPERLINK")
-        ->not->toContain(',=HYPERLINK')
-        ->not->toContain(',"=HYPERLINK');
+    // The slip link travels in the Inertia flash data, alongside the password.
+    $slipUrl = collect(session()->all())->flatten()
+        ->first(fn ($value) => is_string($value) && str_contains($value, '/credentials/slip/'));
+    expect($slipUrl)->not->toBeNull();
+
+    $response = $this->actingAs($registrar)->get($slipUrl);
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'application/pdf');
+    expect($captured['perPage'])->toBe(1)
+        ->and($captured['slips'][0]['student_number'])->toBe('LRN-0001')
+        ->and($captured['slips'][0]['education_level'])->toBe('Junior High School')
+        ->and(password_verify($captured['slips'][0]['password'], (string) $student->fresh()->password))->toBeTrue();
+});
+
+test('an unknown login slip token is not found', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+
+    $this->actingAs($registrar)
+        ->get(route('admin.students.credentials.slip', str_repeat('a', 40)))
+        ->assertNotFound();
 });
 
 test('teachers cannot issue student passwords', function () {

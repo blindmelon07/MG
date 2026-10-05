@@ -19,7 +19,9 @@ use Illuminate\Support\Carbon;
  * @property string $type
  * @property string $status
  * @property string $audience
+ * @property list<string>|null $personnel_roles
  * @property string|null $location
+ * @property int|null $campus_location_id
  * @property Carbon|null $event_start_at
  * @property Carbon|null $event_end_at
  * @property Carbon|null $published_at
@@ -33,14 +35,27 @@ use Illuminate\Support\Carbon;
     'event_start_at',
     'event_end_at',
     'location',
+    'campus_location_id',
     'status',
     'audience',
+    'personnel_roles',
     'published_at',
 ])]
 class Announcement extends Model
 {
     /** @use HasFactory<AnnouncementFactory> */
     use HasFactory;
+
+    /**
+     * Personnel groups an announcement can also be sent to, keyed by user role.
+     *
+     * @var array<string, string>
+     */
+    public const PERSONNEL_ROLES = [
+        'teacher' => 'Faculty',
+        'registrar' => 'Registrar staff',
+        'admin' => 'Administrators',
+    ];
 
     /**
      * @return array<string, string>
@@ -51,6 +66,7 @@ class Announcement extends Model
             'event_start_at' => 'datetime',
             'event_end_at' => 'datetime',
             'published_at' => 'datetime',
+            'personnel_roles' => 'array',
         ];
     }
 
@@ -69,6 +85,27 @@ class Announcement extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<CampusLocation, $this>
+     */
+    public function campusLocation(): BelongsTo
+    {
+        return $this->belongsTo(CampusLocation::class);
+    }
+
+    /**
+     * Where a notification should send people: the event's spot on the campus
+     * map when it has one, otherwise the announcement itself.
+     */
+    public function publicUrl(): string
+    {
+        if ($this->type === 'event' && $this->campus_location_id !== null) {
+            return route('maps.index', ['location' => $this->campus_location_id, 'event' => $this->slug]);
+        }
+
+        return route('announcements.show', $this->slug);
     }
 
     /**

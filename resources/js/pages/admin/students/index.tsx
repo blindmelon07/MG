@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 import StudentController from '@/actions/App/Http/Controllers/Admin/StudentController';
 import StudentImportController from '@/actions/App/Http/Controllers/Admin/StudentImportController';
+import type { EducationLevelOption } from '@/components/education-level-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import {
@@ -45,6 +46,7 @@ type Student = {
     id: number;
     name: string;
     student_number: string | null;
+    education_level: string | null;
     grade_level: string | null;
     section: string | null;
     status: 'active' | 'inactive';
@@ -78,11 +80,13 @@ export default function StudentsIndex({
     search,
     sections,
     awaitingCredentials,
+    educationLevels,
 }: {
     students: Paginated<Student>;
     search: string;
     sections: string[];
     awaitingCredentials: number;
+    educationLevels: EducationLevelOption[];
 }) {
     const [deleting, setDeleting] = useState<Student | null>(null);
     const [searchTerm, setSearchTerm] = useState(search);
@@ -149,7 +153,7 @@ export default function StudentsIndex({
                                     Student #
                                 </th>
                                 <th className="px-4 py-2 font-medium">
-                                    Grade &amp; Section
+                                    Level, Year &amp; Section
                                 </th>
                                 <th className="px-4 py-2 font-medium">
                                     Guardians
@@ -188,9 +192,21 @@ export default function StudentsIndex({
                                         {student.student_number ?? '—'}
                                     </td>
                                     <td className="px-4 py-2">
-                                        {[student.grade_level, student.section]
-                                            .filter(Boolean)
-                                            .join(' — ') || '—'}
+                                        <div>
+                                            {[
+                                                student.grade_level,
+                                                student.section,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' — ') || '—'}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {educationLevels.find(
+                                                (level) =>
+                                                    level.value ===
+                                                    student.education_level,
+                                            )?.label ?? 'No education level'}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-2">
                                         {student.guardians.length === 0
@@ -348,16 +364,18 @@ export default function StudentsIndex({
                         <DialogTitle>Import students</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Upload a CSV file with student and guardian info. Rows
-                        matching an existing student # are skipped. Use
-                        &ldquo;Login slips&rdquo; afterwards to create portal
-                        passwords for the new students.
+                        Fill in the Excel template (or a CSV with the same
+                        columns) with student and guardian info. Every column is
+                        required except the student&apos;s phone and the second
+                        guardian. Rows matching an existing student # are
+                        skipped. Use &ldquo;Login slips&rdquo; afterwards to
+                        create portal passwords for the new students.
                     </p>
                     <a
                         href={importTemplate().url}
                         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
                     >
-                        <Download className="size-4" /> Download CSV template
+                        <Download className="size-4" /> Download Excel template
                     </a>
                     <Form
                         {...StudentImportController.store.form()}
@@ -367,13 +385,13 @@ export default function StudentsIndex({
                             <>
                                 <div className="grid gap-2">
                                     <Label htmlFor="import-file">
-                                        CSV file
+                                        Excel or CSV file
                                     </Label>
                                     <Input
                                         id="import-file"
                                         name="file"
                                         type="file"
-                                        accept=".csv,text/csv"
+                                        accept=".xlsx,.xls,.csv"
                                         required
                                     />
                                     <InputError message={errors.file} />

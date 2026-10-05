@@ -49,7 +49,7 @@ class UserController extends Controller
     {
         return Inertia::render('admin/users/edit', [
             'editedUser' => [
-                ...$user->only(['id', 'name', 'email', 'role']),
+                ...$user->only(['id', 'name', 'email', 'phone_number', 'role']),
                 'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
             ],
         ]);

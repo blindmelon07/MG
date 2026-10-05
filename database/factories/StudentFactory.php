@@ -20,6 +20,7 @@ class StudentFactory extends Factory
         return [
             'name' => fake()->name(),
             'student_number' => fake()->unique()->numerify('LRN-########'),
+            'education_level' => fn (array $attributes) => ($attributes['grading_system'] ?? 'k12') === 'college' ? 'college' : 'jhs',
             'grade_level' => fake()->randomElement(['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']),
             'section' => fake()->randomElement(['St. Thomas', 'St. Peter', 'St. Paul']),
             'phone_number' => null,

@@ -42,6 +42,21 @@ function worldToPercent(x: number, z: number) {
     };
 }
 
+/** Someone else on the map, e.g. a phone showing its location (staff dashboard). */
+export type CampusMapPerson = {
+    id: number;
+    x: number;
+    y: number;
+    label: string;
+    kind: 'student' | 'personnel' | 'visitor';
+};
+
+const PERSON_COLORS: Record<CampusMapPerson['kind'], string> = {
+    student: 'bg-emerald-500',
+    personnel: 'bg-violet-500',
+    visitor: 'bg-amber-500',
+};
+
 /**
  * First-person camera: standing at a map spot, facing a scene direction
  * (a unit x/z vector; see GeoProjector.headingToWorld).
@@ -1707,6 +1722,7 @@ export function CampusMap({
     onMapClick,
     previewPoint,
     userLocation,
+    people,
     firstPerson,
     follow,
     route,
@@ -1723,6 +1739,8 @@ export function CampusMap({
      * when `stale` (GPS lost; last known position).
      */
     userLocation?: { x: number; y: number; stale?: boolean } | null;
+    /** Other people to show as small labelled dots. */
+    people?: CampusMapPerson[];
     /** When set, the camera stands here at eye level instead of orbiting. */
     firstPerson?: FirstPersonView | null;
     /** Navigation: the camera follows from behind and above, Waze style. */
@@ -1737,12 +1755,14 @@ export function CampusMap({
     const pinRefs = useRef(new Map<number, HTMLButtonElement>());
     const previewRef = useRef<HTMLDivElement | null>(null);
     const userRef = useRef<HTMLDivElement | null>(null);
+    const personRefs = useRef(new Map<number, HTMLDivElement>());
 
     // Kept in refs so the render loop and event listeners (set up once)
     // always see the latest props without tearing down the WebGL scene.
     const pointsRef = useRef(points);
     const previewPointRef = useRef(previewPoint);
     const userLocationRef = useRef(userLocation);
+    const peopleRef = useRef(people);
     const firstPersonRef = useRef(firstPerson);
     const followRef = useRef(follow);
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -1761,6 +1781,10 @@ export function CampusMap({
     useEffect(() => {
         userLocationRef.current = userLocation;
     }, [userLocation]);
+
+    useEffect(() => {
+        peopleRef.current = people;
+    }, [people]);
 
     useEffect(() => {
         firstPersonRef.current = firstPerson;
@@ -1958,6 +1982,14 @@ export function CampusMap({
                 positionPin(previewRef.current, preview.x, preview.y);
             }
 
+            for (const person of peopleRef.current ?? []) {
+                positionPin(
+                    personRefs.current.get(person.id),
+                    person.x,
+                    person.y,
+                );
+            }
+
             const user = userLocationRef.current;
 
             // In first person and navigation the walker is the camera or
@@ -2148,6 +2180,38 @@ export function CampusMap({
                     <MapPin className="size-7 fill-emerald-400 text-emerald-600 drop-shadow-sm" />
                 </div>
             )}
+
+            {people?.map((person) => (
+                <div
+                    key={person.id}
+                    ref={(el) => {
+                        if (el) {
+                            personRefs.current.set(person.id, el);
+                        } else {
+                            personRefs.current.delete(person.id);
+                        }
+                    }}
+                    style={{ display: 'none' }}
+                    title={person.label}
+                    className="group absolute size-3.5 -translate-x-1/2 -translate-y-1/2"
+                >
+                    <span
+                        className={cn(
+                            'absolute inset-0 animate-ping rounded-full opacity-60',
+                            PERSON_COLORS[person.kind],
+                        )}
+                    />
+                    <span
+                        className={cn(
+                            'relative block size-3.5 rounded-full border-2 border-white shadow-md',
+                            PERSON_COLORS[person.kind],
+                        )}
+                    />
+                    <span className="pointer-events-none absolute top-full left-1/2 mt-1 hidden -translate-x-1/2 rounded bg-background/90 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap shadow group-hover:block">
+                        {person.label}
+                    </span>
+                </div>
+            ))}
 
             {userLocation && !firstPerson && !follow && (
                 <div

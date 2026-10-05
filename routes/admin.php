@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\MapReferencePointController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentCredentialController;
 use App\Http\Controllers\Admin\StudentImportController;
+use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeachingAssignmentController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserTwoFactorController;
@@ -51,6 +52,12 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
         Route::post('students/{student}/credentials', [StudentCredentialController::class, 'store'])
             ->middleware('throttle:30,1')
             ->name('students.credentials.store');
+        Route::get('students/credentials/slip/{token}', [StudentCredentialController::class, 'slip'])
+            ->where('token', '[A-Za-z0-9]{40}')
+            ->name('students.credentials.slip');
+
+        Route::resource('subjects', SubjectController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
 
         Route::resource('students', StudentController::class)
             ->except(['show']);

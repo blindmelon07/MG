@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\ChatbotLog;
 use App\Models\Manual;
 use App\Models\ManualCategory;
+use App\Models\MapPresence;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,6 +54,30 @@ class DashboardController extends Controller
                 ->latest()
                 ->take(5)
                 ->get(['id', 'title', 'type', 'status', 'created_by', 'created_at']),
+            // The page polls this prop on its own to keep the map live.
+            'activeUsers' => fn () => $this->activeUsers(),
         ]);
+    }
+
+    /**
+     * People currently sharing their location on the kiosk campus map.
+     *
+     * @return list<array{id: int, x: float, y: float, label: string, kind: string, last_seen_at: string}>
+     */
+    private function activeUsers(): array
+    {
+        return array_values(MapPresence::active()
+            ->with('student:id,name', 'user:id,name')
+            ->latest('last_seen_at')
+            ->get()
+            ->map(fn (MapPresence $presence) => [
+                'id' => $presence->id,
+                'x' => $presence->x,
+                'y' => $presence->y,
+                'label' => $presence->label(),
+                'kind' => $presence->kind(),
+                'last_seen_at' => $presence->last_seen_at->toIso8601String(),
+            ])
+            ->all());
     }
 }

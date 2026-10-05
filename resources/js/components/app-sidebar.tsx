@@ -5,6 +5,7 @@ import {
     ClipboardList,
     GraduationCap,
     LayoutGrid,
+    Library,
     MapPin,
     Megaphone,
     Tags,
@@ -30,6 +31,7 @@ import { index as gradesIndex } from '@/routes/admin/grades';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
 import { index as manualsIndex } from '@/routes/admin/manuals';
 import { index as studentsIndex } from '@/routes/admin/students';
+import { index as subjectsIndex } from '@/routes/admin/subjects';
 import { index as teachingAssignmentsIndex } from '@/routes/admin/teaching-assignments';
 import { index as usersIndex } from '@/routes/admin/users';
 import type { Auth, NavItem } from '@/types';
@@ -70,6 +72,11 @@ export function AppSidebar() {
             : []),
         ...(hasRole(user, 'admin', 'registrar')
             ? [
+                  {
+                      title: 'Subjects',
+                      href: subjectsIndex(),
+                      icon: Library,
+                  },
                   {
                       title: 'Teaching Assignments',
                       href: teachingAssignmentsIndex(),

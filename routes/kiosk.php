@@ -21,6 +21,12 @@ Route::prefix('announcements')->name('announcements.')->group(function () {
 
 Route::prefix('maps')->name('maps.')->group(function () {
     Route::get('/', [MapController::class, 'index'])->name('index');
+    Route::post('presence', [MapController::class, 'presence'])
+        ->middleware('throttle:30,1')
+        ->name('presence');
+    Route::delete('presence', [MapController::class, 'leave'])
+        ->middleware('throttle:30,1')
+        ->name('presence.leave');
 });
 
 Route::prefix('chatbot')->name('chatbot.')->group(function () {

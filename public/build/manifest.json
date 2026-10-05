@@ -36,6 +36,19 @@
       "_dist-DtWHkctD.js"
     ]
   },
+  "_announcement-fields-CwxXVT6v.js": {
+    "file": "assets/announcement-fields-CwxXVT6v.js",
+    "name": "announcement-fields",
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
+      "_utils-BatuX27z.js",
+      "_select-Dgn7qp1I.js",
+      "_input-BEcHyxBL.js",
+      "_input-error-CCtbayb3.js",
+      "_checkbox-Ds6EZIr8.js",
+      "_label-G6RNAPU-.js"
+    ]
+  },
   "_announcements-BbMwyDKe.js": {
     "file": "assets/announcements-BbMwyDKe.js",
     "name": "announcements",
@@ -89,6 +102,15 @@
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
+  "_campus-map-DctIg71o.js": {
+    "file": "assets/campus-map-DctIg71o.js",
+    "name": "campus-map",
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
+      "_utils-BatuX27z.js",
+      "_map-pin-CevKVmlW.js"
+    ]
+  },
   "_card-DLKEcvi7.js": {
     "file": "assets/card-DLKEcvi7.js",
     "name": "card",
@@ -117,6 +139,13 @@
       "_check-C_euNqdO.js"
     ]
   },
+  "_chevron-right-CHxyUC_r.js": {
+    "file": "assets/chevron-right-CHxyUC_r.js",
+    "name": "chevron-right",
+    "imports": [
+      "_createLucideIcon-CL8Q_N-z.js"
+    ]
+  },
   "_confirm-Culw9Q-x.js": {
     "file": "assets/confirm-Culw9Q-x.js",
     "name": "confirm",
@@ -139,14 +168,14 @@
       "_utils-BatuX27z.js"
     ]
   },
-  "_device-DKpQk1lT.js": {
-    "file": "assets/device-DKpQk1lT.js",
+  "_device-C-thEYeA.js": {
+    "file": "assets/device-C-thEYeA.js",
     "name": "device",
     "imports": [
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_createLucideIcon-CL8Q_N-z.js",
-      "_map-pin-CevKVmlW.js"
+      "_campus-map-DctIg71o.js"
     ]
   },
   "_dialog-Cx95ZIj2.js": {
@@ -223,6 +252,17 @@
     "name": "download",
     "imports": [
       "_createLucideIcon-CL8Q_N-z.js"
+    ]
+  },
+  "_education-level-fields-C_wEQeZV.js": {
+    "file": "assets/education-level-fields-C_wEQeZV.js",
+    "name": "education-level-fields",
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
+      "_utils-BatuX27z.js",
+      "_select-Dgn7qp1I.js",
+      "_input-error-CCtbayb3.js",
+      "_label-G6RNAPU-.js"
     ]
   },
   "_es2015-CK5EMJKf.js": {
@@ -376,11 +416,10 @@
       "_createLucideIcon-CL8Q_N-z.js"
     ]
   },
-  "_maps-Bcwj5SWK.js": {
-    "file": "assets/maps-Bcwj5SWK.js",
+  "_maps-DRxFTBC8.js": {
+    "file": "assets/maps-DRxFTBC8.js",
     "name": "maps",
     "imports": [
-      "_createLucideIcon-CL8Q_N-z.js",
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
@@ -456,6 +495,14 @@
     "name": "pencil",
     "imports": [
       "_createLucideIcon-CL8Q_N-z.js"
+    ]
+  },
+  "_phone-input-nqBdtLwb.js": {
+    "file": "assets/phone-input-nqBdtLwb.js",
+    "name": "phone-input",
+    "imports": [
+      "_utils-BatuX27z.js",
+      "_input-BEcHyxBL.js"
     ]
   },
   "_plus-CNveQuFU.js": {
@@ -579,18 +626,18 @@
       "_spinner-BTCJSTni.js"
     ]
   },
-  "_students-BsRMbC8q.js": {
-    "file": "assets/students-BsRMbC8q.js",
+  "_students-BgRcCV7u.js": {
+    "file": "assets/students-BgRcCV7u.js",
     "name": "students",
     "imports": [
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
-  "_tags-BQQSPLkt.js": {
-    "file": "assets/tags-BQQSPLkt.js",
-    "name": "tags",
+  "_subjects-CreLQ8Ea.js": {
+    "file": "assets/subjects-CreLQ8Ea.js",
+    "name": "subjects",
     "imports": [
-      "_createLucideIcon-CL8Q_N-z.js"
+      "_wayfinder-Dp7PqxvV.js"
     ]
   },
   "_teaching-assignments-BEGKYel3.js": {
@@ -674,6 +721,13 @@
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
+  "_users-DlqHM8v9.js": {
+    "file": "assets/users-DlqHM8v9.js",
+    "name": "users",
+    "imports": [
+      "_createLucideIcon-CL8Q_N-z.js"
+    ]
+  },
   "_utils-BatuX27z.js": {
     "file": "assets/utils-BatuX27z.js",
     "name": "utils",
@@ -700,7 +754,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-DdDur5N7.css",
+    "file": "assets/app-BKIiHXgn.css",
     "name": "app",
     "names": [
       "app.css"
@@ -709,7 +763,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-D-9ATKXj.js",
+    "file": "assets/app-DMmOBY8b.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -724,8 +778,8 @@
       "_dist-BfzwI7VH.js",
       "_createLucideIcon-CL8Q_N-z.js",
       "_megaphone-ChyymaFy.js",
-      "_tags-BQQSPLkt.js",
-      "_maps-Bcwj5SWK.js",
+      "_users-DlqHM8v9.js",
+      "_chevron-right-CHxyUC_r.js",
       "_graduation-cap-SwfUrMcx.js",
       "_key-round-Bh2U9gRZ.js",
       "_log-out-BMH9Nx_D.js",
@@ -744,11 +798,13 @@
       "_grades-CsWvcjFi.js",
       "_manual-categories-Uf1GK1Ry.js",
       "_manuals-CQeK5lwO.js",
-      "_students-BsRMbC8q.js",
+      "_students-BgRcCV7u.js",
+      "_subjects-CreLQ8Ea.js",
       "_teaching-assignments-BEGKYel3.js",
       "_users-BBP77Eqq.js",
       "_announcements-BfrOaf77.js",
       "_manuals-CwgxMTVt.js",
+      "_maps-DRxFTBC8.js",
       "_password-DLy3HRbx.js",
       "_student-Dtxt8Ru-.js",
       "_heading-BnUFVXSK.js",
@@ -769,6 +825,7 @@
       "resources/js/pages/admin/students/create.tsx",
       "resources/js/pages/admin/students/edit.tsx",
       "resources/js/pages/admin/students/index.tsx",
+      "resources/js/pages/admin/subjects/index.tsx",
       "resources/js/pages/admin/teaching-assignments/index.tsx",
       "resources/js/pages/admin/users/create.tsx",
       "resources/js/pages/admin/users/edit.tsx",
@@ -798,7 +855,7 @@
     ]
   },
   "resources/js/pages/admin/announcements/create.tsx": {
-    "file": "assets/create-CCw_EcD-.js",
+    "file": "assets/create-9dWq87aA.js",
     "name": "create",
     "src": "resources/js/pages/admin/announcements/create.tsx",
     "isDynamicEntry": true,
@@ -814,11 +871,12 @@
       "_input-error-CCtbayb3.js",
       "_checkbox-Ds6EZIr8.js",
       "_label-G6RNAPU-.js",
+      "_announcement-fields-CwxXVT6v.js",
       "_textarea-DEdTcujC.js"
     ]
   },
   "resources/js/pages/admin/announcements/edit.tsx": {
-    "file": "assets/edit-DDC73XSk.js",
+    "file": "assets/edit-Bk1sA-mf.js",
     "name": "edit",
     "src": "resources/js/pages/admin/announcements/edit.tsx",
     "isDynamicEntry": true,
@@ -835,6 +893,7 @@
       "_input-error-CCtbayb3.js",
       "_checkbox-Ds6EZIr8.js",
       "_label-G6RNAPU-.js",
+      "_announcement-fields-CwxXVT6v.js",
       "_textarea-DEdTcujC.js",
       "_media-manager-C7zeQDpD.js"
     ]
@@ -859,7 +918,7 @@
     ]
   },
   "resources/js/pages/admin/campus-locations/index.tsx": {
-    "file": "assets/campus-locations-B5gEUZ8A.js",
+    "file": "assets/campus-locations-CX3Z1c4z.js",
     "name": "campus-locations",
     "src": "resources/js/pages/admin/campus-locations/index.tsx",
     "isDynamicEntry": true,
@@ -867,7 +926,7 @@
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_createLucideIcon-CL8Q_N-z.js",
-      "_device-DKpQk1lT.js",
+      "_device-C-thEYeA.js",
       "_pencil-Byc03yFW.js",
       "_plus-CNveQuFU.js",
       "_trash-2-DHtd3mcB.js",
@@ -880,6 +939,7 @@
       "_label-G6RNAPU-.js",
       "_textarea-DEdTcujC.js",
       "_dialog-Cx95ZIj2.js",
+      "_campus-map-DctIg71o.js",
       "_alert-DsvWhfSM.js"
     ]
   },
@@ -1005,7 +1065,7 @@
     ]
   },
   "resources/js/pages/admin/students/create.tsx": {
-    "file": "assets/create-C-GvgS8_.js",
+    "file": "assets/create-D7iB5JnX.js",
     "name": "create",
     "src": "resources/js/pages/admin/students/create.tsx",
     "isDynamicEntry": true,
@@ -1017,16 +1077,17 @@
       "_trash-2-DHtd3mcB.js",
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
-      "_students-BsRMbC8q.js",
+      "_students-BgRcCV7u.js",
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
-      "_grades-DoHENszX.js",
-      "_StudentController-DVB_r92m.js"
+      "_StudentController-DVB_r92m.js",
+      "_education-level-fields-C_wEQeZV.js",
+      "_phone-input-nqBdtLwb.js"
     ]
   },
   "resources/js/pages/admin/students/edit.tsx": {
-    "file": "assets/edit-DXX8RYxl.js",
+    "file": "assets/edit-BFW26SkQ.js",
     "name": "edit",
     "src": "resources/js/pages/admin/students/edit.tsx",
     "isDynamicEntry": true,
@@ -1038,16 +1099,17 @@
       "_trash-2-DHtd3mcB.js",
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
-      "_students-BsRMbC8q.js",
+      "_students-BgRcCV7u.js",
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
-      "_grades-DoHENszX.js",
-      "_StudentController-DVB_r92m.js"
+      "_StudentController-DVB_r92m.js",
+      "_education-level-fields-C_wEQeZV.js",
+      "_phone-input-nqBdtLwb.js"
     ]
   },
   "resources/js/pages/admin/students/index.tsx": {
-    "file": "assets/students-DxY1rCXe.js",
+    "file": "assets/students-BpxsQc78.js",
     "name": "students",
     "src": "resources/js/pages/admin/students/index.tsx",
     "isDynamicEntry": true,
@@ -1066,7 +1128,7 @@
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
       "_wayfinder-Dp7PqxvV.js",
-      "_students-BsRMbC8q.js",
+      "_students-BgRcCV7u.js",
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_checkbox-Ds6EZIr8.js",
@@ -1078,8 +1140,30 @@
       "_spinner-BTCJSTni.js"
     ]
   },
+  "resources/js/pages/admin/subjects/index.tsx": {
+    "file": "assets/subjects-BWXwG3gz.js",
+    "name": "subjects",
+    "src": "resources/js/pages/admin/subjects/index.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
+      "_utils-BatuX27z.js",
+      "_select-Dgn7qp1I.js",
+      "_pencil-Byc03yFW.js",
+      "_plus-CNveQuFU.js",
+      "_trash-2-DHtd3mcB.js",
+      "_button-BgGnKiEl.js",
+      "_input-BEcHyxBL.js",
+      "_wayfinder-Dp7PqxvV.js",
+      "_subjects-CreLQ8Ea.js",
+      "_heading-BnUFVXSK.js",
+      "_input-error-CCtbayb3.js",
+      "_label-G6RNAPU-.js",
+      "_dialog-Cx95ZIj2.js"
+    ]
+  },
   "resources/js/pages/admin/teaching-assignments/index.tsx": {
-    "file": "assets/teaching-assignments-DvCV07Ah.js",
+    "file": "assets/teaching-assignments-By4IcJ9-.js",
     "name": "teaching-assignments",
     "src": "resources/js/pages/admin/teaching-assignments/index.tsx",
     "isDynamicEntry": true,
@@ -1101,7 +1185,7 @@
     ]
   },
   "resources/js/pages/admin/users/create.tsx": {
-    "file": "assets/create-DkCiME0T.js",
+    "file": "assets/create-D0TFY47s.js",
     "name": "create",
     "src": "resources/js/pages/admin/users/create.tsx",
     "isDynamicEntry": true,
@@ -1116,11 +1200,12 @@
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
+      "_phone-input-nqBdtLwb.js",
       "_UserController-XiFLU8eH.js"
     ]
   },
   "resources/js/pages/admin/users/edit.tsx": {
-    "file": "assets/edit-f8O1ziMg.js",
+    "file": "assets/edit-fYCqX8JG.js",
     "name": "edit",
     "src": "resources/js/pages/admin/users/edit.tsx",
     "isDynamicEntry": true,
@@ -1136,6 +1221,7 @@
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
+      "_phone-input-nqBdtLwb.js",
       "_UserController-XiFLU8eH.js"
     ]
   },
@@ -1258,19 +1344,21 @@
     ]
   },
   "resources/js/pages/dashboard.tsx": {
-    "file": "assets/dashboard-DoqklMKM.js",
+    "file": "assets/dashboard-DI6nPoxz.js",
     "name": "dashboard",
     "src": "resources/js/pages/dashboard.tsx",
     "isDynamicEntry": true,
     "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_megaphone-ChyymaFy.js",
-      "_tags-BQQSPLkt.js",
+      "_users-DlqHM8v9.js",
       "_routes-IvQT6kKJ.js",
       "_announcements-BbMwyDKe.js",
       "_manual-categories-Uf1GK1Ry.js",
       "_manuals-CQeK5lwO.js",
       "_badge-CxV2eUM6.js",
+      "_campus-map-DctIg71o.js",
       "_card-DLKEcvi7.js"
     ]
   },
@@ -1293,7 +1381,7 @@
     ]
   },
   "resources/js/pages/kiosk/announcements/show.tsx": {
-    "file": "assets/show-YdLyqfH4.js",
+    "file": "assets/show-CsEj8Rmt.js",
     "name": "show",
     "src": "resources/js/pages/kiosk/announcements/show.tsx",
     "isDynamicEntry": true,
@@ -1302,12 +1390,14 @@
       "_media-gallery-GO2Kdk23.js",
       "_calendar-days-BaUQasNM.js",
       "_map-pin-CevKVmlW.js",
+      "_button-BgGnKiEl.js",
       "_announcements-BfrOaf77.js",
+      "_maps-DRxFTBC8.js",
       "_badge-CxV2eUM6.js"
     ]
   },
   "resources/js/pages/kiosk/home.tsx": {
-    "file": "assets/home-CCc4CXw3.js",
+    "file": "assets/home-CDQT0E0G.js",
     "name": "home",
     "src": "resources/js/pages/kiosk/home.tsx",
     "isDynamicEntry": true,
@@ -1315,11 +1405,12 @@
       "_utils-BatuX27z.js",
       "_megaphone-ChyymaFy.js",
       "_calendar-days-BaUQasNM.js",
-      "_maps-Bcwj5SWK.js",
+      "_chevron-right-CHxyUC_r.js",
       "_graduation-cap-SwfUrMcx.js",
       "_map-pin-CevKVmlW.js",
       "_announcements-BfrOaf77.js",
       "_manuals-CwgxMTVt.js",
+      "_maps-DRxFTBC8.js",
       "_student-Dtxt8Ru-.js",
       "_badge-CxV2eUM6.js",
       "_card-DLKEcvi7.js"
@@ -1353,7 +1444,7 @@
     ]
   },
   "resources/js/pages/kiosk/maps/index.tsx": {
-    "file": "assets/maps-DPu7WxXA.js",
+    "file": "assets/maps-DwPsK-Az.js",
     "name": "maps",
     "src": "resources/js/pages/kiosk/maps/index.tsx",
     "isDynamicEntry": true,
@@ -1361,11 +1452,14 @@
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_createLucideIcon-CL8Q_N-z.js",
+      "_calendar-days-BaUQasNM.js",
       "_eye-DshIJ0gu.js",
-      "_device-DKpQk1lT.js",
+      "_device-C-thEYeA.js",
       "_map-pin-CevKVmlW.js",
       "_x-Do4Gm8jC.js",
       "_button-BgGnKiEl.js",
+      "_maps-DRxFTBC8.js",
+      "_campus-map-DctIg71o.js",
       "_card-DLKEcvi7.js"
     ]
   },

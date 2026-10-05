@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
  * @property int $id
  * @property string $name
  * @property string|null $student_number
+ * @property string|null $education_level
  * @property string|null $grade_level
  * @property string|null $section
  * @property string $grading_system
@@ -29,6 +30,7 @@ use Illuminate\Support\Str;
 #[Fillable([
     'name',
     'student_number',
+    'education_level',
     'grade_level',
     'section',
     'grading_system',
@@ -44,6 +46,96 @@ class Student extends Authenticatable
     public const GRADING_SYSTEMS = ['k12', 'college'];
 
     /**
+     * Education levels the school offers, with the year levels each one allows.
+     *
+     * @var array<string, array{label: string, grading_system: string, grade_levels: list<string>}>
+     */
+    public const EDUCATION_LEVELS = [
+        'jhs' => [
+            'label' => 'Junior High School',
+            'grading_system' => 'k12',
+            'grade_levels' => ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'],
+        ],
+        'shs' => [
+            'label' => 'Senior High School',
+            'grading_system' => 'k12',
+            'grade_levels' => ['Grade 11', 'Grade 12'],
+        ],
+        'college' => [
+            'label' => 'College',
+            'grading_system' => 'college',
+            'grade_levels' => ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'],
+        ],
+        'graduate' => [
+            'label' => 'Graduate School',
+            'grading_system' => 'college',
+            'grade_levels' => ['1st Year', '2nd Year', '3rd Year'],
+        ],
+    ];
+
+    /**
+     * Education levels as the frontend expects them.
+     *
+     * @return list<array{value: string, label: string, grade_levels: list<string>}>
+     */
+    public static function educationLevelOptions(): array
+    {
+        return array_map(
+            fn (string $key, array $level) => ['value' => $key, 'label' => $level['label'], 'grade_levels' => $level['grade_levels']],
+            array_keys(self::EDUCATION_LEVELS),
+            self::EDUCATION_LEVELS,
+        );
+    }
+
+    public static function gradingSystemFor(string $educationLevel): string
+    {
+        return self::EDUCATION_LEVELS[$educationLevel]['grading_system'] ?? 'k12';
+    }
+
+    /**
+     * Match an education level by key ("jhs"), label ("Junior High School") or initials ("JHS").
+     */
+    public static function resolveEducationLevel(?string $value): ?string
+    {
+        $value = strtolower(trim((string) $value));
+
+        foreach (self::EDUCATION_LEVELS as $key => $level) {
+            $label = strtolower($level['label']);
+            $initials = implode('', array_map(fn (string $word) => $word[0], explode(' ', $label)));
+
+            if (in_array($value, [$key, $label, $initials], true)) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The canonical spelling of a year level for an education level, or null if it isn't one of them.
+     */
+    public static function resolveGradeLevel(string $educationLevel, ?string $value): ?string
+    {
+        $value = strtolower(trim((string) $value));
+
+        foreach (self::EDUCATION_LEVELS[$educationLevel]['grade_levels'] ?? [] as $gradeLevel) {
+            // Also accept the short form: "8" for "Grade 8", "1st" for "1st Year".
+            $short = strtolower(trim(str_replace(['Grade', 'Year'], '', $gradeLevel)));
+
+            if ($value === strtolower($gradeLevel) || $value === $short) {
+                return $gradeLevel;
+            }
+        }
+
+        return null;
+    }
+
+    public function educationLevelLabel(): ?string
+    {
+        return self::EDUCATION_LEVELS[$this->education_level]['label'] ?? null;
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -55,6 +147,16 @@ class Student extends Authenticatable
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // The grading system follows from the education level.
+        static::saving(function (Student $student): void {
+            if ($student->education_level !== null && $student->isDirty('education_level')) {
+                $student->grading_system = self::gradingSystemFor($student->education_level);
+            }
+        });
     }
 
     /** Excludes look-alike characters (0/O, 1/l/I) so printed slips are easy to type. */

@@ -49,10 +49,12 @@ export default function TeachingAssignmentsIndex({
     assignments,
     teachers,
     sections,
+    subjects,
 }: {
     assignments: Assignment[];
     teachers: Teacher[];
     sections: string[];
+    subjects: string[];
 }) {
     const [createOpen, setCreateOpen] = useState(false);
     const [deleting, setDeleting] = useState<Assignment | null>(null);
@@ -123,11 +125,22 @@ export default function TeachingAssignmentsIndex({
                                                 id="subject"
                                                 name="subject"
                                                 required
+                                                list="known-subjects"
                                                 placeholder="e.g. Mathematics"
                                             />
+                                            <datalist id="known-subjects">
+                                                {subjects.map((subject) => (
+                                                    <option
+                                                        key={subject}
+                                                        value={subject}
+                                                    />
+                                                ))}
+                                            </datalist>
                                             <p className="text-xs text-muted-foreground">
-                                                Must match the subject name used
-                                                in the grades CSV.
+                                                Pick from the registrar&apos;s
+                                                subject list. Must match the
+                                                subject name used in the grades
+                                                CSV.
                                             </p>
                                             <InputError
                                                 message={errors.subject}

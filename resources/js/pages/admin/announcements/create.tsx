@@ -1,6 +1,15 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AnnouncementController from '@/actions/App/Http/Controllers/Admin/AnnouncementController';
+import {
+    EventAreaField,
+    MediaUploadField,
+    PersonnelAudienceField,
+} from '@/components/announcement-fields';
+import type {
+    CampusLocationOption,
+    PersonnelRoleOption,
+} from '@/components/announcement-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -30,11 +39,17 @@ type StudentOption = {
 
 export default function AnnouncementsCreate({
     students,
+    campusLocations,
+    personnelRoles,
 }: {
     students: StudentOption[];
+    campusLocations: CampusLocationOption[];
+    personnelRoles: PersonnelRoleOption[];
 }) {
     const [type, setType] = useState<'announcement' | 'event'>('announcement');
-    const [audience, setAudience] = useState<'all' | 'targeted'>('all');
+    const [audience, setAudience] = useState<'all' | 'targeted' | 'none'>(
+        'all',
+    );
     const [studentSearch, setStudentSearch] = useState('');
 
     return (
@@ -130,11 +145,16 @@ export default function AnnouncementsCreate({
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="location">
-                                            Location
+                                            Location details (optional)
                                         </Label>
                                         <Input id="location" name="location" />
                                         <InputError message={errors.location} />
                                     </div>
+
+                                    <EventAreaField
+                                        locations={campusLocations}
+                                        error={errors.campus_location_id}
+                                    />
                                 </>
                             )}
 
@@ -166,7 +186,8 @@ export default function AnnouncementsCreate({
                                     defaultValue="all"
                                     onValueChange={(value) =>
                                         setAudience(
-                                            value as 'all' | 'targeted',
+                                            value as
+                                                'all' | 'targeted' | 'none',
                                         )
                                     }
                                 >
@@ -183,14 +204,23 @@ export default function AnnouncementsCreate({
                                         <SelectItem value="targeted">
                                             Specific students
                                         </SelectItem>
+                                        <SelectItem value="none">
+                                            No students (personnel only)
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.audience} />
                                 <p className="text-sm text-muted-foreground">
                                     Publishing texts an SMS to the selected
-                                    students and their guardians.
+                                    students, their guardians and any personnel
+                                    chosen below.
                                 </p>
                             </div>
+
+                            <PersonnelAudienceField
+                                roles={personnelRoles}
+                                error={errors.personnel_roles}
+                            />
 
                             <label className="flex items-center gap-2">
                                 <Checkbox
@@ -199,7 +229,7 @@ export default function AnnouncementsCreate({
                                     value="1"
                                 />
                                 <span className="text-sm">
-                                    Don&apos;t send SMS to students/guardians
+                                    Don&apos;t send SMS or email notifications
                                 </span>
                             </label>
 
@@ -228,10 +258,9 @@ export default function AnnouncementsCreate({
                                                 .filter(Boolean)
                                                 .join(' ')
                                                 .toLowerCase();
-                                            const visible =
-                                                label.includes(
-                                                    studentSearch.toLowerCase(),
-                                                );
+                                            const visible = label.includes(
+                                                studentSearch.toLowerCase(),
+                                            );
 
                                             return (
                                                 <label
@@ -272,6 +301,8 @@ export default function AnnouncementsCreate({
                                     <InputError message={errors.student_ids} />
                                 </div>
                             )}
+
+                            <MediaUploadField errors={errors} />
 
                             <div className="flex items-center gap-4">
                                 <Button type="submit" disabled={processing}>

@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import {
     ArrowUp,
+    CalendarDays,
     Compass,
     Eye,
     LocateFixed,
@@ -10,7 +11,7 @@ import {
     MoveHorizontal,
     Navigation,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CAMPUS_WALKING, CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
 import { NavigationHud } from '@/components/navigation-hud';
@@ -32,6 +33,8 @@ import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { createRouter } from '@/lib/campus-route';
 import { isHandheld } from '@/lib/device';
 import { cn } from '@/lib/utils';
+import { presence } from '@/routes/maps';
+import { leave as leavePresence } from '@/routes/maps/presence';
 
 // How close (in map percent) a tap must land to select a location.
 const TAP_RADIUS = 8;
@@ -62,6 +65,98 @@ function nearestLocation(
     return nearest;
 }
 
+// How often a phone showing its location reports in to the staff dashboard.
+const PRESENCE_INTERVAL_MS = 20_000;
+
+type MapEvent = {
+    title: string;
+    event_start_at: string | null;
+    event_end_at: string | null;
+    location: string | null;
+};
+
+function xsrfToken(): string {
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+const PRESENCE_CLIENT_KEY = 'campus-map-client';
+
+/**
+ * A random id for this tab, so the dashboard shows one dot per phone.
+ * Location only works over https, where randomUUID is always available.
+ */
+function presenceClientId(): string {
+    try {
+        const stored = sessionStorage.getItem(PRESENCE_CLIENT_KEY);
+
+        if (stored) {
+            return stored;
+        }
+
+        const id = crypto.randomUUID();
+        sessionStorage.setItem(PRESENCE_CLIENT_KEY, id);
+
+        return id;
+    } catch {
+        return crypto.randomUUID();
+    }
+}
+
+function sendPresence(
+    route: { url: string; method: string },
+    body: { client: string; x?: number; y?: number },
+) {
+    void fetch(route.url, {
+        method: route.method.toUpperCase(),
+        credentials: 'same-origin',
+        keepalive: true,
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-XSRF-TOKEN': xsrfToken(),
+        },
+        body: JSON.stringify(body),
+    }).catch(() => {
+        // Best effort: a missed report just means the dot fades sooner.
+    });
+}
+
+/**
+ * While the visitor shares their location and is on campus, tell the server
+ * where they are on the map (map percent only) so staff see them live.
+ */
+function usePresenceReporting(point: { x: number; y: number } | null) {
+    const pointRef = useRef(point);
+    const active = point !== null;
+
+    useEffect(() => {
+        pointRef.current = point;
+    }, [point]);
+
+    useEffect(() => {
+        if (!active) {
+            return;
+        }
+
+        const client = presenceClientId();
+        const report = () => {
+            if (pointRef.current) {
+                sendPresence(presence(), { client, ...pointRef.current });
+            }
+        };
+
+        report();
+        const timer = window.setInterval(report, PRESENCE_INTERVAL_MS);
+
+        return () => {
+            window.clearInterval(timer);
+            sendPresence(leavePresence(), { client });
+        };
+    }, [active]);
+}
+
 const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
     locating: 'Finding your location…',
     unsupported: "This device can't share its location.",
@@ -75,11 +170,16 @@ const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
 export default function KioskMapsIndex({
     locations,
     referencePoints,
+    focusLocationId,
+    event,
 }: {
     locations: CampusMapPoint[];
     referencePoints: GeoReferencePoint[];
+    focusLocationId: number | null;
+    event: MapEvent | null;
 }) {
-    const [activeId, setActiveId] = useState<number | null>(null);
+    // Opened from an event link: start with the event's area picked.
+    const [activeId, setActiveId] = useState<number | null>(focusLocationId);
     const active = locations.find((location) => location.id === activeId);
 
     const projector = useMemo(
@@ -108,6 +208,11 @@ export default function KioskMapsIndex({
         userPoint.x <= 100 + CAMPUS_MARGIN &&
         userPoint.y >= -CAMPUS_MARGIN &&
         userPoint.y <= 100 + CAMPUS_MARGIN;
+    usePresenceReporting(
+        onCampus && userPoint && !geo.stale
+            ? { x: userPoint.x, y: userPoint.y }
+            : null,
+    );
     const nearby =
         onCampus && userPoint
             ? nearestLocation(locations, userPoint, NEAR_RADIUS)
@@ -247,6 +352,32 @@ export default function KioskMapsIndex({
                             : 'Show my location'}
                     </Button>
                 </div>
+
+                {event && (
+                    <div className="-mt-2 flex items-start gap-3 rounded-xl border border-primary/50 bg-primary/5 p-4 text-sm">
+                        <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
+                        <div>
+                            <div className="font-semibold">{event.title}</div>
+                            {event.event_start_at && (
+                                <div className="text-muted-foreground">
+                                    {new Date(
+                                        event.event_start_at,
+                                    ).toLocaleString(undefined, {
+                                        dateStyle: 'full',
+                                        timeStyle: 'short',
+                                    })}
+                                    {event.event_end_at &&
+                                        ` – ${new Date(event.event_end_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`}
+                                </div>
+                            )}
+                            <div className="mt-1">
+                                {active
+                                    ? `Happening at ${active.name}${event.location ? ` (${event.location})` : ''}. It's marked on the map below.`
+                                    : event.location}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {handheld &&
                     view === 'first-person' &&

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\Subject;
 use App\Models\TeachingAssignment;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,7 @@ class TeachingAssignmentController extends Controller
                 ->get(),
             'teachers' => User::where('role', 'teacher')->orderBy('name')->get(['id', 'name']),
             'sections' => Student::whereNotNull('section')->distinct()->orderBy('section')->pluck('section'),
+            'subjects' => Subject::distinct()->orderBy('name')->pluck('name'),
         ]);
     }
 

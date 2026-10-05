@@ -8,9 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAnnouncementRequest;
 use App\Http\Requests\Admin\UpdateAnnouncementRequest;
 use App\Models\Announcement;
+use App\Models\CampusLocation;
 use App\Models\Student;
 use App\Services\SmsService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -32,16 +34,12 @@ class AnnouncementController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('admin/announcements/create', [
-            'students' => $this->studentOptions(),
-        ]);
+        return Inertia::render('admin/announcements/create', $this->formOptions());
     }
 
     public function store(StoreAnnouncementRequest $request, SmsService $sms): RedirectResponse
     {
-        $data = $request->validated();
-        $studentIds = $data['student_ids'] ?? [];
-        unset($data['student_ids']);
+        [$data, $studentIds, $files] = $this->split($request->validated());
 
         $data['slug'] = $this->generateUniqueSlug(Announcement::class, $data['title']);
         $data['created_by'] = $request->user()->id;
@@ -51,6 +49,10 @@ class AnnouncementController extends Controller
 
         if ($announcement->audience === 'targeted') {
             $announcement->students()->sync($studentIds);
+        }
+
+        foreach ($files as $file) {
+            $this->attachMedia($announcement, $file, null);
         }
 
         if ($announcement->status === 'published' && ! $request->boolean('skip_sms')) {
@@ -66,15 +68,13 @@ class AnnouncementController extends Controller
     {
         return Inertia::render('admin/announcements/edit', [
             'announcement' => $announcement->load('media', 'students:id'),
-            'students' => $this->studentOptions(),
+            ...$this->formOptions(),
         ]);
     }
 
     public function update(UpdateAnnouncementRequest $request, Announcement $announcement, SmsService $sms): RedirectResponse
     {
-        $data = $request->validated();
-        $studentIds = $data['student_ids'] ?? [];
-        unset($data['student_ids']);
+        [$data, $studentIds, $files] = $this->split($request->validated());
 
         $wasAlreadyPublished = $announcement->published_at !== null;
 
@@ -87,6 +87,10 @@ class AnnouncementController extends Controller
         $announcement->update($data);
 
         $announcement->students()->sync($announcement->audience === 'targeted' ? $studentIds : []);
+
+        foreach ($files as $file) {
+            $this->attachMedia($announcement, $file, null);
+        }
 
         if ($announcement->status === 'published' && ! $wasAlreadyPublished && ! $request->boolean('skip_sms')) {
             $sms->notifyForAnnouncement($announcement);
@@ -106,6 +110,42 @@ class AnnouncementController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Announcement deleted.')]);
 
         return to_route('admin.announcements.index');
+    }
+
+    /**
+     * Separate the announcement's own columns from the students and uploads sent with it.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{0: array<string, mixed>, 1: array<int, int>, 2: array<int, UploadedFile>}
+     */
+    private function split(array $validated): array
+    {
+        $studentIds = $validated['student_ids'] ?? [];
+        $files = $validated['media'] ?? [];
+        unset($validated['student_ids'], $validated['media']);
+
+        $validated['personnel_roles'] = array_values(array_unique($validated['personnel_roles'] ?? [])) ?: null;
+
+        // Only events happen somewhere on the map.
+        if ($validated['type'] !== 'event') {
+            $validated['campus_location_id'] = null;
+        }
+
+        return [$validated, $studentIds, $files];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formOptions(): array
+    {
+        return [
+            'students' => $this->studentOptions(),
+            'campusLocations' => CampusLocation::orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
+            'personnelRoles' => collect(Announcement::PERSONNEL_ROLES)
+                ->map(fn (string $label, string $value) => ['value' => $value, 'label' => $label])
+                ->values(),
+        ];
     }
 
     /**

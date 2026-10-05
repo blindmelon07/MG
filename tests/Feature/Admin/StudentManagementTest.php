@@ -26,21 +26,67 @@ test('admin can create a student with guardians', function () {
     $response = $this->actingAs($admin)->post(route('admin.students.store'), [
         'name' => 'Juan Dela Cruz',
         'student_number' => 'LRN-12345678',
+        'education_level' => 'jhs',
         'grade_level' => 'Grade 8',
         'section' => 'St. Thomas',
         'phone_number' => null,
         'status' => 'active',
         'guardians' => [
             ['name' => 'Maria Dela Cruz', 'relationship' => 'Mother', 'phone_number' => '09171234567'],
-            ['name' => 'Jose Dela Cruz', 'relationship' => 'Father', 'phone_number' => '639181234567'],
+            ['name' => 'Jose Dela Cruz', 'relationship' => 'Father', 'phone_number' => '09181234567'],
         ],
     ]);
 
     $response->assertRedirect(route('admin.students.index'));
 
     $student = Student::where('name', 'Juan Dela Cruz')->firstOrFail();
-    expect($student->guardians)->toHaveCount(2);
+    expect($student->guardians)->toHaveCount(2)
+        ->and($student->grading_system)->toBe('k12');
 });
+
+test('the year level must belong to the chosen education level', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->post(route('admin.students.store'), [
+        'name' => 'Juan Dela Cruz',
+        'student_number' => 'LRN-12345678',
+        'education_level' => 'shs',
+        'grade_level' => 'Grade 8',
+        'section' => 'St. Thomas',
+        'status' => 'active',
+        'guardians' => [['name' => 'Maria', 'relationship' => 'Mother', 'phone_number' => '09171234567']],
+    ])->assertSessionHasErrors('grade_level');
+});
+
+test('college students get the college grading system', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->post(route('admin.students.store'), [
+        'name' => 'Ana Reyes',
+        'student_number' => 'C-2026-001',
+        'education_level' => 'college',
+        'grade_level' => '1st Year',
+        'section' => 'BSIT 1-A',
+        'status' => 'active',
+        'guardians' => [['name' => 'Elena', 'relationship' => 'Mother', 'phone_number' => '09171234567']],
+    ])->assertRedirect(route('admin.students.index'));
+
+    expect(Student::where('student_number', 'C-2026-001')->value('grading_system'))->toBe('college');
+});
+
+test('student details are required and phone numbers must be exactly 11 digits', function (string $phone) {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->post(route('admin.students.store'), [
+        'name' => 'Juan Dela Cruz',
+        'phone_number' => $phone,
+        'status' => 'active',
+        'guardians' => [['name' => 'Maria', 'relationship' => 'Mother', 'phone_number' => $phone]],
+    ])->assertSessionHasErrors([
+        'student_number', 'education_level', 'grade_level', 'section',
+        'phone_number', 'guardians.0.phone_number',
+    ]);
+})->with(['0917123456', '091712345678', '+639171234567', '639171234567', '0917-123-4567']);
 
 test('creating a student requires at least one guardian', function () {
     $admin = User::factory()->create(['role' => 'admin']);
@@ -63,6 +109,7 @@ test('admin can update a student and sync guardians', function () {
     $response = $this->actingAs($admin)->put(route('admin.students.update', $student), [
         'name' => $student->name,
         'student_number' => $student->student_number,
+        'education_level' => 'jhs',
         'grade_level' => $student->grade_level,
         'section' => $student->section,
         'phone_number' => null,

@@ -4,6 +4,7 @@ import UserTwoFactorController from '@/actions/App/Http/Controllers/Admin/UserTw
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { PhoneInput } from '@/components/phone-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,7 @@ type ManagedUser = {
     id: number;
     name: string;
     email: string;
+    phone_number: string | null;
     role: UserRole;
     two_factor_enabled: boolean;
 };
@@ -67,6 +69,22 @@ export default function UsersEdit({ editedUser }: { editedUser: ManagedUser }) {
                                     defaultValue={editedUser.email}
                                 />
                                 <InputError message={errors.email} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone_number">
+                                    Mobile number (optional)
+                                </Label>
+                                <PhoneInput
+                                    id="phone_number"
+                                    name="phone_number"
+                                    defaultValue={editedUser.phone_number ?? ''}
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Used to text announcements and events sent
+                                    to personnel.
+                                </p>
+                                <InputError message={errors.phone_number} />
                             </div>
 
                             <div className="grid gap-2">

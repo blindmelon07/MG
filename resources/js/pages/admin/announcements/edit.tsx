@@ -2,6 +2,15 @@ import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AnnouncementController from '@/actions/App/Http/Controllers/Admin/AnnouncementController';
 import AnnouncementMediaController from '@/actions/App/Http/Controllers/Admin/AnnouncementMediaController';
+import {
+    EventAreaField,
+    MediaUploadField,
+    PersonnelAudienceField,
+} from '@/components/announcement-fields';
+import type {
+    CampusLocationOption,
+    PersonnelRoleOption,
+} from '@/components/announcement-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import MediaManager from '@/components/media-manager';
@@ -44,7 +53,9 @@ type Announcement = {
     content: string;
     type: 'announcement' | 'event';
     status: 'draft' | 'published';
-    audience: 'all' | 'targeted';
+    audience: 'all' | 'targeted' | 'none';
+    personnel_roles: string[] | null;
+    campus_location_id: number | null;
     event_start_at: string | null;
     event_end_at: string | null;
     location: string | null;
@@ -63,14 +74,18 @@ function toDatetimeLocal(value: string | null): string {
 export default function AnnouncementsEdit({
     announcement,
     students,
+    campusLocations,
+    personnelRoles,
 }: {
     announcement: Announcement;
     students: StudentOption[];
+    campusLocations: CampusLocationOption[];
+    personnelRoles: PersonnelRoleOption[];
 }) {
     const [type, setType] = useState<'announcement' | 'event'>(
         announcement.type,
     );
-    const [audience, setAudience] = useState<'all' | 'targeted'>(
+    const [audience, setAudience] = useState<'all' | 'targeted' | 'none'>(
         announcement.audience,
     );
     const [studentSearch, setStudentSearch] = useState('');
@@ -181,7 +196,7 @@ export default function AnnouncementsEdit({
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="location">
-                                            Location
+                                            Location details (optional)
                                         </Label>
                                         <Input
                                             id="location"
@@ -192,6 +207,14 @@ export default function AnnouncementsEdit({
                                         />
                                         <InputError message={errors.location} />
                                     </div>
+
+                                    <EventAreaField
+                                        locations={campusLocations}
+                                        defaultValue={
+                                            announcement.campus_location_id
+                                        }
+                                        error={errors.campus_location_id}
+                                    />
                                 </>
                             )}
 
@@ -226,7 +249,8 @@ export default function AnnouncementsEdit({
                                     defaultValue={announcement.audience}
                                     onValueChange={(value) =>
                                         setAudience(
-                                            value as 'all' | 'targeted',
+                                            value as
+                                                'all' | 'targeted' | 'none',
                                         )
                                     }
                                 >
@@ -243,15 +267,24 @@ export default function AnnouncementsEdit({
                                         <SelectItem value="targeted">
                                             Specific students
                                         </SelectItem>
+                                        <SelectItem value="none">
+                                            No students (personnel only)
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.audience} />
                                 <p className="text-sm text-muted-foreground">
                                     Publishing texts an SMS to the selected
-                                    students and their guardians (only on the
-                                    first publish).
+                                    students, their guardians and any personnel
+                                    chosen below (only on the first publish).
                                 </p>
                             </div>
+
+                            <PersonnelAudienceField
+                                roles={personnelRoles}
+                                defaultValue={announcement.personnel_roles}
+                                error={errors.personnel_roles}
+                            />
 
                             <label className="flex items-center gap-2">
                                 <Checkbox
@@ -260,7 +293,7 @@ export default function AnnouncementsEdit({
                                     value="1"
                                 />
                                 <span className="text-sm">
-                                    Don&apos;t send SMS to students/guardians
+                                    Don&apos;t send SMS or email notifications
                                 </span>
                             </label>
 
@@ -289,10 +322,9 @@ export default function AnnouncementsEdit({
                                                 .filter(Boolean)
                                                 .join(' ')
                                                 .toLowerCase();
-                                            const visible =
-                                                label.includes(
-                                                    studentSearch.toLowerCase(),
-                                                );
+                                            const visible = label.includes(
+                                                studentSearch.toLowerCase(),
+                                            );
 
                                             return (
                                                 <label
@@ -336,6 +368,11 @@ export default function AnnouncementsEdit({
                                     <InputError message={errors.student_ids} />
                                 </div>
                             )}
+
+                            <MediaUploadField
+                                errors={errors}
+                                label="Add photos & videos (optional)"
+                            />
 
                             <div className="flex items-center gap-4">
                                 <Button type="submit" disabled={processing}>

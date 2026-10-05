@@ -2,8 +2,11 @@ import { Form, Head } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import StudentController from '@/actions/App/Http/Controllers/Admin/StudentController';
+import { EducationLevelFields } from '@/components/education-level-fields';
+import type { EducationLevelOption } from '@/components/education-level-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PhoneInput } from '@/components/phone-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,9 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { gradingSystemLabels } from '@/lib/grades';
 import { edit, index as studentsIndex } from '@/routes/admin/students';
-import type { GradingSystem } from '@/types/auth';
 
 type GuardianRow = {
     id?: number;
@@ -29,15 +30,21 @@ type EditedStudent = {
     id: number;
     name: string;
     student_number: string | null;
+    education_level: string | null;
     grade_level: string | null;
     section: string | null;
-    grading_system: GradingSystem;
     phone_number: string | null;
     status: 'active' | 'inactive';
     guardians: GuardianRow[];
 };
 
-export default function StudentsEdit({ student }: { student: EditedStudent }) {
+export default function StudentsEdit({
+    student,
+    educationLevels,
+}: {
+    student: EditedStudent;
+    educationLevels: EducationLevelOption[];
+}) {
     const [guardians, setGuardians] = useState<GuardianRow[]>(
         student.guardians.length > 0
             ? student.guardians
@@ -79,6 +86,7 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                     <Input
                                         id="student_number"
                                         name="student_number"
+                                        required
                                         defaultValue={
                                             student.student_number ?? ''
                                         }
@@ -91,10 +99,9 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                     <Label htmlFor="phone_number">
                                         Student&apos;s phone (optional)
                                     </Label>
-                                    <Input
+                                    <PhoneInput
                                         id="phone_number"
                                         name="phone_number"
-                                        placeholder="09171234567"
                                         defaultValue={
                                             student.phone_number ?? ''
                                         }
@@ -103,53 +110,22 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="grade_level">
-                                        Grade level
-                                    </Label>
-                                    <Input
-                                        id="grade_level"
-                                        name="grade_level"
-                                        defaultValue={student.grade_level ?? ''}
-                                    />
-                                    <InputError message={errors.grade_level} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="section">Section</Label>
-                                    <Input
-                                        id="section"
-                                        name="section"
-                                        defaultValue={student.section ?? ''}
-                                    />
-                                    <InputError message={errors.section} />
-                                </div>
-                            </div>
+                            <EducationLevelFields
+                                levels={educationLevels}
+                                defaultEducationLevel={student.education_level}
+                                defaultGradeLevel={student.grade_level}
+                                errors={errors}
+                            />
 
                             <div className="grid gap-2">
-                                <Label htmlFor="grading_system">
-                                    Grading system
-                                </Label>
-                                <Select
-                                    name="grading_system"
-                                    defaultValue={student.grading_system}
-                                >
-                                    <SelectTrigger
-                                        id="grading_system"
-                                        className="w-full"
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="k12">
-                                            {gradingSystemLabels.k12}
-                                        </SelectItem>
-                                        <SelectItem value="college">
-                                            {gradingSystemLabels.college}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.grading_system} />
+                                <Label htmlFor="section">Section</Label>
+                                <Input
+                                    id="section"
+                                    name="section"
+                                    required
+                                    defaultValue={student.section ?? ''}
+                                />
+                                <InputError message={errors.section} />
                             </div>
 
                             <div className="grid gap-2">
@@ -259,10 +235,9 @@ export default function StudentsEdit({ student }: { student: EditedStudent }) {
                                             >
                                                 Phone
                                             </Label>
-                                            <Input
+                                            <PhoneInput
                                                 id={`guardian-phone-${index}`}
                                                 name={`guardians[${index}][phone_number]`}
-                                                placeholder="09171234567"
                                                 required
                                                 defaultValue={
                                                     guardian.phone_number

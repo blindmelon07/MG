@@ -36,7 +36,7 @@ class AnnouncementController extends Controller
     public function show(string $slug): Response
     {
         $announcement = Announcement::published()
-            ->with('media')
+            ->with('media', 'campusLocation:id,name')
             ->where('slug', $slug)
             ->firstOrFail();
 
