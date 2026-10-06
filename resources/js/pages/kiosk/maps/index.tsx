@@ -272,10 +272,11 @@ export default function KioskMapsIndex({
     const photoOn = view === 'photo' && panoramas.length > 0 && !navigating;
     const compass = useDeviceHeading(lookOn || photoOn);
     const [shownPanoramaId, setShownPanoramaId] = useState<number | null>(null);
-    const nearestPhoto =
-        geo.fix && !geo.stale
-            ? nearestPanorama(panoramas, geo.fix, shownPanoramaId)
-            : null;
+    // A brief GPS dropout keeps the last known fix, so the view stays on
+    // the photo where the visitor was rather than jumping elsewhere.
+    const nearestPhoto = geo.fix
+        ? nearestPanorama(panoramas, geo.fix, shownPanoramaId)
+        : null;
     const shownPanorama =
         nearestPhoto?.panorama ??
         panoramas.find((p) => p.id === pickedPanoramaId) ??
@@ -586,7 +587,9 @@ export default function KioskMapsIndex({
                                             {nearestPhoto
                                                 ? nearestPhoto.meters <=
                                                   PHOTO_NEAR_METERS
-                                                    ? `${panoramaTitle(shownPanorama)} · photo taken about ${formatDistance(nearestPhoto.meters)} from you`
+                                                    ? geo.stale
+                                                        ? `${panoramaTitle(shownPanorama)} · GPS signal weak, showing your last known spot`
+                                                        : `${panoramaTitle(shownPanorama)} · photo taken about ${formatDistance(nearestPhoto.meters)} from you`
                                                     : `You're ${formatDistance(nearestPhoto.meters)} from the nearest 360° photo spot (${panoramaTitle(shownPanorama)}).`
                                                 : `${panoramaTitle(shownPanorama)} · ${
                                                       tracking
