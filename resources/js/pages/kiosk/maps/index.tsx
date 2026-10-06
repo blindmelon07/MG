@@ -10,6 +10,7 @@ import {
     MapPin,
     MoveHorizontal,
     Navigation,
+    Rotate3d,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CAMPUS_WALKING, CampusMap } from '@/components/campus-map';
@@ -189,9 +190,9 @@ export default function KioskMapsIndex({
     const [handheld] = useState(isHandheld);
     // Start locating straight away on phones; kiosks use the button.
     const [tracking, setTracking] = useState(handheld);
-    // Phones default to seeing the campus through the visitor's own eyes.
-    const [view, setView] = useState<'first-person' | 'overview'>(
-        handheld ? 'first-person' : 'overview',
+    // Phones default to the Waze-style camera following the visitor's arrow.
+    const [view, setView] = useState<'first-person' | 'follow' | 'overview'>(
+        handheld ? 'follow' : 'overview',
     );
     // Where the visitor has dragged to look, when there's no compass.
     const [lookHeading, setLookHeading] = useState<number | null>(null);
@@ -248,7 +249,10 @@ export default function KioskMapsIndex({
 
     const firstPersonOn =
         view === 'first-person' && firstPersonAvailable && !navigating;
-    const compass = useDeviceHeading(firstPersonOn);
+    // Waze-style camera behind the visitor, free to swing a full 360°.
+    const followOn = view === 'follow' && firstPersonAvailable && !navigating;
+    const lookOn = firstPersonOn || followOn;
+    const compass = useDeviceHeading(lookOn);
 
     // Without a compass, start out facing the chosen place or the campus centre.
     const initialHeading =
@@ -260,7 +264,7 @@ export default function KioskMapsIndex({
     const heading = compass.heading ?? lookHeading ?? initialHeading;
 
     const guidance = (() => {
-        if (!firstPersonOn || !active || !projector || !userPoint) {
+        if (!lookOn || !active || !projector || !userPoint) {
             return null;
         }
 
@@ -380,12 +384,12 @@ export default function KioskMapsIndex({
                 )}
 
                 {handheld &&
-                    view === 'first-person' &&
+                    view !== 'overview' &&
                     tracking &&
                     !firstPersonAvailable &&
                     projector && (
                         <p className="-mt-3 text-sm text-muted-foreground">
-                            First-person view starts once your phone finds you
+                            The 3D walking view starts once your phone finds you
                             on campus.
                         </p>
                     )}
@@ -409,18 +413,28 @@ export default function KioskMapsIndex({
                             either from the list or by tapping the map. */}
                         <CampusMap
                             className={
-                                firstPersonOn || navigating
+                                lookOn || navigating
                                     ? 'aspect-[3/4] sm:aspect-[4/3]'
                                     : undefined
                             }
                             follow={
-                                navigation.trip && projector && userPoint
-                                    ? {
-                                          ...userPoint,
-                                          forward: projector.headingToWorld(
-                                              navigation.heading,
-                                          ),
-                                      }
+                                projector && userPoint
+                                    ? navigation.trip
+                                        ? {
+                                              ...userPoint,
+                                              forward: projector.headingToWorld(
+                                                  navigation.heading,
+                                              ),
+                                          }
+                                        : followOn
+                                          ? {
+                                                ...userPoint,
+                                                forward:
+                                                    projector.headingToWorld(
+                                                        heading,
+                                                    ),
+                                            }
+                                          : null
                                     : null
                             }
                             route={navigation.trip?.guide.points ?? null}
@@ -484,24 +498,35 @@ export default function KioskMapsIndex({
                         )}
 
                         {firstPersonAvailable && !navigating && (
-                            <Button
-                                size="sm"
-                                variant="secondary"
-                                className="absolute top-2 right-2 shadow-md"
-                                onClick={() =>
-                                    setView(
-                                        firstPersonOn
-                                            ? 'overview'
-                                            : 'first-person',
-                                    )
-                                }
+                            <div
+                                role="group"
+                                aria-label="Map view"
+                                className="absolute top-2 right-2 flex gap-0.5 rounded-lg bg-background/90 p-0.5 shadow-md backdrop-blur"
                             >
-                                {firstPersonOn ? <MapIcon /> : <Eye />}
-                                {firstPersonOn ? 'Overview' : 'First person'}
-                            </Button>
+                                {(
+                                    [
+                                        ['follow', Navigation, '3D'],
+                                        ['first-person', Eye, 'Eyes'],
+                                        ['overview', MapIcon, 'Overview'],
+                                    ] as const
+                                ).map(([value, Icon, label]) => (
+                                    <Button
+                                        key={value}
+                                        size="sm"
+                                        variant={
+                                            view === value ? 'default' : 'ghost'
+                                        }
+                                        aria-pressed={view === value}
+                                        onClick={() => setView(value)}
+                                    >
+                                        <Icon />
+                                        {label}
+                                    </Button>
+                                ))}
+                            </div>
                         )}
 
-                        {firstPersonOn && (
+                        {lookOn && (
                             <div className="pointer-events-none absolute inset-x-2 bottom-2 flex flex-col items-start gap-2">
                                 {guidance && (
                                     <div
@@ -523,7 +548,13 @@ export default function KioskMapsIndex({
                                 )}
 
                                 <div className="flex items-center gap-2 rounded-lg bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-md backdrop-blur">
-                                    {compass.heading !== null ? (
+                                    {followOn ? (
+                                        <>
+                                            <Rotate3d className="size-4 shrink-0" />
+                                            Drag to look 360° around you. Pinch
+                                            to zoom.
+                                        </>
+                                    ) : compass.heading !== null ? (
                                         <>
                                             <Compass className="size-4 shrink-0" />
                                             Facing{' '}

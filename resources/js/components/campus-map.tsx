@@ -1,5 +1,5 @@
-import { MapPin } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { LocateFixed, MapPin } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { WalkingAreas } from '@/lib/campus-route';
@@ -89,6 +89,18 @@ const FOLLOW_FOV = 55;
 const FOLLOW_BACK = 1.7;
 const FOLLOW_HEIGHT = 2.1;
 const FOLLOW_AHEAD = 0.9;
+const FOLLOW_DISTANCE = Math.hypot(FOLLOW_BACK, FOLLOW_HEIGHT);
+const FOLLOW_PITCH = Math.atan2(FOLLOW_HEIGHT, FOLLOW_BACK);
+// Free look around the walker: drag swings the camera a full 360°, up/down
+// tilts, pinch or scroll zooms. It drifts back behind the walker once left
+// alone, the way Waze recentres.
+const ORBIT_RADIANS_PER_PIXEL = 0.008;
+const ORBIT_MIN_PITCH = 0.2;
+const ORBIT_MAX_PITCH = 1.5;
+const ORBIT_MIN_DISTANCE = 0.9;
+const ORBIT_MAX_DISTANCE = 8;
+const RECENTER_DELAY_MS = 8000;
+const RECENTER_EASING = 0.08;
 
 const ROUTE_COLOR = 0x2563eb;
 const ROUTE_WIDTH = 0.11;
@@ -1769,6 +1781,9 @@ export function CampusMap({
     const onLookDragRef = useRef(onLookDrag);
     const onPointClickRef = useRef(onPointClick);
     const onMapClickRef = useRef(onMapClick);
+    // Follow camera swung away from behind the walker; offers Recenter.
+    const [freeLook, setFreeLook] = useState(false);
+    const recenterRef = useRef<() => void>(() => {});
 
     useEffect(() => {
         pointsRef.current = points;
@@ -1891,6 +1906,71 @@ export function CampusMap({
         let mode: 'overview' | 'first-person' | 'follow' = 'overview';
         const focus = new THREE.Vector3();
         let yaw = 0;
+        // Follow camera orbit, relative to straight behind the walker.
+        const orbit = {
+            yaw: 0,
+            pitch: FOLLOW_PITCH,
+            distance: FOLLOW_DISTANCE,
+        };
+        let lastOrbitInput = 0;
+        let orbiting = false;
+
+        function nudgeOrbit(dYaw: number, dPitch: number, zoom: number) {
+            orbit.yaw += dYaw;
+            orbit.pitch = Math.min(
+                ORBIT_MAX_PITCH,
+                Math.max(ORBIT_MIN_PITCH, orbit.pitch + dPitch),
+            );
+            orbit.distance = Math.min(
+                ORBIT_MAX_DISTANCE,
+                Math.max(ORBIT_MIN_DISTANCE, orbit.distance * zoom),
+            );
+            lastOrbitInput = performance.now();
+
+            if (!orbiting) {
+                orbiting = true;
+                setFreeLook(true);
+            }
+        }
+
+        function resetOrbit() {
+            orbit.yaw = 0;
+            orbit.pitch = FOLLOW_PITCH;
+            orbit.distance = FOLLOW_DISTANCE;
+
+            if (orbiting) {
+                orbiting = false;
+                setFreeLook(false);
+            }
+        }
+
+        recenterRef.current = () => {
+            lastOrbitInput = 0;
+        };
+
+        /** Eases the orbit back behind the walker once it's been left alone. */
+        function settleOrbit() {
+            if (
+                !orbiting ||
+                performance.now() - lastOrbitInput < RECENTER_DELAY_MS
+            ) {
+                return;
+            }
+
+            // Unwind the long way round too, so it never spins extra turns.
+            orbit.yaw = angleDelta(0, orbit.yaw) * (1 - RECENTER_EASING);
+            orbit.pitch += (FOLLOW_PITCH - orbit.pitch) * RECENTER_EASING;
+            orbit.distance +=
+                (FOLLOW_DISTANCE - orbit.distance) * RECENTER_EASING;
+
+            if (
+                Math.abs(orbit.yaw) < 0.002 &&
+                Math.abs(orbit.pitch - FOLLOW_PITCH) < 0.002 &&
+                Math.abs(orbit.distance - FOLLOW_DISTANCE) < 0.005
+            ) {
+                resetOrbit();
+            }
+        }
 
         function updateCamera() {
             const view = followRef.current ?? firstPersonRef.current;
@@ -1899,6 +1979,10 @@ export function CampusMap({
                 : firstPersonRef.current
                   ? 'first-person'
                   : 'overview';
+
+            if (next !== 'follow') {
+                resetOrbit();
+            }
 
             if (!view || next === 'overview') {
                 if (mode !== 'overview') {
@@ -1956,16 +2040,22 @@ export function CampusMap({
             // The arrow's tip points along -z; turn it to face `yaw`.
             walker.group.rotation.y = Math.atan2(-dirX, -dirZ);
 
+            settleOrbit();
+
+            // With no orbit this is exactly FOLLOW_BACK behind and
+            // FOLLOW_HEIGHT up, looking FOLLOW_AHEAD past the walker.
+            const camYaw = yaw + orbit.yaw;
+            const camX = Math.sin(camYaw);
+            const camZ = Math.cos(camYaw);
+            const back = orbit.distance * Math.cos(orbit.pitch);
+            const ahead = FOLLOW_AHEAD * (orbit.distance / FOLLOW_DISTANCE);
+
             camera.position.set(
-                focus.x - dirX * FOLLOW_BACK,
-                FOLLOW_HEIGHT,
-                focus.z - dirZ * FOLLOW_BACK,
+                focus.x - camX * back,
+                orbit.distance * Math.sin(orbit.pitch),
+                focus.z - camZ * back,
             );
-            camera.lookAt(
-                focus.x + dirX * FOLLOW_AHEAD,
-                0,
-                focus.z + dirZ * FOLLOW_AHEAD,
-            );
+            camera.lookAt(focus.x + camX * ahead, 0, focus.z + camZ * ahead);
         }
 
         let raf = 0;
@@ -2007,15 +2097,59 @@ export function CampusMap({
         // distance, then raycast onto the ground plane for the tapped spot.
         let downPos: { x: number; y: number } | null = null;
         let lastDragX: number | null = null;
+        // Fingers on the canvas, for orbit drags and pinch zoom.
+        const pointers = new Map<number, { x: number; y: number }>();
+
+        const pinchSpan = () => {
+            const [a, b] = [...pointers.values()];
+
+            return Math.hypot(a.x - b.x, a.y - b.y);
+        };
 
         function handlePointerDown(e: PointerEvent) {
-            downPos = { x: e.clientX, y: e.clientY };
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            // A second finger is a pinch, never a tap.
+            downPos =
+                pointers.size === 1 ? { x: e.clientX, y: e.clientY } : null;
             lastDragX = e.clientX;
+
+            if (followRef.current) {
+                renderer.domElement.setPointerCapture(e.pointerId);
+            }
         }
 
-        // First person without a compass: drag sideways to turn. Dragging
-        // right pulls the scene right, so the view turns left.
         function handlePointerMove(e: PointerEvent) {
+            const last = pointers.get(e.pointerId);
+
+            // Follow camera: one finger orbits, two fingers pinch to zoom.
+            // Dragging right pulls the scene right, like spinning a map.
+            if (followRef.current && last) {
+                if (pointers.size >= 2) {
+                    const before = pinchSpan();
+                    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    const after = pinchSpan();
+
+                    if (before > 0 && after > 0) {
+                        nudgeOrbit(0, 0, before / after);
+                    }
+                } else {
+                    nudgeOrbit(
+                        -(e.clientX - last.x) * ORBIT_RADIANS_PER_PIXEL,
+                        (e.clientY - last.y) * ORBIT_RADIANS_PER_PIXEL,
+                        1,
+                    );
+                    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                }
+
+                return;
+            }
+
+            if (last) {
+                pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            }
+
+            // First person without a compass: drag sideways to turn. Dragging
+            // right pulls the scene right, so the view turns left.
             if (lastDragX === null || !firstPersonRef.current) {
                 return;
             }
@@ -2028,7 +2162,17 @@ export function CampusMap({
             }
         }
 
+        function handleWheel(e: WheelEvent) {
+            if (!followRef.current) {
+                return;
+            }
+
+            e.preventDefault();
+            nudgeOrbit(0, 0, Math.exp(e.deltaY * 0.001));
+        }
+
         function handlePointerUp(e: PointerEvent) {
+            pointers.delete(e.pointerId);
             lastDragX = null;
 
             if (!onMapClickRef.current || !downPos) {
@@ -2072,8 +2216,12 @@ export function CampusMap({
         renderer.domElement.addEventListener('pointerup', handlePointerUp);
         renderer.domElement.addEventListener('pointermove', handlePointerMove);
         renderer.domElement.addEventListener('pointercancel', handlePointerUp);
+        renderer.domElement.addEventListener('wheel', handleWheel, {
+            passive: false,
+        });
 
         return () => {
+            renderer.domElement.removeEventListener('wheel', handleWheel);
             cancelAnimationFrame(raf);
             resizeObserver.disconnect();
             renderer.domElement.removeEventListener(
@@ -2212,6 +2360,17 @@ export function CampusMap({
                     </span>
                 </div>
             ))}
+
+            {follow && freeLook && (
+                <button
+                    type="button"
+                    onClick={() => recenterRef.current()}
+                    className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-background/95 px-3 py-2 text-sm font-semibold text-primary shadow-lg backdrop-blur transition-transform active:scale-95"
+                >
+                    <LocateFixed className="size-4" />
+                    Recenter
+                </button>
+            )}
 
             {userLocation && !firstPerson && !follow && (
                 <div
