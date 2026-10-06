@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCampusLocationRequest;
 use App\Http\Requests\Admin\UpdateCampusLocationRequest;
 use App\Models\CampusLocation;
+use App\Models\CampusPanorama;
 use App\Models\MapReferencePoint;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -20,6 +21,7 @@ class CampusLocationController extends Controller
                 ->orderBy('name')
                 ->get(),
             'referencePoints' => MapReferencePoint::latest()->get(),
+            'panoramas' => CampusPanorama::latest()->get(),
         ]);
     }
 

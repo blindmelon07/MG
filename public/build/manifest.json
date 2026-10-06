@@ -102,8 +102,8 @@
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
-  "_campus-map-DFIVdMsf.js": {
-    "file": "assets/campus-map-DFIVdMsf.js",
+  "_campus-map-B0jojyah.js": {
+    "file": "assets/campus-map-B0jojyah.js",
     "name": "campus-map",
     "imports": [
       "_rolldown-runtime-Bh1tDfsg.js",
@@ -167,15 +167,6 @@
     "imports": [
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js"
-    ]
-  },
-  "_device-BbiBif2r.js": {
-    "file": "assets/device-BbiBif2r.js",
-    "name": "device",
-    "imports": [
-      "_rolldown-runtime-Bh1tDfsg.js",
-      "_utils-BatuX27z.js",
-      "_campus-map-DFIVdMsf.js"
     ]
   },
   "_dialog-Cx95ZIj2.js": {
@@ -456,6 +447,16 @@
     "name": "megaphone",
     "imports": [
       "_createLucideIcon-CL8Q_N-z.js"
+    ]
+  },
+  "_panorama-Be6NxkD6.js": {
+    "file": "assets/panorama-Be6NxkD6.js",
+    "name": "panorama",
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
+      "_utils-BatuX27z.js",
+      "_createLucideIcon-CL8Q_N-z.js",
+      "_campus-map-B0jojyah.js"
     ]
   },
   "_passkey-verify-3qrRH64P.js": {
@@ -761,7 +762,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Dv61u1oS.css",
+    "file": "assets/app-B_uyJGFc.css",
     "name": "app",
     "names": [
       "app.css"
@@ -770,7 +771,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DE1u3g51.js",
+    "file": "assets/app-Dub0irk9.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -927,7 +928,7 @@
     ]
   },
   "resources/js/pages/admin/campus-locations/index.tsx": {
-    "file": "assets/campus-locations-i5liV7Hz.js",
+    "file": "assets/campus-locations-C_Q8viO2.js",
     "name": "campus-locations",
     "src": "resources/js/pages/admin/campus-locations/index.tsx",
     "isDynamicEntry": true,
@@ -935,10 +936,12 @@
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_createLucideIcon-CL8Q_N-z.js",
-      "_campus-map-DFIVdMsf.js",
+      "_panorama-Be6NxkD6.js",
+      "_campus-map-B0jojyah.js",
       "_pencil-Byc03yFW.js",
       "_plus-CNveQuFU.js",
       "_trash-2-DHtd3mcB.js",
+      "_upload-CJ1g3TtS.js",
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
       "_wayfinder-Dp7PqxvV.js",
@@ -948,8 +951,7 @@
       "_label-G6RNAPU-.js",
       "_textarea-DEdTcujC.js",
       "_dialog-Cx95ZIj2.js",
-      "_alert-DsvWhfSM.js",
-      "_device-BbiBif2r.js"
+      "_alert-DsvWhfSM.js"
     ]
   },
   "resources/js/pages/admin/grades/history.tsx": {
@@ -1353,7 +1355,7 @@
     ]
   },
   "resources/js/pages/dashboard.tsx": {
-    "file": "assets/dashboard-CVTel1w-.js",
+    "file": "assets/dashboard-ReQAiFlU.js",
     "name": "dashboard",
     "src": "resources/js/pages/dashboard.tsx",
     "isDynamicEntry": true,
@@ -1362,7 +1364,7 @@
       "_utils-BatuX27z.js",
       "_megaphone-ChyymaFy.js",
       "_users-DlqHM8v9.js",
-      "_campus-map-DFIVdMsf.js",
+      "_campus-map-B0jojyah.js",
       "_routes-IvQT6kKJ.js",
       "_announcements-BbMwyDKe.js",
       "_manual-categories-Uf1GK1Ry.js",
@@ -1453,7 +1455,7 @@
     ]
   },
   "resources/js/pages/kiosk/maps/index.tsx": {
-    "file": "assets/maps-mxy_dAES.js",
+    "file": "assets/maps-CXOMnY29.js",
     "name": "maps",
     "src": "resources/js/pages/kiosk/maps/index.tsx",
     "isDynamicEntry": true,
@@ -1462,14 +1464,14 @@
       "_utils-BatuX27z.js",
       "_createLucideIcon-CL8Q_N-z.js",
       "_calendar-days-BaUQasNM.js",
+      "_panorama-Be6NxkD6.js",
       "_eye-DshIJ0gu.js",
-      "_campus-map-DFIVdMsf.js",
+      "_campus-map-B0jojyah.js",
       "_map-pin-CevKVmlW.js",
       "_map-loJ8b4q4.js",
       "_x-Do4Gm8jC.js",
       "_button-BgGnKiEl.js",
       "_maps-DRxFTBC8.js",
-      "_device-BbiBif2r.js",
       "_card-DLKEcvi7.js"
     ]
   },

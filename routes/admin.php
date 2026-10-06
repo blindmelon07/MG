@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementMediaController;
 use App\Http\Controllers\Admin\CampusLocationController;
+use App\Http\Controllers\Admin\CampusPanoramaController;
 use App\Http\Controllers\Admin\GradeAuditController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\GradeImportController;
@@ -41,6 +42,9 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
 
         Route::resource('map-reference-points', MapReferencePointController::class)
             ->only(['store', 'destroy']);
+
+        Route::resource('campus-panoramas', CampusPanoramaController::class)
+            ->only(['store', 'update', 'destroy']);
     });
 
     Route::middleware('role:admin,registrar')->group(function () {

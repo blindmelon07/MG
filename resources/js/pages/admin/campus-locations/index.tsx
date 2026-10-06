@@ -8,6 +8,7 @@ import { GpsCalibration } from '@/components/gps-calibration';
 import type { MapReferencePoint } from '@/components/gps-calibration';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PanoramaManager } from '@/components/panorama-manager';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -21,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import type { CampusPanorama } from '@/lib/panorama';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 
 type CampusLocation = CampusMapPoint & { sort_order: number };
@@ -28,9 +30,11 @@ type CampusLocation = CampusMapPoint & { sort_order: number };
 export default function CampusLocationsIndex({
     locations,
     referencePoints,
+    panoramas,
 }: {
     locations: CampusLocation[];
     referencePoints: MapReferencePoint[];
+    panoramas: CampusPanorama[];
 }) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editing, setEditing] = useState<CampusLocation | null>(null);
@@ -189,6 +193,8 @@ export default function CampusLocationsIndex({
                     referencePoints={referencePoints}
                     locations={locations}
                 />
+
+                <PanoramaManager panoramas={panoramas} />
 
                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">

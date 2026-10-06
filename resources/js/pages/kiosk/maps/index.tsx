@@ -10,12 +10,14 @@ import {
     MapPin,
     MoveHorizontal,
     Navigation,
+    Orbit,
     Rotate3d,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CAMPUS_WALKING, CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
 import { NavigationHud } from '@/components/navigation-hud';
+import { PanoramaViewer } from '@/components/panorama-viewer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCampusNavigation } from '@/hooks/use-campus-navigation';
@@ -33,6 +35,8 @@ import {
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { createRouter } from '@/lib/campus-route';
 import { isHandheld } from '@/lib/device';
+import { nearestPanorama, panoramaTitle } from '@/lib/panorama';
+import type { CampusPanorama } from '@/lib/panorama';
 import { cn } from '@/lib/utils';
 import { presence } from '@/routes/maps';
 import { leave as leavePresence } from '@/routes/maps/presence';
@@ -45,6 +49,9 @@ const NEAR_RADIUS = 10;
 const CAMPUS_MARGIN = 5;
 // Within this many metres of a destination, you've arrived.
 const ARRIVED_METERS = 10;
+// Further than this from every 360° photo spot, say how far rather than
+// presenting the photo as where you are.
+const PHOTO_NEAR_METERS = 60;
 
 function nearestLocation(
     locations: CampusMapPoint[],
@@ -171,11 +178,13 @@ const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
 export default function KioskMapsIndex({
     locations,
     referencePoints,
+    panoramas,
     focusLocationId,
     event,
 }: {
     locations: CampusMapPoint[];
     referencePoints: GeoReferencePoint[];
+    panoramas: CampusPanorama[];
     focusLocationId: number | null;
     event: MapEvent | null;
 }) {
@@ -190,9 +199,14 @@ export default function KioskMapsIndex({
     const [handheld] = useState(isHandheld);
     // Start locating straight away on phones; kiosks use the button.
     const [tracking, setTracking] = useState(handheld);
-    // Phones default to the Waze-style camera following the visitor's arrow.
-    const [view, setView] = useState<'first-person' | 'follow' | 'overview'>(
-        handheld ? 'follow' : 'overview',
+    // Phones open on the 360° photo where they stand, when there are any,
+    // otherwise the Waze-style camera following the visitor's arrow.
+    const [view, setView] = useState<
+        'photo' | 'first-person' | 'follow' | 'overview'
+    >(handheld ? (panoramas.length > 0 ? 'photo' : 'follow') : 'overview');
+    // Photo picked by hand, for kiosks and phones without a GPS fix.
+    const [pickedPanoramaId, setPickedPanoramaId] = useState<number | null>(
+        null,
     );
     // Where the visitor has dragged to look, when there's no compass.
     const [lookHeading, setLookHeading] = useState<number | null>(null);
@@ -253,7 +267,36 @@ export default function KioskMapsIndex({
     // Waze-style camera behind the visitor, free to swing a full 360°.
     const followOn = view === 'follow' && firstPersonAvailable && !navigating;
     const lookOn = firstPersonOn || followOn;
-    const compass = useDeviceHeading(lookOn);
+    // The 360° photo taken nearest the phone's own GPS. Needs no map
+    // calibration: it's photo GPS against phone GPS.
+    const photoOn = view === 'photo' && panoramas.length > 0 && !navigating;
+    const compass = useDeviceHeading(lookOn || photoOn);
+    const [shownPanoramaId, setShownPanoramaId] = useState<number | null>(null);
+    const nearestPhoto =
+        geo.fix && !geo.stale
+            ? nearestPanorama(panoramas, geo.fix, shownPanoramaId)
+            : null;
+    const shownPanorama =
+        nearestPhoto?.panorama ??
+        panoramas.find((p) => p.id === pickedPanoramaId) ??
+        panoramas[0] ??
+        null;
+
+    // Remember which photo is up, so GPS jitter doesn't flick between two.
+    if ((shownPanorama?.id ?? null) !== shownPanoramaId) {
+        setShownPanoramaId(shownPanorama?.id ?? null);
+    }
+
+    const viewOptions = [
+        ...(panoramas.length > 0 ? [['photo', Orbit, '360°'] as const] : []),
+        ...(firstPersonAvailable
+            ? ([
+                  ['follow', Navigation, '3D'],
+                  ['first-person', Eye, 'Eyes'],
+              ] as const)
+            : []),
+        ['overview', MapIcon, 'Map'] as const,
+    ];
 
     // Without a compass, start out facing the chosen place or the campus centre.
     const initialHeading =
@@ -310,7 +353,10 @@ export default function KioskMapsIndex({
 
     let locationMessage = STATUS_MESSAGES[geo.status] ?? null;
 
-    if (!projector && geo.status === 'active' && geo.fix) {
+    if (photoOn && nearestPhoto) {
+        // The 360° view says where you are relative to the photo spots.
+        locationMessage = null;
+    } else if (!projector && geo.status === 'active' && geo.fix) {
         locationMessage = `Your phone's location is working (GPS precision about ${Math.round(geo.fix.accuracy)} m). The school still needs to set up GPS for this map before it can show where you are or how far the campus is.`;
     }
 
@@ -440,7 +486,7 @@ export default function KioskMapsIndex({
                         <CampusMap
                             className={cn(
                                 'rounded-none border-x-0 md:rounded-lg md:border-x',
-                                lookOn || navigating
+                                lookOn || photoOn || navigating
                                     ? 'aspect-[3/4] sm:aspect-[4/3]'
                                     : 'aspect-square sm:aspect-[4/3]',
                             )}
@@ -524,19 +570,95 @@ export default function KioskMapsIndex({
                             />
                         )}
 
-                        {firstPersonAvailable && !navigating && (
+                        {photoOn && shownPanorama && (
+                            <PanoramaViewer
+                                className="absolute inset-0 z-10 md:rounded-lg"
+                                panorama={shownPanorama}
+                                heading={compass.heading}
+                            >
+                                <div className="pointer-events-none absolute inset-x-2 bottom-2 flex flex-col items-start gap-2">
+                                    <div
+                                        role="status"
+                                        className="flex items-start gap-2 rounded-lg bg-background/90 px-3 py-2 text-sm font-medium shadow-md backdrop-blur"
+                                    >
+                                        <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
+                                        <span>
+                                            {nearestPhoto
+                                                ? nearestPhoto.meters <=
+                                                  PHOTO_NEAR_METERS
+                                                    ? `${panoramaTitle(shownPanorama)} · photo taken about ${formatDistance(nearestPhoto.meters)} from you`
+                                                    : `You're ${formatDistance(nearestPhoto.meters)} from the nearest 360° photo spot (${panoramaTitle(shownPanorama)}).`
+                                                : `${panoramaTitle(shownPanorama)} · ${
+                                                      tracking
+                                                          ? 'waiting for your GPS…'
+                                                          : 'tap Locate me to follow where you are'
+                                                  }`}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 rounded-lg bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-md backdrop-blur">
+                                        {compass.heading !== null ? (
+                                            <>
+                                                <Compass className="size-4 shrink-0" />
+                                                Turn your phone to look around.
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Rotate3d className="size-4 shrink-0" />
+                                                Drag to look around. Pinch to
+                                                zoom.
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {compass.status === 'needs-permission' && (
+                                        <Button
+                                            size="sm"
+                                            className="pointer-events-auto shadow-md"
+                                            onClick={() =>
+                                                void compass.requestPermission()
+                                            }
+                                        >
+                                            <Compass /> Use my compass
+                                        </Button>
+                                    )}
+
+                                    {/* No GPS fix: pick a spot by hand. */}
+                                    {!nearestPhoto && panoramas.length > 1 && (
+                                        <div className="pointer-events-auto -mx-2 flex max-w-[calc(100%+1rem)] [scrollbar-width:none] gap-1.5 overflow-x-auto px-2">
+                                            {panoramas.map((p) => (
+                                                <Button
+                                                    key={p.id}
+                                                    size="sm"
+                                                    variant={
+                                                        p.id ===
+                                                        shownPanorama.id
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                    className="shrink-0 shadow-md"
+                                                    onClick={() =>
+                                                        setPickedPanoramaId(
+                                                            p.id,
+                                                        )
+                                                    }
+                                                >
+                                                    {panoramaTitle(p)}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </PanoramaViewer>
+                        )}
+
+                        {!navigating && viewOptions.length > 1 && (
                             <div
                                 role="group"
                                 aria-label="Map view"
-                                className="absolute top-2 right-2 flex gap-0.5 rounded-lg bg-background/90 p-0.5 shadow-md backdrop-blur"
+                                className="absolute top-2 right-2 z-20 flex gap-0.5 rounded-lg bg-background/90 p-0.5 shadow-md backdrop-blur"
                             >
-                                {(
-                                    [
-                                        ['follow', Navigation, '3D'],
-                                        ['first-person', Eye, 'Eyes'],
-                                        ['overview', MapIcon, 'Overview'],
-                                    ] as const
-                                ).map(([value, Icon, label]) => (
+                                {viewOptions.map(([value, Icon, label]) => (
                                     <Button
                                         key={value}
                                         size="sm"

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Kiosk;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\CampusLocation;
+use App\Models\CampusPanorama;
 use App\Models\MapPresence;
 use App\Models\MapReferencePoint;
 use Illuminate\Http\Request;
@@ -34,6 +35,8 @@ class MapController extends Controller
             'locations' => $locations,
             // Lets the visitor's phone place its own GPS fix on the map.
             'referencePoints' => MapReferencePoint::get(['latitude', 'longitude', 'x', 'y']),
+            // 360° photos; the phone shows the one taken nearest to it.
+            'panoramas' => CampusPanorama::get(['id', 'title', 'path', 'latitude', 'longitude', 'north_offset']),
             'focusLocationId' => $locations->contains('id', $focusId) ? $focusId : null,
             'event' => $event,
         ]);
