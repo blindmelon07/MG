@@ -328,19 +328,37 @@ export default function KioskMapsIndex({
         <>
             <Head title="Campus Map" />
 
-            <div className="flex flex-col gap-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
+            <div className="flex flex-col gap-4 md:gap-6">
+                <div className="flex items-center justify-between gap-3 md:flex-wrap md:items-start">
+                    <div className="min-w-0">
+                        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
                             Campus Map
                         </h1>
-                        <p className="text-muted-foreground">
+                        <p className="hidden text-muted-foreground md:block">
                             Tap a place on the map or a location below to find
                             your way around Aemilianum College Inc.
                         </p>
                     </div>
 
+                    {/* Phones: compact; the status line below says the rest. */}
                     <Button
+                        size="sm"
+                        className="shrink-0 md:hidden"
+                        variant={tracking ? 'secondary' : 'default'}
+                        onClick={() => {
+                            if (tracking) {
+                                geo.reset();
+                            }
+
+                            setTracking(!tracking);
+                        }}
+                    >
+                        {tracking ? <LocateOff /> : <LocateFixed />}
+                        {tracking ? 'Stop' : 'Locate me'}
+                    </Button>
+
+                    <Button
+                        className="hidden md:inline-flex"
                         variant={tracking ? 'secondary' : 'default'}
                         onClick={() => {
                             if (tracking) {
@@ -388,7 +406,7 @@ export default function KioskMapsIndex({
                     tracking &&
                     !firstPersonAvailable &&
                     projector && (
-                        <p className="-mt-3 text-sm text-muted-foreground">
+                        <p className="-mt-2 text-sm text-muted-foreground md:-mt-3">
                             The 3D walking view starts once your phone finds you
                             on campus.
                         </p>
@@ -397,26 +415,28 @@ export default function KioskMapsIndex({
                 {tracking && locationMessage && (
                     <p
                         role="status"
-                        className="-mt-3 flex items-center gap-2 text-sm text-muted-foreground"
+                        className="-mt-2 flex items-start gap-2 text-sm text-muted-foreground md:-mt-3 md:items-center"
                     >
-                        <LocateFixed className="size-4 shrink-0 text-sky-500" />
+                        <LocateFixed className="mt-0.5 size-4 shrink-0 text-sky-500 md:mt-0" />
                         {locationMessage}
                     </p>
                 )}
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
                     <div
                         ref={mapRef}
-                        className="relative scroll-mt-2 lg:col-span-2"
+                        // Phones: the map runs edge to edge.
+                        className="relative -mx-4 scroll-mt-16 md:mx-0 md:scroll-mt-2 lg:col-span-2"
                     >
                         {/* Pins stay hidden until a location is chosen,
                             either from the list or by tapping the map. */}
                         <CampusMap
-                            className={
+                            className={cn(
+                                'rounded-none border-x-0 md:rounded-lg md:border-x',
                                 lookOn || navigating
                                     ? 'aspect-[3/4] sm:aspect-[4/3]'
-                                    : undefined
-                            }
+                                    : 'aspect-square sm:aspect-[4/3]',
+                            )}
                             follow={
                                 projector && userPoint
                                     ? navigation.trip
@@ -591,10 +611,10 @@ export default function KioskMapsIndex({
                         )}
                     </div>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="flex min-w-0 flex-col gap-3">
                         <Card
                             className={cn(
-                                'min-h-32 border-primary/50 bg-primary/5',
+                                'order-2 border-primary/50 bg-primary/5 lg:order-1 lg:min-h-32',
                                 !active && 'hidden lg:block',
                             )}
                         >
@@ -650,7 +670,8 @@ export default function KioskMapsIndex({
                             </CardContent>
                         </Card>
 
-                        <div className="flex flex-col gap-2">
+                        {/* Phones: one swipeable row of chips under the map. */}
+                        <div className="order-1 -mx-4 flex snap-x scroll-px-4 [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 lg:order-2 lg:mx-0 lg:snap-none lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
                             {locations.length === 0 && (
                                 <p className="text-sm text-muted-foreground">
                                     No locations have been added to the map yet.
@@ -662,7 +683,7 @@ export default function KioskMapsIndex({
                                     type="button"
                                     onClick={() => setActiveId(location.id)}
                                     className={cn(
-                                        'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors',
+                                        'flex shrink-0 snap-start items-center gap-2 rounded-full border px-3 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors lg:rounded-lg lg:whitespace-normal',
                                         activeId === location.id
                                             ? 'border-primary bg-primary text-primary-foreground'
                                             : 'border-sidebar-border/70 hover:bg-accent dark:border-sidebar-border',

@@ -141,7 +141,8 @@ export default function ChatbotWidget() {
             <Button
                 onClick={() => setOpen(true)}
                 size="icon"
-                className="fixed right-6 bottom-6 z-40 size-14 rounded-full shadow-lg"
+                // Phones: sits above the kiosk layout's bottom tab bar.
+                className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 size-12 rounded-full shadow-lg md:right-6 md:bottom-6 md:size-14"
             >
                 <Bot className="size-6" />
                 <span className="sr-only">Ask the AI Assistant</span>
@@ -196,8 +197,7 @@ export default function ChatbotWidget() {
                                                     size="icon"
                                                     className="size-6"
                                                     disabled={
-                                                        message.feedback !=
-                                                        null
+                                                        message.feedback != null
                                                     }
                                                     onClick={() =>
                                                         sendFeedback(
@@ -224,8 +224,7 @@ export default function ChatbotWidget() {
                                                     size="icon"
                                                     className="size-6"
                                                     disabled={
-                                                        message.feedback !=
-                                                        null
+                                                        message.feedback != null
                                                     }
                                                     onClick={() =>
                                                         sendFeedback(

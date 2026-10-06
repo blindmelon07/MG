@@ -42,3 +42,13 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// Makes the site installable as an app. Skipped under the Vite dev server,
+// where cached assets would fight hot reloading.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        void navigator.serviceWorker.register('/sw.js').catch(() => {
+            // Not installable here (e.g. plain http); the site still works.
+        });
+    });
+}
