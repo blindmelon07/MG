@@ -761,7 +761,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-D5ydDAAw.css",
+    "file": "assets/app-Dv61u1oS.css",
     "name": "app",
     "names": [
       "app.css"
@@ -770,7 +770,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-999T-dwk.js",
+    "file": "assets/app-E4wibAuW.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1453,7 +1453,7 @@
     ]
   },
   "resources/js/pages/kiosk/maps/index.tsx": {
-    "file": "assets/maps-Dmx82tT5.js",
+    "file": "assets/maps-BPpT1c86.js",
     "name": "maps",
     "src": "resources/js/pages/kiosk/maps/index.tsx",
     "isDynamicEntry": true,

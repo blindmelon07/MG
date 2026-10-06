@@ -163,7 +163,7 @@ const STATUS_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
     unsupported: "This device can't share its location.",
     insecure:
         'Location only works when this page is opened over a secure (https) link.',
-    denied: 'Location permission was blocked. Allow it in your browser settings to see where you are.',
+    denied: 'Location is blocked for this site. To allow it: tap the icon left of the address bar → Permissions → Location → Allow (in the installed app: long-press its icon → App info → Permissions). Then reload.',
     unavailable:
         "Couldn't get a GPS signal. Try moving outdoors, away from buildings.",
 };
@@ -196,8 +196,9 @@ export default function KioskMapsIndex({
     );
     // Where the visitor has dragged to look, when there's no compass.
     const [lookHeading, setLookHeading] = useState<number | null>(null);
-    // No GPS request until an admin has calibrated the map.
-    const geo = useGeolocation(tracking && projector !== null);
+    // Ask for location even before an admin has calibrated the map, so the
+    // phone's permission prompt shows up and is settled ahead of time.
+    const geo = useGeolocation(tracking);
 
     const userPoint =
         projector && geo.fix
@@ -291,9 +292,27 @@ export default function KioskMapsIndex({
         };
     })();
 
-    let locationMessage = projector
-        ? (STATUS_MESSAGES[geo.status] ?? null)
-        : "Your location can't be shown yet: the school still needs to set up GPS for this map.";
+    const toggleTracking = () => {
+        if (tracking) {
+            geo.reset();
+        } else if (window.isSecureContext && 'geolocation' in navigator) {
+            // Ask straight from the tap: some phones only show the
+            // permission prompt in direct response to the user.
+            navigator.geolocation.getCurrentPosition(
+                () => {},
+                () => {},
+                { enableHighAccuracy: true },
+            );
+        }
+
+        setTracking(!tracking);
+    };
+
+    let locationMessage = STATUS_MESSAGES[geo.status] ?? null;
+
+    if (!projector && geo.status === 'active' && geo.fix) {
+        locationMessage = `Location is on (accurate to about ${Math.round(geo.fix.accuracy)} m), but the school still needs to set up GPS for this map before you can be shown on it.`;
+    }
 
     if (projector && userPoint && geo.fix) {
         const accuracy = `(accurate to about ${Math.round(geo.fix.accuracy)} m)`;
@@ -345,13 +364,7 @@ export default function KioskMapsIndex({
                         size="sm"
                         className="shrink-0 md:hidden"
                         variant={tracking ? 'secondary' : 'default'}
-                        onClick={() => {
-                            if (tracking) {
-                                geo.reset();
-                            }
-
-                            setTracking(!tracking);
-                        }}
+                        onClick={toggleTracking}
                     >
                         {tracking ? <LocateOff /> : <LocateFixed />}
                         {tracking ? 'Stop' : 'Locate me'}
@@ -360,13 +373,7 @@ export default function KioskMapsIndex({
                     <Button
                         className="hidden md:inline-flex"
                         variant={tracking ? 'secondary' : 'default'}
-                        onClick={() => {
-                            if (tracking) {
-                                geo.reset();
-                            }
-
-                            setTracking(!tracking);
-                        }}
+                        onClick={toggleTracking}
                     >
                         {tracking ? <LocateOff /> : <LocateFixed />}
                         {tracking
