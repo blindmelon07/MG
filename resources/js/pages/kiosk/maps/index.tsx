@@ -311,7 +311,7 @@ export default function KioskMapsIndex({
     let locationMessage = STATUS_MESSAGES[geo.status] ?? null;
 
     if (!projector && geo.status === 'active' && geo.fix) {
-        locationMessage = `Location is on (accurate to about ${Math.round(geo.fix.accuracy)} m), but the school still needs to set up GPS for this map before you can be shown on it.`;
+        locationMessage = `Your phone's location is working (GPS precision about ${Math.round(geo.fix.accuracy)} m). The school still needs to set up GPS for this map before it can show where you are or how far the campus is.`;
     }
 
     if (projector && userPoint && geo.fix) {

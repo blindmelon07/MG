@@ -770,7 +770,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-E4wibAuW.js",
+    "file": "assets/app-DE1u3g51.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1453,7 +1453,7 @@
     ]
   },
   "resources/js/pages/kiosk/maps/index.tsx": {
-    "file": "assets/maps-BPpT1c86.js",
+    "file": "assets/maps-mxy_dAES.js",
     "name": "maps",
     "src": "resources/js/pages/kiosk/maps/index.tsx",
     "isDynamicEntry": true,
