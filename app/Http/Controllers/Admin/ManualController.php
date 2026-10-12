@@ -37,12 +37,16 @@ class ManualController extends Controller
 
     public function store(StoreManualRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $request->safe()->except('images');
         $data['slug'] = $this->generateUniqueSlug(Manual::class, $data['title']);
         $data['created_by'] = $request->user()->id;
         $data['published_at'] = $data['status'] === 'published' ? Carbon::now() : null;
 
-        Manual::create($data);
+        $manual = Manual::create($data);
+
+        foreach ($request->file('images', []) as $image) {
+            $this->attachMedia($manual, $image, null);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Manual created.')]);
 

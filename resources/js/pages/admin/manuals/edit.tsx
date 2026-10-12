@@ -147,12 +147,14 @@ export default function ManualsEdit({
                 </Form>
 
                 <div className="max-w-2xl space-y-3">
-                    <Heading variant="small" title="Media" />
+                    <Heading
+                        variant="small"
+                        title="Images and Videos"
+                        description="Shown below the manual on the kiosk."
+                    />
                     <MediaManager
                         media={manual.media}
-                        uploadForm={ManualMediaController.store.form(
-                            manual.id,
-                        )}
+                        uploadForm={ManualMediaController.store.form(manual.id)}
                         deleteForm={(mediaId) =>
                             ManualMediaController.destroy.form([
                                 manual.id,

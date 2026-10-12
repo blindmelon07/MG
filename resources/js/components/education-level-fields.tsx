@@ -24,11 +24,13 @@ export function EducationLevelFields({
     defaultEducationLevel,
     defaultGradeLevel,
     errors,
+    onChange,
 }: {
     levels: EducationLevelOption[];
     defaultEducationLevel?: string | null;
     defaultGradeLevel?: string | null;
     errors: { education_level?: string; grade_level?: string };
+    onChange?: (educationLevel: string, gradeLevel: string) => void;
 }) {
     const [educationLevel, setEducationLevel] = useState(
         defaultEducationLevel ?? '',
@@ -52,10 +54,12 @@ export function EducationLevelFields({
                         const next =
                             levels.find((level) => level.value === value)
                                 ?.grade_levels ?? [];
+                        const keptGrade = next.includes(gradeLevel)
+                            ? gradeLevel
+                            : '';
 
-                        if (!next.includes(gradeLevel)) {
-                            setGradeLevel('');
-                        }
+                        setGradeLevel(keptGrade);
+                        onChange?.(value, keptGrade);
                     }}
                     required
                 >
@@ -77,7 +81,10 @@ export function EducationLevelFields({
                 <Select
                     name="grade_level"
                     value={gradeLevel}
-                    onValueChange={setGradeLevel}
+                    onValueChange={(value) => {
+                        setGradeLevel(value);
+                        onChange?.(educationLevel, value);
+                    }}
                     disabled={gradeLevels.length === 0}
                     required
                 >

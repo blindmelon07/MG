@@ -81,6 +81,10 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
         Route::post('grades/import', [GradeImportController::class, 'store'])->name('grades.import.store');
     });
 
+    Route::middleware('role:teacher')->group(function () {
+        Route::get('my-teaching-assignments', [TeachingAssignmentController::class, 'mine'])->name('teaching-assignments.mine');
+    });
+
     Route::middleware('super_admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::delete('users/{user}/two-factor', [UserTwoFactorController::class, 'destroy'])->name('users.two-factor.destroy');

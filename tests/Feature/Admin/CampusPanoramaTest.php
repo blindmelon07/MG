@@ -122,3 +122,32 @@ test('the kiosk map gets the 360 photos', function () {
             ->has('panoramas', 2)
             ->has('panoramas.0.url'));
 });
+
+test('a folder of 360 photos can be imported from the command line', function () {
+    $folder = storage_path('framework/testing/panorama-import');
+    @mkdir($folder, 0777, true);
+    copy(base_path('tests/fixtures/panorama-with-gps.jpg'), "{$folder}/with-gps.jpg");
+    UploadedFile::fake()->image('no-gps.jpg', 2048, 1024)->move($folder, 'no-gps.jpg');
+    UploadedFile::fake()->image('flat.jpg', 1600, 1200)->move($folder, 'flat.jpg');
+
+    $this->artisan('panoramas:import', ['folder' => $folder, '--dry-run' => true])
+        ->expectsOutputToContain('1 of 3 photos would be added.')
+        ->assertSuccessful();
+    expect(CampusPanorama::count())->toBe(0);
+
+    $this->artisan('panoramas:import', ['folder' => $folder])
+        ->expectsOutputToContain('Skipped flat.jpg')
+        ->expectsOutputToContain('Skipped no-gps.jpg')
+        ->assertSuccessful();
+
+    $panorama = CampusPanorama::sole();
+    expect($panorama->latitude)->toEqualWithDelta(12.9709333, 0.000001);
+    Storage::disk('public')->assertExists($panorama->path);
+
+    // Running it again doesn't add the same photo twice.
+    $this->artisan('panoramas:import', ['folder' => $folder])->assertSuccessful();
+    expect(CampusPanorama::count())->toBe(1);
+
+    array_map('unlink', glob("{$folder}/*"));
+    rmdir($folder);
+});

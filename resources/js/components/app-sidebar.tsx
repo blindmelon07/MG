@@ -32,7 +32,10 @@ import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories
 import { index as manualsIndex } from '@/routes/admin/manuals';
 import { index as studentsIndex } from '@/routes/admin/students';
 import { index as subjectsIndex } from '@/routes/admin/subjects';
-import { index as teachingAssignmentsIndex } from '@/routes/admin/teaching-assignments';
+import {
+    index as teachingAssignmentsIndex,
+    mine as myTeachingAssignments,
+} from '@/routes/admin/teaching-assignments';
 import { index as usersIndex } from '@/routes/admin/users';
 import type { Auth, NavItem } from '@/types';
 
@@ -69,6 +72,15 @@ export function AppSidebar() {
             : []),
         ...(hasRole(user, 'admin', 'registrar', 'teacher')
             ? [{ title: 'Grades', href: gradesIndex(), icon: ClipboardList }]
+            : []),
+        ...(user.role === 'teacher'
+            ? [
+                  {
+                      title: 'My Teaching Assignments',
+                      href: myTeachingAssignments(),
+                      icon: BookUser,
+                  },
+              ]
             : []),
         ...(hasRole(user, 'admin', 'registrar')
             ? [

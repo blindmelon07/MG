@@ -82,3 +82,48 @@ test('admin can upload media on an announcement', function () {
     $media = Media::first();
     expect($media->type)->toBe('video');
 });
+
+test('admin can attach images while creating a manual', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    $category = ManualCategory::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.manuals.store'), [
+            'manual_category_id' => $category->id,
+            'title' => 'Uniform Policy',
+            'content' => 'Wear your ID at all times.',
+            'status' => 'published',
+            'images' => [
+                UploadedFile::fake()->image('front.jpg'),
+                UploadedFile::fake()->image('back.png'),
+            ],
+        ])
+        ->assertRedirect(route('admin.manuals.index'));
+
+    $manual = Manual::firstWhere('title', 'Uniform Policy');
+
+    expect($manual->media)->toHaveCount(2);
+    expect($manual->media->pluck('type')->unique()->all())->toBe(['image']);
+    Storage::disk('public')->assertExists($manual->media->first()->path);
+});
+
+test('manual images must be image files', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    $category = ManualCategory::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.manuals.store'), [
+            'manual_category_id' => $category->id,
+            'title' => 'Uniform Policy',
+            'content' => 'Wear your ID at all times.',
+            'status' => 'draft',
+            'images' => [UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf')],
+        ])
+        ->assertSessionHasErrors('images.0');
+
+    expect(Manual::count())->toBe(0);
+});

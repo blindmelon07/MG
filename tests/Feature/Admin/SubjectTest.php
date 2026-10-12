@@ -61,5 +61,5 @@ test('teaching assignments suggest subjects from the list', function () {
     Subject::factory()->create(['name' => 'Filipino']);
 
     $this->actingAs($registrar)->get(route('admin.teaching-assignments.index'))
-        ->assertInertia(fn ($page) => $page->where('subjects', ['Filipino']));
+        ->assertInertia(fn ($page) => $page->where('subjects.0.name', 'Filipino')->where('subjects.0.education_level', 'jhs'));
 });

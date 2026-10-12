@@ -245,8 +245,8 @@
       "_createLucideIcon-CL8Q_N-z.js"
     ]
   },
-  "_education-level-fields-C_wEQeZV.js": {
-    "file": "assets/education-level-fields-C_wEQeZV.js",
+  "_education-level-fields-BwSt--IU.js": {
+    "file": "assets/education-level-fields-BwSt--IU.js",
     "name": "education-level-fields",
     "imports": [
       "_rolldown-runtime-Bh1tDfsg.js",
@@ -648,8 +648,8 @@
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
-  "_teaching-assignments-BEGKYel3.js": {
-    "file": "assets/teaching-assignments-BEGKYel3.js",
+  "_teaching-assignments-A7B3FQMb.js": {
+    "file": "assets/teaching-assignments-A7B3FQMb.js",
     "name": "teaching-assignments",
     "imports": [
       "_wayfinder-Dp7PqxvV.js"
@@ -762,7 +762,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-B_uyJGFc.css",
+    "file": "assets/app-nSthNLWj.css",
     "name": "app",
     "names": [
       "app.css"
@@ -771,7 +771,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-CF3crsyq.js",
+    "file": "assets/app-Bc8V3tDj.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -810,7 +810,7 @@
       "_manuals-CQeK5lwO.js",
       "_students-BgRcCV7u.js",
       "_subjects-CreLQ8Ea.js",
-      "_teaching-assignments-BEGKYel3.js",
+      "_teaching-assignments-A7B3FQMb.js",
       "_users-BBP77Eqq.js",
       "_announcements-BfrOaf77.js",
       "_manuals-CwgxMTVt.js",
@@ -837,6 +837,7 @@
       "resources/js/pages/admin/students/index.tsx",
       "resources/js/pages/admin/subjects/index.tsx",
       "resources/js/pages/admin/teaching-assignments/index.tsx",
+      "resources/js/pages/admin/teaching-assignments/mine.tsx",
       "resources/js/pages/admin/users/create.tsx",
       "resources/js/pages/admin/users/edit.tsx",
       "resources/js/pages/admin/users/index.tsx",
@@ -1019,11 +1020,12 @@
     ]
   },
   "resources/js/pages/admin/manuals/create.tsx": {
-    "file": "assets/create-CIQspI1V.js",
+    "file": "assets/create-Cpb0FLMx.js",
     "name": "create",
     "src": "resources/js/pages/admin/manuals/create.tsx",
     "isDynamicEntry": true,
     "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_select-Dgn7qp1I.js",
       "_button-BgGnKiEl.js",
@@ -1037,7 +1039,7 @@
     ]
   },
   "resources/js/pages/admin/manuals/edit.tsx": {
-    "file": "assets/edit-CZCL7D7s.js",
+    "file": "assets/edit-C5_cK8Dr.js",
     "name": "edit",
     "src": "resources/js/pages/admin/manuals/edit.tsx",
     "isDynamicEntry": true,
@@ -1076,7 +1078,7 @@
     ]
   },
   "resources/js/pages/admin/students/create.tsx": {
-    "file": "assets/create-D7iB5JnX.js",
+    "file": "assets/create-xJw-R-CH.js",
     "name": "create",
     "src": "resources/js/pages/admin/students/create.tsx",
     "isDynamicEntry": true,
@@ -1093,12 +1095,12 @@
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
       "_StudentController-DVB_r92m.js",
-      "_education-level-fields-C_wEQeZV.js",
+      "_education-level-fields-BwSt--IU.js",
       "_phone-input-nqBdtLwb.js"
     ]
   },
   "resources/js/pages/admin/students/edit.tsx": {
-    "file": "assets/edit-BFW26SkQ.js",
+    "file": "assets/edit-wXShksXc.js",
     "name": "edit",
     "src": "resources/js/pages/admin/students/edit.tsx",
     "isDynamicEntry": true,
@@ -1115,7 +1117,7 @@
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
       "_StudentController-DVB_r92m.js",
-      "_education-level-fields-C_wEQeZV.js",
+      "_education-level-fields-BwSt--IU.js",
       "_phone-input-nqBdtLwb.js"
     ]
   },
@@ -1174,7 +1176,7 @@
     ]
   },
   "resources/js/pages/admin/teaching-assignments/index.tsx": {
-    "file": "assets/teaching-assignments-By4IcJ9-.js",
+    "file": "assets/teaching-assignments-DDJrWtTz.js",
     "name": "teaching-assignments",
     "src": "resources/js/pages/admin/teaching-assignments/index.tsx",
     "isDynamicEntry": true,
@@ -1187,12 +1189,26 @@
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
       "_wayfinder-Dp7PqxvV.js",
-      "_teaching-assignments-BEGKYel3.js",
+      "_teaching-assignments-A7B3FQMb.js",
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
+      "_badge-CxV2eUM6.js",
       "_dialog-Cx95ZIj2.js",
-      "_alert-DsvWhfSM.js"
+      "_alert-DsvWhfSM.js",
+      "_education-level-fields-BwSt--IU.js"
+    ]
+  },
+  "resources/js/pages/admin/teaching-assignments/mine.tsx": {
+    "file": "assets/mine-CQqSAhy1.js",
+    "name": "mine",
+    "src": "resources/js/pages/admin/teaching-assignments/mine.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_utils-BatuX27z.js",
+      "_teaching-assignments-A7B3FQMb.js",
+      "_heading-BnUFVXSK.js",
+      "_badge-CxV2eUM6.js"
     ]
   },
   "resources/js/pages/admin/users/create.tsx": {

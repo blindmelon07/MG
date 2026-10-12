@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import ManualController from '@/actions/App/Http/Controllers/Admin/ManualController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -20,6 +21,8 @@ export default function ManualsCreate({
 }: {
     categories: { id: number; name: string }[];
 }) {
+    const [previews, setPreviews] = useState<string[]>([]);
+
     return (
         <>
             <Head title="New Manual" />
@@ -107,6 +110,56 @@ export default function ManualsCreate({
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.status} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="images">
+                                    Images (optional)
+                                </Label>
+                                <Input
+                                    id="images"
+                                    name="images[]"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    multiple
+                                    onChange={(event) =>
+                                        setPreviews((current) => {
+                                            current.forEach((url) =>
+                                                URL.revokeObjectURL(url),
+                                            );
+
+                                            return Array.from(
+                                                event.target.files ?? [],
+                                            ).map((file) =>
+                                                URL.createObjectURL(file),
+                                            );
+                                        })
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Up to 10 images, 20 MB each. You can add
+                                    more or remove them later when editing.
+                                </p>
+                                {previews.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                        {previews.map((url) => (
+                                            <img
+                                                key={url}
+                                                src={url}
+                                                alt=""
+                                                className="aspect-square w-full rounded-md border object-cover"
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                                <InputError
+                                    message={
+                                        errors.images ??
+                                        Object.entries(errors).find(([key]) =>
+                                            key.startsWith('images.'),
+                                        )?.[1]
+                                    }
+                                />
                             </div>
 
                             <div className="flex items-center gap-4">
