@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Grade;
 use App\Models\Student;
+use App\Models\TeachingAssignment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,17 @@ class GradeController extends Controller
             'canManageAll' => $user->canManageAllGrades(),
             'assignments' => $user->canManageAllGrades()
                 ? []
-                : $user->teachingAssignments()->orderByDesc('school_year')->orderBy('subject')->get(['id', 'subject', 'section', 'school_year']),
+                : $user->teachingAssignments()
+                    ->orderByDesc('school_year')
+                    ->orderBy('subject')
+                    ->get(['id', 'education_level', 'subject', 'section', 'school_year'])
+                    ->map(fn (TeachingAssignment $assignment) => [
+                        ...$assignment->only(['id', 'subject', 'section', 'school_year']),
+                        // null for older assignments saved without a level; their class list can be either system
+                        'grading_system' => $assignment->education_level
+                            ? Student::gradingSystemFor($assignment->education_level)
+                            : null,
+                    ]),
         ]);
     }
 

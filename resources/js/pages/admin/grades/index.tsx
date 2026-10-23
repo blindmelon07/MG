@@ -63,6 +63,7 @@ type Assignment = {
     subject: string;
     section: string;
     school_year: string;
+    grading_system: GradingSystem | null;
 };
 
 type Filters = {
@@ -98,7 +99,16 @@ export default function GradesIndex({
     assignments: Assignment[];
 }) {
     const [importing, setImporting] = useState(false);
-    const [system, setSystem] = useState<GradingSystem>('k12');
+    const [system, setSystem] = useState<GradingSystem>(
+        assignments.find((assignment) => assignment.grading_system)
+            ?.grading_system ?? 'k12',
+    );
+    // A class-list template only has rows for students on the matching grading system.
+    const classTemplates = assignments.filter(
+        (assignment) =>
+            assignment.grading_system === null ||
+            assignment.grading_system === system,
+    );
     const [deleting, setDeleting] = useState<GradeRow | null>(null);
     const [searchTerm, setSearchTerm] = useState(filters.search);
 
@@ -483,31 +493,37 @@ export default function GradesIndex({
                                             : 'K-12'}{' '}
                                         template
                                     </a>
-                                    {assignments.length > 0 && (
+                                    {classTemplates.length > 0 && (
                                         <div className="grid gap-1">
                                             <span className="text-xs text-muted-foreground">
                                                 Or download a template with your
                                                 class list filled in:
                                             </span>
-                                            {assignments.map((assignment) => (
-                                                <a
-                                                    key={assignment.id}
-                                                    href={
-                                                        importTemplate(system, {
-                                                            query: {
-                                                                assignment:
-                                                                    assignment.id,
-                                                            },
-                                                        }).url
-                                                    }
-                                                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                                                >
-                                                    <Download className="size-4" />
-                                                    {assignment.subject} —{' '}
-                                                    {assignment.section} (
-                                                    {assignment.school_year})
-                                                </a>
-                                            ))}
+                                            {classTemplates.map(
+                                                (assignment) => (
+                                                    <a
+                                                        key={assignment.id}
+                                                        href={
+                                                            importTemplate(
+                                                                system,
+                                                                {
+                                                                    query: {
+                                                                        assignment:
+                                                                            assignment.id,
+                                                                    },
+                                                                },
+                                                            ).url
+                                                        }
+                                                        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                                    >
+                                                        <Download className="size-4" />
+                                                        {assignment.subject} —{' '}
+                                                        {assignment.section} (
+                                                        {assignment.school_year}
+                                                        )
+                                                    </a>
+                                                ),
+                                            )}
                                         </div>
                                     )}
                                 </div>

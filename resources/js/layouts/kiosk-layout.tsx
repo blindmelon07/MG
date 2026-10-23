@@ -118,7 +118,11 @@ export default function KioskLayout({
                             <span className="truncate text-sm font-semibold tracking-tight">
                                 Aemilianum College Inc.
                             </span>
-                            <span className="truncate text-xs text-muted-foreground tabular-nums">
+                            {/* The server renders its own time; let the browser's clock win without a hydration error. */}
+                            <span
+                                className="truncate text-xs text-muted-foreground tabular-nums"
+                                suppressHydrationWarning
+                            >
                                 {now.toLocaleDateString(undefined, {
                                     weekday: 'short',
                                     month: 'short',
@@ -175,7 +179,7 @@ export default function KioskLayout({
                     <div className="flex items-center gap-4">
                         <InstallButton />
                         <div className="text-right text-sm text-muted-foreground tabular-nums">
-                            <div>
+                            <div suppressHydrationWarning>
                                 {now.toLocaleDateString(undefined, {
                                     weekday: 'long',
                                     month: 'long',
@@ -183,7 +187,7 @@ export default function KioskLayout({
                                     year: 'numeric',
                                 })}
                             </div>
-                            <div>
+                            <div suppressHydrationWarning>
                                 {now.toLocaleTimeString(undefined, {
                                     hour: '2-digit',
                                     minute: '2-digit',

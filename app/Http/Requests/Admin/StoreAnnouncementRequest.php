@@ -44,6 +44,8 @@ class StoreAnnouncementRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'event_start_at.required_if' => 'Enter when the event starts.',
+            'event_end_at.after_or_equal' => "The event can't end before it starts.",
             'personnel_roles.required_if' => 'Choose at least one personnel group when no students receive this.',
         ];
     }

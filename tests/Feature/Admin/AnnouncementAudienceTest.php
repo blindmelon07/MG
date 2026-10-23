@@ -140,3 +140,26 @@ test('the campus map opens at the area of an event link', function () {
             ->where('focusLocationId', $gym->id)
             ->where('event.title', $event->title));
 });
+
+test('event times reach the page as the wall-clock time that was entered', function () {
+    $event = Announcement::factory()->published()->create([
+        'type' => 'event',
+        'event_start_at' => '2026-11-05 09:00:00',
+        'event_end_at' => '2026-11-05 12:00:00',
+    ]);
+
+    $this->get(route('maps.index', ['event' => (string) $event->slug]))
+        ->assertInertia(fn ($page) => $page
+            ->where('event.event_start_at', '2026-11-05T09:00:00')
+            ->where('event.event_end_at', '2026-11-05T12:00:00'));
+});
+
+test('the campus map knows whether it is opened on a phone', function () {
+    $this->withHeader('User-Agent', 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari/537.36')
+        ->get(route('maps.index'))
+        ->assertInertia(fn ($page) => $page->where('handheld', true));
+
+    $this->withHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0')
+        ->get(route('maps.index'))
+        ->assertInertia(fn ($page) => $page->where('handheld', false));
+});

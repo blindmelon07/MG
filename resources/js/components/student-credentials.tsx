@@ -228,9 +228,14 @@ export function PrintCredentialsDialog({
     open: boolean;
     onOpenChange: (open: boolean) => void;
     sections: string[];
-    awaiting: number;
+    /** Students still waiting for a password, by section. */
+    awaiting: Record<string, number>;
 }) {
     const [section, setSection] = useState(ALL_SECTIONS);
+    const awaitingCount =
+        section === ALL_SECTIONS
+            ? Object.values(awaiting).reduce((sum, count) => sum + count, 0)
+            : (awaiting[section] ?? 0);
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -286,11 +291,11 @@ export function PrintCredentialsDialog({
                 </DialogHeader>
                 <p className="text-sm text-muted-foreground">
                     Creates a random temporary password for each active student
-                    who hasn&apos;t set their own password yet ({awaiting} right
-                    now), and downloads them as a PDF to print and hand out:
-                    four slips per short bond page, with cut lines. Students who
-                    already chose a password aren&apos;t affected. Running this
-                    again replaces the earlier temporary passwords.
+                    who hasn&apos;t set their own password yet ({awaitingCount}{' '}
+                    right now), and downloads them as a PDF to print and hand
+                    out: four slips per short bond page, with cut lines.
+                    Students who already chose a password aren&apos;t affected.
+                    Running this again replaces the earlier temporary passwords.
                 </p>
                 <div className="grid gap-2">
                     <Label htmlFor="credentials-section">Section</Label>
@@ -328,7 +333,7 @@ export function PrintCredentialsDialog({
                     </DialogClose>
                     <Button
                         onClick={download}
-                        disabled={processing || awaiting === 0}
+                        disabled={processing || awaitingCount === 0}
                     >
                         {processing ? <Spinner /> : <Printer />}
                         Create &amp; download

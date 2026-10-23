@@ -189,11 +189,28 @@ export function parseCoordinates(input: string): ParsedCoordinates {
             'i',
         ),
     );
+    // Google Maps' place panel shows degrees-minutes-seconds: 12°58'12.4"N 123°59'35.6"E
+    const dmsPart = String.raw`(\d{1,3})\s*°\s*(\d{1,2})\s*['′]\s*(\d{1,2}(?:\.\d+)?)\s*(?:"|″|'')\s*`;
+    const dms = text.match(
+        new RegExp(
+            String.raw`^${dmsPart}([NS])\s*[,;\s]\s*${dmsPart}([EW])$`,
+            'i',
+        ),
+    );
+    const fromDms = (degrees: string, minutes: string, seconds: string) =>
+        Number(degrees) + Number(minutes) / 60 + Number(seconds) / 3600;
 
     let latitude: number;
     let longitude: number;
 
-    if (fromLink) {
+    if (dms) {
+        latitude =
+            fromDms(dms[1], dms[2], dms[3]) *
+            (dms[4].toUpperCase() === 'S' ? -1 : 1);
+        longitude =
+            fromDms(dms[5], dms[6], dms[7]) *
+            (dms[8].toUpperCase() === 'W' ? -1 : 1);
+    } else if (fromLink) {
         latitude = Number(fromLink[1]);
         longitude = Number(fromLink[2]);
     } else if (plain) {

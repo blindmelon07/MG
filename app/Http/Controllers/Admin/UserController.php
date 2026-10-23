@@ -18,7 +18,8 @@ class UserController extends Controller
     {
         return Inertia::render('admin/users/index', [
             'users' => User::orderBy('name')
-                ->get(['id', 'name', 'email', 'role', 'two_factor_confirmed_at', 'created_at'])
+                // two_factor_secret is needed by hasEnabledTwoFactorAuthentication(); it's never sent to the page.
+                ->get(['id', 'name', 'email', 'role', 'two_factor_secret', 'two_factor_confirmed_at', 'created_at'])
                 ->map(fn (User $user) => [
                     ...$user->only(['id', 'name', 'email', 'role', 'created_at']),
                     'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),

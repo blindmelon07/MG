@@ -39,6 +39,9 @@ class MapController extends Controller
             'panoramas' => CampusPanorama::get(['id', 'title', 'path', 'latitude', 'longitude', 'north_offset']),
             'focusLocationId' => $locations->contains('id', $focusId) ? $focusId : null,
             'event' => $event,
+            // Decided here rather than from navigator.userAgent so the server-rendered
+            // page matches what the phone renders (same test as lib/device.ts).
+            'handheld' => (bool) preg_match('/Android|iPhone|iPad|iPod|Mobile/i', (string) $request->userAgent()),
         ]);
     }
 

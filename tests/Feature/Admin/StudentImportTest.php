@@ -109,3 +109,13 @@ test('importing rejects rows with missing or invalid required data', function ()
 
     expect(Student::count())->toBe(0);
 });
+
+test('importing accepts a bare number as the year level', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->post(route('admin.students.import.store'), [
+        'file' => studentImportCsv('Ana Reyes,LRN-0002,College,2,BSIT 2-A,active,,Elena Reyes,Mother,09191234567,,,'),
+    ])->assertRedirect(route('admin.students.index'));
+
+    expect(Student::where('student_number', 'LRN-0002')->value('grade_level'))->toBe('2nd Year');
+});

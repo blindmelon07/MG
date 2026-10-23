@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 export type GeoFix = {
     latitude: number;
@@ -31,6 +32,8 @@ export function useGeolocation(enabled: boolean, { keepBest = false } = {}) {
         typeof navigator !== 'undefined' && 'geolocation' in navigator;
     // Browsers only allow GPS on HTTPS pages (and localhost).
     const secure = typeof window !== 'undefined' && window.isSecureContext;
+    // The server can't know about the browser's GPS.
+    const hydrated = useHydrated();
 
     useEffect(() => {
         if (!enabled || !supported || !secure) {
@@ -67,6 +70,8 @@ export function useGeolocation(enabled: boolean, { keepBest = false } = {}) {
 
     if (!enabled) {
         status = 'idle';
+    } else if (!hydrated) {
+        status = 'locating';
     } else if (!supported) {
         status = 'unsupported';
     } else if (!secure) {

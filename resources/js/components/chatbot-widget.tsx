@@ -18,6 +18,19 @@ type ChatMessage = {
     feedback?: boolean | null;
 };
 
+/** Answers mark titles with **bold**; show them bold instead of the asterisks. */
+function renderAnswer(content: string) {
+    return content
+        .split(/(\*\*[^*]+\*\*)/g)
+        .map((part, index) =>
+            part.startsWith('**') && part.endsWith('**') && part.length > 4 ? (
+                <strong key={index}>{part.slice(2, -2)}</strong>
+            ) : (
+                part
+            ),
+        );
+}
+
 function getXsrfToken(): string {
     const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
 
@@ -186,7 +199,9 @@ export default function ChatbotWidget() {
                                             : 'bg-muted text-foreground',
                                     )}
                                 >
-                                    {message.content}
+                                    {message.role === 'assistant'
+                                        ? renderAnswer(message.content)
+                                        : message.content}
 
                                     {message.role === 'assistant' &&
                                         message.logId && (

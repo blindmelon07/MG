@@ -34,7 +34,6 @@ import {
 } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { createRouter } from '@/lib/campus-route';
-import { isHandheld } from '@/lib/device';
 import { nearestPanorama, panoramaTitle } from '@/lib/panorama';
 import type { CampusPanorama } from '@/lib/panorama';
 import { cn } from '@/lib/utils';
@@ -181,12 +180,14 @@ export default function KioskMapsIndex({
     panoramas,
     focusLocationId,
     event,
+    handheld,
 }: {
     locations: CampusMapPoint[];
     referencePoints: GeoReferencePoint[];
     panoramas: CampusPanorama[];
     focusLocationId: number | null;
     event: MapEvent | null;
+    handheld: boolean;
 }) {
     // Opened from an event link: start with the event's area picked.
     const [activeId, setActiveId] = useState<number | null>(focusLocationId);
@@ -196,7 +197,6 @@ export default function KioskMapsIndex({
         () => createGeoProjector(referencePoints),
         [referencePoints],
     );
-    const [handheld] = useState(isHandheld);
     // Start locating straight away on phones; kiosks use the button.
     const [tracking, setTracking] = useState(handheld);
     // Phones open on the 360° photo where they stand, when there are any,

@@ -22,6 +22,9 @@ type Audit = {
     ip_address: string | null;
     created_at: string;
     user: { id: number; name: string; role: UserRole } | null;
+    /** Kept on the entry, for when the account has since been deleted. */
+    user_name: string | null;
+    user_role: UserRole | null;
     student: { id: number; name: string; student_number: string | null } | null;
 };
 
@@ -152,13 +155,23 @@ export default function GradeHistory({
                                         ))}
                                     </td>
                                     <td className="px-4 py-2">
-                                        {audit.user ? (
+                                        {audit.user || audit.user_name ? (
                                             <>
-                                                <div>{audit.user.name}</div>
+                                                <div>
+                                                    {audit.user?.name ??
+                                                        audit.user_name}
+                                                    {!audit.user && (
+                                                        <span className="text-muted-foreground">
+                                                            {' '}
+                                                            (account deleted)
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="text-xs text-muted-foreground">
                                                     {
                                                         roleLabels[
-                                                            audit.user.role
+                                                            (audit.user?.role ??
+                                                                audit.user_role) as UserRole
                                                         ]
                                                     }
                                                     {audit.ip_address &&

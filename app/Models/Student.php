@@ -119,10 +119,11 @@ class Student extends Authenticatable
         $value = strtolower(trim((string) $value));
 
         foreach (self::EDUCATION_LEVELS[$educationLevel]['grade_levels'] ?? [] as $gradeLevel) {
-            // Also accept the short form: "8" for "Grade 8", "1st" for "1st Year".
+            // Also accept the short forms: "8" for "Grade 8", "1st" or "1" for "1st Year".
             $short = strtolower(trim(str_replace(['Grade', 'Year'], '', $gradeLevel)));
+            $number = preg_replace('/\D/', '', $short);
 
-            if ($value === strtolower($gradeLevel) || $value === $short) {
+            if ($value === strtolower($gradeLevel) || $value === $short || ($number !== '' && $value === $number)) {
                 return $gradeLevel;
             }
         }

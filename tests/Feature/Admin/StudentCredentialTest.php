@@ -116,3 +116,14 @@ test('teachers cannot issue student passwords', function () {
     $this->actingAs($teacher)->post(route('admin.students.credentials.store', $student))->assertForbidden();
     $this->actingAs($teacher)->post(route('admin.students.credentials.batch'))->assertForbidden();
 });
+
+test('the student list counts students awaiting a password per section', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    Student::factory()->count(2)->create(['section' => 'Section A']);
+    Student::factory()->create(['section' => 'Section B']);
+
+    $this->actingAs($registrar)->get(route('admin.students.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('awaitingCredentials.Section A', 2)
+            ->where('awaitingCredentials.Section B', 1));
+});

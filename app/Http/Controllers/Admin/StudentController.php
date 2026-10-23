@@ -32,7 +32,13 @@ class StudentController extends Controller
                 ]),
             'search' => $search,
             'sections' => Student::whereNotNull('section')->distinct()->orderBy('section')->pluck('section'),
-            'awaitingCredentials' => Student::active()->awaitingCredentials()->count(),
+            // Per section, so the login-slips dialog can show the count for the section picked.
+            'awaitingCredentials' => Student::active()
+                ->awaitingCredentials()
+                ->selectRaw('section, count(*) as total')
+                ->groupBy('section')
+                ->pluck('total', 'section')
+                ->map(fn ($total) => (int) $total),
             'educationLevels' => Student::educationLevelOptions(),
         ]);
     }

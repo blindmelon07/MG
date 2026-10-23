@@ -14,13 +14,15 @@ use Illuminate\Support\Carbon;
  * @property int $grade_id
  * @property int $student_id
  * @property int|null $user_id
+ * @property string|null $user_name
+ * @property string|null $user_role
  * @property string $event
  * @property array<string, mixed>|null $old_values
  * @property array<string, mixed>|null $new_values
  * @property string|null $ip_address
  * @property Carbon $created_at
  */
-#[Fillable(['grade_id', 'student_id', 'user_id', 'event', 'old_values', 'new_values', 'ip_address'])]
+#[Fillable(['grade_id', 'student_id', 'user_id', 'user_name', 'user_role', 'event', 'old_values', 'new_values', 'ip_address'])]
 class GradeAudit extends Model
 {
     public const UPDATED_AT = null;
@@ -75,10 +77,15 @@ class GradeAudit extends Model
             return;
         }
 
+        $user = auth('web')->user();
+
         static::create([
             'grade_id' => $grade->id,
             'student_id' => $grade->student_id,
-            'user_id' => auth('web')->id(),
+            'user_id' => $user?->id,
+            // Snapshot, so the trail still names them if the account is deleted later.
+            'user_name' => $user?->name,
+            'user_role' => $user?->role,
             'event' => $event,
             'old_values' => $old,
             'new_values' => $new,

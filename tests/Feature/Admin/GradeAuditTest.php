@@ -37,3 +37,20 @@ test('only registrar staff and admins can view grade history', function () {
     $this->actingAs(User::factory()->withTwoFactor()->create(['role' => 'teacher']))
         ->get(route('admin.grades.history'))->assertForbidden();
 });
+
+test('the audit trail still names who changed a grade after their account is deleted', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar', 'name' => 'Rita Registrar']);
+    Student::factory()->create(['student_number' => 'LRN-0001']);
+
+    $this->actingAs($registrar)->post(route('admin.grades.import.store'), [
+        'grading_system' => 'k12',
+        'file' => UploadedFile::fake()->createWithContent('g.csv', "student_number,student_name,school_year,subject,q1,q2,q3,q4,final_grade,remarks\nLRN-0001,,2026-2027,Mathematics,85,86,87,88,,\n"),
+    ]);
+
+    $registrar->delete();
+
+    expect(GradeAudit::sole())
+        ->user_id->toBeNull()
+        ->user_name->toBe('Rita Registrar')
+        ->user_role->toBe('registrar');
+});

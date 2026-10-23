@@ -85,7 +85,7 @@ export default function StudentsIndex({
     students: Paginated<Student>;
     search: string;
     sections: string[];
-    awaitingCredentials: number;
+    awaitingCredentials: Record<string, number>;
     educationLevels: EducationLevelOption[];
 }) {
     const [deleting, setDeleting] = useState<Student | null>(null);

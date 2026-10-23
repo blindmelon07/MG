@@ -63,8 +63,10 @@ class Announcement extends Model
     protected function casts(): array
     {
         return [
-            'event_start_at' => 'datetime',
-            'event_end_at' => 'datetime',
+            // Event times are the campus wall-clock time the admin typed. Sent without a
+            // zone so browsers show them as typed instead of converting from UTC.
+            'event_start_at' => 'datetime:Y-m-d\TH:i:s',
+            'event_end_at' => 'datetime:Y-m-d\TH:i:s',
             'published_at' => 'datetime',
             'personnel_roles' => 'array',
         ];

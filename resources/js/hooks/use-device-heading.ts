@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 export type HeadingStatus =
     | 'idle'
@@ -75,6 +76,9 @@ export function useDeviceHeading(enabled: boolean) {
     >('unknown');
     const [heading, setHeading] = useState<number | null>(null);
     const [timedOut, setTimedOut] = useState(false);
+
+    // The server can't know about the phone's compass.
+    const hydrated = useHydrated();
 
     const listening =
         enabled && supported && (!needsPermission || permission === 'granted');
@@ -160,6 +164,8 @@ export function useDeviceHeading(enabled: boolean) {
 
     if (!enabled) {
         status = 'idle';
+    } else if (!hydrated) {
+        status = 'waiting';
     } else if (!supported) {
         status = 'unsupported';
     } else if (needsPermission && permission === 'unknown') {

@@ -86,3 +86,14 @@ test('the sole super admin cannot demote themselves', function () {
 
     expect($superAdmin->fresh()->role)->toBe('super_admin');
 });
+
+test('the user list shows who has two-factor turned on', function () {
+    $superAdmin = User::factory()->create(['role' => 'super_admin']);
+    $teacher = User::factory()->withTwoFactor()->create(['role' => 'teacher']);
+
+    $this->actingAs($superAdmin)->get(route('admin.users.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('users', fn ($users) => collect($users)->firstWhere('id', $teacher->id)['two_factor_enabled'] === true
+                && collect($users)->firstWhere('id', $superAdmin->id)['two_factor_enabled'] === false
+                && ! array_key_exists('two_factor_secret', collect($users)->firstWhere('id', $teacher->id))));
+});

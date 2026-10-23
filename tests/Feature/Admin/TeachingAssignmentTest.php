@@ -117,3 +117,14 @@ test('teachers cannot manage teaching assignments', function () {
         ->get(route('admin.teaching-assignments.index'))
         ->assertForbidden();
 });
+
+test('a teacher\'s assignments say which grading system their class list uses', function () {
+    $teacher = User::factory()->withTwoFactor()->create(['role' => 'teacher']);
+    TeachingAssignment::create(['user_id' => $teacher->id, 'education_level' => 'college', 'grade_level' => '1st Year', 'subject' => 'Calculus', 'section' => 'A', 'school_year' => '2026-2027']);
+
+    $this->actingAs($teacher)
+        ->get(route('admin.grades.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('assignments.0.subject', 'Calculus')
+            ->where('assignments.0.grading_system', 'college'));
+});
