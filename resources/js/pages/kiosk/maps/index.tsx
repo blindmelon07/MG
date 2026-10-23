@@ -199,11 +199,11 @@ export default function KioskMapsIndex({
     );
     // Start locating straight away on phones; kiosks use the button.
     const [tracking, setTracking] = useState(handheld);
-    // Phones open on the 360° photo where they stand, when there are any,
-    // otherwise the Waze-style camera following the visitor's arrow.
+    // Phones open on the Waze-style camera following the visitor's arrow;
+    // until GPS finds them on campus the map shows the overview.
     const [view, setView] = useState<
         'photo' | 'first-person' | 'follow' | 'overview'
-    >(handheld ? (panoramas.length > 0 ? 'photo' : 'follow') : 'overview');
+    >(handheld ? 'follow' : 'overview');
     // Photo picked by hand, for kiosks and phones without a GPS fix.
     const [pickedPanoramaId, setPickedPanoramaId] = useState<number | null>(
         null,
@@ -677,6 +677,21 @@ export default function KioskMapsIndex({
                                 ))}
                             </div>
                         )}
+
+                        {/* Waze-style re-center: back to following you. */}
+                        {handheld &&
+                            firstPersonAvailable &&
+                            view === 'overview' &&
+                            !navigating && (
+                                <button
+                                    type="button"
+                                    onClick={() => setView('follow')}
+                                    className="absolute right-2 bottom-2 z-20 flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-2 text-sm font-semibold text-primary shadow-lg backdrop-blur transition-transform active:scale-95"
+                                >
+                                    <LocateFixed className="size-4" />
+                                    Recenter
+                                </button>
+                            )}
 
                         {lookOn && (
                             <div className="pointer-events-none absolute inset-x-2 bottom-2 flex flex-col items-start gap-2">
