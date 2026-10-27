@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreMapReferencePointRequest;
+use App\Http\Requests\Admin\UpdateMapReferencePointRequest;
 use App\Models\MapReferencePoint;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -15,6 +16,15 @@ class MapReferencePointController extends Controller
         MapReferencePoint::create($request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('GPS reference point saved.')]);
+
+        return to_route('admin.campus-locations.index');
+    }
+
+    public function update(UpdateMapReferencePointRequest $request, MapReferencePoint $mapReferencePoint): RedirectResponse
+    {
+        $mapReferencePoint->update($request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('GPS reference point updated.')]);
 
         return to_route('admin.campus-locations.index');
     }

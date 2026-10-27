@@ -41,7 +41,7 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
             ->only(['index', 'store', 'update', 'destroy']);
 
         Route::resource('map-reference-points', MapReferencePointController::class)
-            ->only(['store', 'destroy']);
+            ->only(['store', 'update', 'destroy']);
 
         Route::resource('campus-panoramas', CampusPanoramaController::class)
             ->only(['store', 'update', 'destroy']);

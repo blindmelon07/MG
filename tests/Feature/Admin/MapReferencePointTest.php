@@ -96,3 +96,45 @@ test('a point with coordinates entered from Google Maps needs no accuracy readin
 
     expect(MapReferencePoint::sole()->accuracy)->toBeNull();
 });
+
+test('admin can edit a gps reference point', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $point = MapReferencePoint::factory()->create(['label' => 'Gate', 'accuracy' => 8]);
+
+    $this->actingAs($admin)
+        ->put(route('admin.map-reference-points.update', $point), [
+            'label' => 'Main gate',
+            'latitude' => 12.970973,
+            'longitude' => 123.994085,
+            'accuracy' => '',
+            'x' => 47.2,
+            'y' => 93.1,
+        ])
+        ->assertRedirect(route('admin.campus-locations.index'));
+
+    $point->refresh();
+    expect($point->label)->toBe('Main gate');
+    expect($point->latitude)->toBe(12.970973);
+    expect($point->x)->toBe(47.2);
+    expect($point->accuracy)->toBeNull();
+    expect(MapReferencePoint::count())->toBe(1);
+});
+
+test('an edited gps reference point still needs a reading and a map spot', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $point = MapReferencePoint::factory()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.map-reference-points.update', $point), [
+            'latitude' => 120,
+            'x' => 150,
+        ])
+        ->assertSessionHasErrors(['latitude', 'longitude', 'x', 'y']);
+});
+
+test('guests cannot edit gps reference points', function () {
+    $point = MapReferencePoint::factory()->create();
+
+    $this->put(route('admin.map-reference-points.update', $point), [])
+        ->assertRedirect(route('login'));
+});
