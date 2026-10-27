@@ -39,9 +39,6 @@ export type MapReferencePoint = GeoReferencePoint & {
 
 type Source = 'paste' | 'gps';
 
-// A point further than this from the fit was probably clicked or read wrong.
-const MISPLACED_METERS = 10;
-
 const GPS_STATUS: Record<string, string> = {
     locating: 'Waiting for a GPS signal…',
     unsupported: "This device can't share its location.",
@@ -101,24 +98,15 @@ export function GpsCalibration({
         geo.reset();
     };
 
-    // Two points always fit exactly, so only 3+ can reveal a bad one.
-    const residuals =
-        projector && referencePoints.length >= 3
-            ? projector.residualsMeters
-            : null;
-    const worst = residuals ? residuals.indexOf(Math.max(...residuals)) : -1;
     let quality: string;
 
     if (projector) {
-        quality = `Phone location is on. The map matches GPS to about ${Math.max(1, Math.round(projector.errorMeters))} m`;
-        quality +=
-            referencePoints.length < 3
-                ? ' — add a third point to check accuracy.'
-                : '.';
+        const between = Math.max(1, Math.round(projector.errorMeters));
 
-        if (residuals && residuals[worst] > MISPLACED_METERS) {
-            quality += ` “${referencePoints[worst].label ?? 'Unlabelled point'}” doesn't line up with the others (about ${Math.round(residuals[worst])} m off). Remove it and add it again more carefully.`;
-        }
+        quality =
+            referencePoints.length < 3
+                ? `Phone location is on. The map matches GPS to about ${between} m — add a third point to check accuracy.`
+                : `Phone location is on. Near each point below the dot lands exactly where you marked it; elsewhere it can be off by about ${between} m. Add a point at each building to cover more of the campus.`;
     } else if (referencePoints.length === 0) {
         quality = 'Phone location is off until at least 2 points are added.';
     } else {
@@ -438,7 +426,7 @@ export function GpsCalibration({
 
             {referencePoints.length > 0 && (
                 <ul className="divide-y divide-sidebar-border/70 text-sm dark:divide-sidebar-border">
-                    {referencePoints.map((point, i) => (
+                    {referencePoints.map((point) => (
                         <li
                             key={point.id}
                             className="flex items-center justify-between gap-3 py-2"
@@ -455,23 +443,6 @@ export function GpsCalibration({
                                         : ' (entered)'}{' '}
                                     → map {point.x.toFixed(1)}%,{' '}
                                     {point.y.toFixed(1)}%
-                                    {residuals && (
-                                        <span
-                                            className={cn(
-                                                residuals[i] >
-                                                    MISPLACED_METERS &&
-                                                    'font-medium text-destructive',
-                                            )}
-                                        >
-                                            {' '}
-                                            · off by about{' '}
-                                            {Math.max(
-                                                1,
-                                                Math.round(residuals[i]),
-                                            )}{' '}
-                                            m
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                             <Form

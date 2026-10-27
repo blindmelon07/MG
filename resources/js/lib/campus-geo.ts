@@ -21,17 +21,19 @@ export type GeoProjector = {
      * in degrees clockwise from north.
      */
     headingToWorld: (headingDegrees: number) => { x: number; z: number };
-    /** Average distance, in metres, between the reference points and the fit. */
-    errorMeters: number;
     /**
-     * Each reference point's distance from the fit, in metres, in the order
-     * given. With 3+ points a large one marks a point that was misplaced.
+     * Average distance, in metres, between the reference points and the
+     * overall fit: roughly how far off the dot can be between points. Right
+     * at a point the local correction makes it exact.
      */
-    residualsMeters: number[];
+    errorMeters: number;
 };
 
 // Reference points closer together than this can't fix rotation or scale.
 const MIN_SPREAD_METERS = 15;
+// How far, in metres, each point's local correction reaches. The hand-drawn
+// map isn't to scale, so no single fit lands on every building.
+const CORRECTION_REACH_METERS = 20;
 
 /**
  * Fits the campus map to GPS from admin-recorded reference points.
@@ -40,7 +42,11 @@ const MIN_SPREAD_METERS = 15;
  * (rotation + uniform scale + shift) is least-squares fitted onto the map's
  * world units. Written with complex numbers: w = a·z + b, where z is the
  * GPS point, w the map point, and a carries rotation and scale. Two points
- * spread apart are enough; more points average out GPS error.
+ * spread apart are enough.
+ *
+ * With 3+ points, the map is also bent locally so each reference point lands
+ * exactly where it was placed, fading back to the overall fit further away.
+ * More points spread across campus cover more of it.
  *
  * Returns null until there are enough usable reference points.
  */
@@ -99,8 +105,7 @@ export function createGeoProjector(
     const a = { re: numRe / den, im: numIm / den };
     const scale = Math.hypot(a.re, a.im); // world units per metre
 
-    const toWorld = (latitude: number, longitude: number) => {
-        const z = toZ(latitude, longitude);
+    const fitted = (z: { re: number; im: number }) => {
         const zr = z.re - zMean.re;
         const zi = z.im - zMean.im;
 
@@ -108,6 +113,46 @@ export function createGeoProjector(
             re: a.re * zr - a.im * zi + wMean.re,
             im: a.re * zi + a.im * zr + wMean.im,
         };
+    };
+
+    const residuals = zs.map((z, i) => {
+        const w = fitted(z);
+
+        return { re: ws[i].re - w.re, im: ws[i].im - w.im };
+    });
+    const errorMeters =
+        mean(residuals.map((r) => Math.hypot(r.re, r.im))) / scale;
+
+    // Gaussian bumps centred on each point, weighted so that together they
+    // cancel every point's residual exactly.
+    const bump = (from: { re: number; im: number }, to: typeof from) =>
+        Math.exp(
+            -((from.re - to.re) ** 2 + (from.im - to.im) ** 2) /
+                (2 * CORRECTION_REACH_METERS ** 2),
+        );
+    const weights =
+        points.length >= 3
+            ? solveLinear(
+                  // A tiny ridge keeps two points at nearly the same spot
+                  // from blowing up the solution.
+                  zs.map((zi, i) =>
+                      zs.map((zj, j) => bump(zi, zj) + (i === j ? 1e-3 : 0)),
+                  ),
+                  residuals,
+              )
+            : null;
+
+    const toWorld = (latitude: number, longitude: number) => {
+        const z = toZ(latitude, longitude);
+        const w = fitted(z);
+
+        weights?.forEach((weight, i) => {
+            const k = bump(z, zs[i]);
+            w.re += weight.re * k;
+            w.im += weight.im * k;
+        });
+
+        return w;
     };
 
     const project = (latitude: number, longitude: number) => {
@@ -119,14 +164,8 @@ export function createGeoProjector(
         };
     };
 
-    const residualsMeters = points.map((p, i) => {
-        const w = toWorld(p.latitude, p.longitude);
-
-        return Math.hypot(w.re - ws[i].re, w.im - ws[i].im) / scale;
-    });
-    const errorMeters = mean(residualsMeters);
-
-    // Inverse of the rotation + scale: z = w / a.
+    // Inverse of the overall rotation + scale (z = w / a). It ignores the
+    // local correction, which is fine for distances and directions.
     const offsetMeters = (
         from: { x: number; y: number },
         to: { x: number; y: number },
@@ -155,13 +194,55 @@ export function createGeoProjector(
         };
     };
 
-    return {
-        project,
-        offsetMeters,
-        headingToWorld,
-        errorMeters,
-        residualsMeters,
-    };
+    return { project, offsetMeters, headingToWorld, errorMeters };
+}
+
+/**
+ * Solves A·x = b by Gaussian elimination with partial pivoting, for a
+ * complex right-hand side (the real and imaginary parts share A).
+ */
+function solveLinear(
+    matrix: number[][],
+    rhs: { re: number; im: number }[],
+): { re: number; im: number }[] {
+    const n = rhs.length;
+    const m = matrix.map((row, i) => [...row, rhs[i].re, rhs[i].im]);
+
+    for (let col = 0; col < n; col++) {
+        let pivot = col;
+
+        for (let row = col + 1; row < n; row++) {
+            if (Math.abs(m[row][col]) > Math.abs(m[pivot][col])) {
+                pivot = row;
+            }
+        }
+
+        [m[col], m[pivot]] = [m[pivot], m[col]];
+
+        for (let row = col + 1; row < n; row++) {
+            const f = m[row][col] / m[col][col];
+
+            for (let k = col; k < n + 2; k++) {
+                m[row][k] -= f * m[col][k];
+            }
+        }
+    }
+
+    const x = Array.from({ length: n }, () => ({ re: 0, im: 0 }));
+
+    for (let row = n - 1; row >= 0; row--) {
+        let re = m[row][n];
+        let im = m[row][n + 1];
+
+        for (let k = row + 1; k < n; k++) {
+            re -= m[row][k] * x[k].re;
+            im -= m[row][k] * x[k].im;
+        }
+
+        x[row] = { re: re / m[row][row], im: im / m[row][row] };
+    }
+
+    return x;
 }
 
 export type ParsedCoordinates =
