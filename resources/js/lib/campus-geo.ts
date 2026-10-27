@@ -23,6 +23,11 @@ export type GeoProjector = {
     headingToWorld: (headingDegrees: number) => { x: number; z: number };
     /** Average distance, in metres, between the reference points and the fit. */
     errorMeters: number;
+    /**
+     * Each reference point's distance from the fit, in metres, in the order
+     * given. With 3+ points a large one marks a point that was misplaced.
+     */
+    residualsMeters: number[];
 };
 
 // Reference points closer together than this can't fix rotation or scale.
@@ -114,14 +119,12 @@ export function createGeoProjector(
         };
     };
 
-    const errorMeters =
-        mean(
-            points.map((p, i) => {
-                const w = toWorld(p.latitude, p.longitude);
+    const residualsMeters = points.map((p, i) => {
+        const w = toWorld(p.latitude, p.longitude);
 
-                return Math.hypot(w.re - ws[i].re, w.im - ws[i].im);
-            }),
-        ) / scale;
+        return Math.hypot(w.re - ws[i].re, w.im - ws[i].im) / scale;
+    });
+    const errorMeters = mean(residualsMeters);
 
     // Inverse of the rotation + scale: z = w / a.
     const offsetMeters = (
@@ -152,7 +155,13 @@ export function createGeoProjector(
         };
     };
 
-    return { project, offsetMeters, headingToWorld, errorMeters };
+    return {
+        project,
+        offsetMeters,
+        headingToWorld,
+        errorMeters,
+        residualsMeters,
+    };
 }
 
 export type ParsedCoordinates =
