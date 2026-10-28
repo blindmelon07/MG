@@ -19,7 +19,9 @@ class SendSmsJob implements ShouldQueue
     public function __construct(
         public readonly string $recipient,
         public readonly string $message,
-    ) {}
+    ) {
+        $this->onConnection(config('queue.notifications'));
+    }
 
     public function handle(SmsService $sms): void
     {

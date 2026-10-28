@@ -1,5 +1,5 @@
-import { Form, Head, Link } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Form, Head, Link, router } from '@inertiajs/react';
+import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ManualController from '@/actions/App/Http/Controllers/Admin/ManualController';
 import Heading from '@/components/heading';
@@ -13,13 +13,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { create, edit, index as manualsIndex } from '@/routes/admin/manuals';
+import {
+    create,
+    edit,
+    index as manualsIndex,
+    move,
+} from '@/routes/admin/manuals';
 import type { Paginated } from '@/types/pagination';
 
 type Manual = {
     id: number;
     title: string;
     status: 'draft' | 'published';
+    sort_order: number;
     published_at: string | null;
     category: { id: number; name: string };
     creator: { id: number; name: string };
@@ -32,6 +38,13 @@ export default function ManualsIndex({
 }) {
     const [deleting, setDeleting] = useState<Manual | null>(null);
 
+    const reorder = (manual: Manual, direction: 'up' | 'down') =>
+        router.post(
+            move(manual.id).url,
+            { direction },
+            { preserveScroll: true },
+        );
+
     return (
         <>
             <Head title="Manuals" />
@@ -40,7 +53,7 @@ export default function ManualsIndex({
                 <div className="flex items-center justify-between">
                     <Heading
                         title="Manuals"
-                        description="Manage the content of the digital school manual."
+                        description="Manage the content of the digital school manual. The kiosk shows manuals in this order; use the arrows to move one within its category."
                     />
 
                     <Button asChild>
@@ -54,6 +67,9 @@ export default function ManualsIndex({
                     <table className="w-full text-sm">
                         <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
                             <tr>
+                                <th className="w-16 px-4 py-2 font-medium">
+                                    Order
+                                </th>
                                 <th className="px-4 py-2 font-medium">Title</th>
                                 <th className="px-4 py-2 font-medium">
                                     Category
@@ -73,7 +89,7 @@ export default function ManualsIndex({
                             {manuals.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         No manuals yet.
@@ -85,6 +101,9 @@ export default function ManualsIndex({
                                     key={manual.id}
                                     className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
                                 >
+                                    <td className="px-4 py-2 text-muted-foreground tabular-nums">
+                                        {manual.sort_order}
+                                    </td>
                                     <td className="px-4 py-2 font-medium">
                                         {manual.title}
                                     </td>
@@ -107,6 +126,33 @@ export default function ManualsIndex({
                                     </td>
                                     <td className="px-4 py-2">
                                         <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                disabled={
+                                                    manual.sort_order <= 1
+                                                }
+                                                onClick={() =>
+                                                    reorder(manual, 'up')
+                                                }
+                                            >
+                                                <ArrowUp />
+                                                <span className="sr-only">
+                                                    Move up
+                                                </span>
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() =>
+                                                    reorder(manual, 'down')
+                                                }
+                                            >
+                                                <ArrowDown />
+                                                <span className="sr-only">
+                                                    Move down
+                                                </span>
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

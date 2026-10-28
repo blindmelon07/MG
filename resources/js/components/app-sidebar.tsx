@@ -1,10 +1,13 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    BookMarked,
     BookOpen,
     BookUser,
+    CalendarRange,
     ClipboardList,
     GraduationCap,
     LayoutGrid,
+    LayoutList,
     Library,
     MapPin,
     Megaphone,
@@ -28,10 +31,13 @@ import { hasRole } from '@/lib/roles';
 import { dashboard } from '@/routes';
 import { index as announcementsIndex } from '@/routes/admin/announcements';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
+import { index as coursesIndex } from '@/routes/admin/courses';
 import { index as gradesIndex } from '@/routes/admin/grades';
 import { edit as kioskThemeEdit } from '@/routes/admin/kiosk-theme';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
 import { index as manualsIndex } from '@/routes/admin/manuals';
+import { index as schoolYearsIndex } from '@/routes/admin/school-years';
+import { index as sectionsIndex } from '@/routes/admin/sections';
 import { index as studentsIndex } from '@/routes/admin/students';
 import { index as subjectsIndex } from '@/routes/admin/subjects';
 import {
@@ -87,6 +93,16 @@ export function AppSidebar() {
         ...(hasRole(user, 'admin', 'registrar')
             ? [
                   {
+                      title: 'Courses',
+                      href: coursesIndex(),
+                      icon: BookMarked,
+                  },
+                  {
+                      title: 'Sections',
+                      href: sectionsIndex(),
+                      icon: LayoutList,
+                  },
+                  {
                       title: 'Subjects',
                       href: subjectsIndex(),
                       icon: Library,
@@ -95,6 +111,11 @@ export function AppSidebar() {
                       title: 'Teaching Assignments',
                       href: teachingAssignmentsIndex(),
                       icon: BookUser,
+                  },
+                  {
+                      title: 'School Years',
+                      href: schoolYearsIndex(),
+                      icon: CalendarRange,
                   },
               ]
             : []),

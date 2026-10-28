@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SchoolYear;
 use App\Support\KioskTheme;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -46,6 +47,14 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // Null until an admin changes the kiosk colors.
             'kioskTheme' => fn () => KioskTheme::saved(),
+            // The year staff are viewing; enrollment and grade pages follow it.
+            'schoolYear' => fn () => $request->user('web')?->hasRole('admin', 'registrar', 'teacher')
+                ? [
+                    'selected' => SchoolYear::selected(),
+                    'current' => SchoolYear::current(),
+                    'options' => SchoolYear::names(),
+                ]
+                : null,
         ];
     }
 }

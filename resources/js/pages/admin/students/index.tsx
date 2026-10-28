@@ -1,4 +1,4 @@
-import { Form, Head, Link, router } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Download,
     KeyRound,
@@ -21,6 +21,7 @@ import {
 } from '@/components/student-credentials';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { create, edit, index as studentsIndex } from '@/routes/admin/students';
 import { template as importTemplate } from '@/routes/admin/students/import';
 import type { Paginated } from '@/types/pagination';
@@ -42,13 +44,20 @@ type Guardian = {
     phone_number: string;
 };
 
+type Enrollment = {
+    school_year: string;
+    education_level: string | null;
+    grade_level: string | null;
+    section: string | null;
+    course: { id: number; code: string; name: string } | null;
+};
+
 type Student = {
     id: number;
     name: string;
     student_number: string | null;
-    education_level: string | null;
-    grade_level: string | null;
-    section: string | null;
+    /** Where the student is in the school year being viewed. */
+    enrollment: Enrollment | null;
     status: 'active' | 'inactive';
     grading_system: 'k12' | 'college';
     must_change_password: boolean;
@@ -75,15 +84,21 @@ function accountStatus(student: Student): string {
         : 'Active';
 }
 
+type EnrollmentFilter = 'enrolled' | 'none';
+
 export default function StudentsIndex({
     students,
     search,
+    enrollment,
+    counts,
     sections,
     awaitingCredentials,
     educationLevels,
 }: {
     students: Paginated<Student>;
     search: string;
+    enrollment: EnrollmentFilter;
+    counts: Record<EnrollmentFilter, number>;
     sections: string[];
     awaitingCredentials: Record<string, number>;
     educationLevels: EducationLevelOption[];
@@ -93,6 +108,13 @@ export default function StudentsIndex({
     const [importing, setImporting] = useState(false);
     const [issuing, setIssuing] = useState<Student | null>(null);
     const [printing, setPrinting] = useState(false);
+    const { schoolYear } = usePage().props;
+    const year = schoolYear?.selected ?? '';
+
+    const tabs: { value: EnrollmentFilter; label: string }[] = [
+        { value: 'enrolled', label: `Enrolled in S.Y. ${year}` },
+        { value: 'none', label: 'Not enrolled this year' },
+    ];
 
     return (
         <>
@@ -102,7 +124,7 @@ export default function StudentsIndex({
                 <div className="flex items-center justify-between">
                     <Heading
                         title="Students & Parents"
-                        description="Manage student records and their parent/guardian contacts."
+                        description={`Manage student records and their parent/guardian contacts for S.Y. ${year}.`}
                     />
 
                     <div className="flex items-center gap-2">
@@ -126,13 +148,54 @@ export default function StudentsIndex({
                     </div>
                 </div>
 
+                <div className="flex flex-wrap gap-1 border-b border-sidebar-border/70 dark:border-sidebar-border">
+                    {tabs.map((tab) => (
+                        <Link
+                            key={tab.value}
+                            href={studentsIndex({
+                                query: {
+                                    enrollment:
+                                        tab.value === 'none'
+                                            ? 'none'
+                                            : undefined,
+                                    search: search || undefined,
+                                },
+                            })}
+                            preserveState
+                            className={cn(
+                                '-mb-px border-b-2 px-3 py-2 text-sm font-medium',
+                                enrollment === tab.value
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                            )}
+                        >
+                            {tab.label}{' '}
+                            <span className="text-muted-foreground">
+                                ({counts[tab.value]})
+                            </span>
+                        </Link>
+                    ))}
+                </div>
+
+                {enrollment === 'none' && (
+                    <p className="text-sm text-muted-foreground">
+                        Students on file with no record for S.Y. {year}. Open
+                        one with the pencil to enroll them, or re-import them
+                        with this year&apos;s levels and sections.
+                    </p>
+                )}
+
                 <form
                     className="max-w-sm"
                     onSubmit={(e) => {
                         e.preventDefault();
                         router.get(
                             studentsIndex().url,
-                            { search: searchTerm },
+                            {
+                                search: searchTerm,
+                                enrollment:
+                                    enrollment === 'none' ? 'none' : undefined,
+                            },
                             { preserveState: true, replace: true },
                         );
                     }}
@@ -176,7 +239,9 @@ export default function StudentsIndex({
                                         colSpan={7}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
-                                        No students yet.
+                                        {enrollment === 'none'
+                                            ? 'Every student is enrolled this school year.'
+                                            : `No students enrolled in S.Y. ${year} yet.`}
                                     </td>
                                 </tr>
                             )}
@@ -192,21 +257,35 @@ export default function StudentsIndex({
                                         {student.student_number ?? '—'}
                                     </td>
                                     <td className="px-4 py-2">
-                                        <div>
-                                            {[
-                                                student.grade_level,
-                                                student.section,
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' — ') || '—'}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {educationLevels.find(
-                                                (level) =>
-                                                    level.value ===
-                                                    student.education_level,
-                                            )?.label ?? 'No education level'}
-                                        </div>
+                                        {student.enrollment ? (
+                                            <>
+                                                <div>
+                                                    {[
+                                                        student.enrollment
+                                                            .course?.code,
+                                                        student.enrollment
+                                                            .grade_level,
+                                                        student.enrollment
+                                                            .section,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' — ') || '—'}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {educationLevels.find(
+                                                        (level) =>
+                                                            level.value ===
+                                                            student.enrollment
+                                                                ?.education_level,
+                                                    )?.label ??
+                                                        'No education level'}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                Not enrolled in S.Y. {year}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-2">
                                         {student.guardians.length === 0
@@ -366,10 +445,18 @@ export default function StudentsIndex({
                     <p className="text-sm text-muted-foreground">
                         Fill in the Excel template (or a CSV with the same
                         columns) with student and guardian info. Every column is
-                        required except the student&apos;s phone and the second
-                        guardian. Rows matching an existing student # are
-                        skipped. Use &ldquo;Login slips&rdquo; afterwards to
-                        create portal passwords for the new students.
+                        required except the student&apos;s phone, the second
+                        guardian, and the course (needed for college and
+                        graduate school only). Sections must be on the Sections
+                        list; the template has a sheet listing them.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Students are enrolled in{' '}
+                        <strong className="text-foreground">S.Y. {year}</strong>
+                        . A row whose student # is already on file enrolls that
+                        student in S.Y. {year} with the row&apos;s level and
+                        section, which is how to carry students over to a new
+                        school year.
                     </p>
                     <a
                         href={importTemplate().url}
@@ -395,6 +482,21 @@ export default function StudentsIndex({
                                         required
                                     />
                                     <InputError message={errors.file} />
+                                </div>
+                                <div className="mt-4 flex items-start gap-3">
+                                    <Checkbox
+                                        id="import-send-credentials"
+                                        name="send_credentials"
+                                        value="1"
+                                        defaultChecked
+                                    />
+                                    <Label
+                                        htmlFor="import-send-credentials"
+                                        className="leading-snug font-normal"
+                                    >
+                                        Text each new student&apos;s portal
+                                        login to the student and their guardians
+                                    </Label>
                                 </div>
                                 <DialogFooter className="mt-4">
                                     <DialogClose asChild>

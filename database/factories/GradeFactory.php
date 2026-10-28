@@ -27,8 +27,8 @@ class GradeFactory extends Factory
             'q1' => 85,
             'q2' => 86,
             'q3' => 87,
-            'q4' => 88,
-            'final_grade' => 87,
+            'q4' => null,
+            'final_grade' => 86,
             'remarks' => 'Passed',
         ];
     }

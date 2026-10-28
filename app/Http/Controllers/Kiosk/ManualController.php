@@ -30,7 +30,7 @@ class ManualController extends Controller
         }
 
         return Inertia::render('kiosk/manuals/index', [
-            'manuals' => $query->orderBy('title')->get(['id', 'manual_category_id', 'title', 'slug', 'content']),
+            'manuals' => $query->inReadingOrder()->get(['id', 'manual_category_id', 'title', 'slug', 'content']),
             'categories' => ManualCategory::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'slug']),
             'filters' => $request->only(['category', 'q']),
         ]);
@@ -43,8 +43,14 @@ class ManualController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
+        // Previous and next in reading order, so the manual can be read straight through.
+        $order = Manual::published()->inReadingOrder()->get(['id', 'title', 'slug']);
+        $position = $order->search(fn (Manual $item) => $item->id === $manual->id);
+
         return Inertia::render('kiosk/manuals/show', [
             'manual' => $manual,
+            'previous' => $position > 0 ? $order[$position - 1]->only(['title', 'slug']) : null,
+            'next' => $order->get($position + 1)?->only(['title', 'slug']),
         ]);
     }
 }

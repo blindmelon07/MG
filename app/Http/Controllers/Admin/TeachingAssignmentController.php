@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SchoolYear;
+use App\Models\Section;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
@@ -20,9 +22,11 @@ class TeachingAssignmentController extends Controller
     {
         $level = $request->string('level')->trim()->toString();
         $level = array_key_exists($level, Student::EDUCATION_LEVELS) ? $level : '';
+        $year = SchoolYear::selected();
 
         return Inertia::render('admin/teaching-assignments/index', [
             'assignments' => TeachingAssignment::with('teacher:id,name')
+                ->where('school_year', $year)
                 ->when($level !== '', fn (Builder $query) => $query->where('education_level', $level))
                 ->orderByDesc('school_year')
                 ->orderBy('grade_level')
@@ -31,17 +35,19 @@ class TeachingAssignmentController extends Controller
                 ->get(),
             'level' => $level,
             'levelCounts' => TeachingAssignment::query()
+                ->where('school_year', $year)
                 ->selectRaw('education_level, count(*) as total')
                 ->groupBy('education_level')
                 ->pluck('total', 'education_level'),
             'educationLevels' => Student::educationLevelOptions(),
             'teachers' => User::where('role', 'teacher')->orderBy('name')->get(['id', 'name']),
-            'sections' => Student::whereNotNull('section')
-                ->whereNotNull('education_level')
-                ->select('education_level', 'grade_level', 'section')
-                ->distinct()
-                ->orderBy('section')
-                ->get(),
+            'sections' => Section::orderBy('name')
+                ->get(['education_level', 'grade_level', 'name'])
+                ->map(fn (Section $section) => [
+                    'education_level' => $section->education_level,
+                    'grade_level' => $section->grade_level,
+                    'section' => $section->name,
+                ]),
             'subjects' => Subject::orderBy('name')->get(['id', 'code', 'name', 'education_level']),
         ]);
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Services\SmsService;
+use App\Services\StudentCredentials;
 use App\Support\LoginSlips;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,19 +13,15 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class StudentCredentialController extends Controller
 {
-    /** How long the printable slip for a just-issued password stays downloadable. */
-    private const SLIP_MINUTES = 15;
-
     /**
      * Issue a new temporary password for one student. It is shown to the
      * registrar once and can optionally be texted to the first guardian.
      */
-    public function store(Request $request, Student $student, SmsService $sms): RedirectResponse
+    public function store(Request $request, Student $student, SmsService $sms, StudentCredentials $credentials): RedirectResponse
     {
         $request->validate(['send_sms' => ['sometimes', 'boolean']]);
 
@@ -42,26 +39,10 @@ class StudentCredentialController extends Controller
         if ($request->boolean('send_sms')) {
             $guardian = $student->guardians()->oldest('id')->first();
 
-            $smsSent = $guardian !== null && $sms->send(
-                $guardian->phone_number,
-                "Aemilianum College portal login for {$student->name}: student # {$student->student_number}, temporary password {$password}. Change it after signing in.",
-            );
+            $smsSent = $guardian !== null && $sms->send($guardian->phone_number, $credentials->message($student, $password));
         }
 
-        // The slip is rendered on request, so keep it (encrypted) in the session briefly.
-        $token = Str::random(40);
-        $request->session()->put("credential_slips.{$token}", [
-            'slip' => Crypt::encrypt(LoginSlips::entry($student, $password)),
-            'expires_at' => now()->addMinutes(self::SLIP_MINUTES)->getTimestamp(),
-        ]);
-
-        Inertia::flash('credentials', [
-            'name' => $student->name,
-            'student_number' => $student->student_number,
-            'password' => $password,
-            'sms_sent' => $smsSent,
-            'slip_url' => route('admin.students.credentials.slip', $token),
-        ]);
+        $credentials->flash($request, $student, $password, ['sms_sent' => $smsSent]);
 
         return back();
     }

@@ -67,6 +67,13 @@ export default function StudentGradesView({
     const [selectedKey, setSelectedKey] = useState(periods[0]?.key);
     const period = periods.find((p) => p.key === selectedKey) ?? periods[0];
     const college = period?.grading_system === 'college';
+    // JHS and SHS grade in three terms; a fourth column only for old quarterly grades.
+    const terms = [
+        'q1',
+        'q2',
+        'q3',
+        ...(period?.grades.some((grade) => grade.q4 !== null) ? ['q4'] : []),
+    ] as ('q1' | 'q2' | 'q3' | 'q4')[];
     const cell = cn('px-3 py-2', large && 'px-4 py-3');
 
     return (
@@ -185,38 +192,19 @@ export default function StudentGradesView({
                                             >
                                                 Subject
                                             </th>
-                                            <th
-                                                className={cn(
-                                                    cell,
-                                                    'text-right font-medium',
-                                                )}
-                                            >
-                                                Q1
-                                            </th>
-                                            <th
-                                                className={cn(
-                                                    cell,
-                                                    'text-right font-medium',
-                                                )}
-                                            >
-                                                Q2
-                                            </th>
-                                            <th
-                                                className={cn(
-                                                    cell,
-                                                    'text-right font-medium',
-                                                )}
-                                            >
-                                                Q3
-                                            </th>
-                                            <th
-                                                className={cn(
-                                                    cell,
-                                                    'text-right font-medium',
-                                                )}
-                                            >
-                                                Q4
-                                            </th>
+                                            {terms.map((term, index) => (
+                                                <th
+                                                    key={term}
+                                                    className={cn(
+                                                        cell,
+                                                        'text-right font-medium',
+                                                    )}
+                                                >
+                                                    {term === 'q4'
+                                                        ? 'Q4'
+                                                        : `Term ${index + 1}`}
+                                                </th>
+                                            ))}
                                             <th
                                                 className={cn(
                                                     cell,
@@ -308,14 +296,7 @@ export default function StudentGradesView({
                                                 >
                                                     {grade.subject}
                                                 </td>
-                                                {(
-                                                    [
-                                                        'q1',
-                                                        'q2',
-                                                        'q3',
-                                                        'q4',
-                                                    ] as const
-                                                ).map((q) => (
+                                                {terms.map((q) => (
                                                     <td
                                                         key={q}
                                                         className={cn(
@@ -379,7 +360,7 @@ export default function StudentGradesView({
                         <p className="text-xs text-muted-foreground">
                             {college
                                 ? 'Grades use the 1.00–5.00 scale; 3.00 is passing. GWA is weighted by units.'
-                                : 'Final grade is the average of the four quarters; 75 is passing.'}{' '}
+                                : 'Final grade is the average of the three terms; 75 is passing.'}{' '}
                             For corrections, contact your teacher or the
                             Registrar&apos;s Office.
                         </p>

@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -19,6 +21,7 @@ use Illuminate\Support\Str;
  * @property string|null $student_number
  * @property string|null $education_level
  * @property string|null $grade_level
+ * @property int|null $course_id
  * @property string|null $section
  * @property string $grading_system
  * @property string|null $phone_number
@@ -32,6 +35,7 @@ use Illuminate\Support\Str;
     'student_number',
     'education_level',
     'grade_level',
+    'course_id',
     'section',
     'grading_system',
     'phone_number',
@@ -158,6 +162,84 @@ class Student extends Authenticatable
                 $student->grading_system = self::gradingSystemFor($student->education_level);
             }
         });
+
+        // The level and section on the student are their current-year enrollment.
+        $syncEnrollment = fn (Student $student) => $student->enrollments()->updateOrCreate(
+            ['school_year' => SchoolYear::current()],
+            $student->only(Enrollment::PLACEMENT),
+        );
+
+        static::created($syncEnrollment);
+        static::updated(function (Student $student) use ($syncEnrollment): void {
+            if ($student->wasChanged(Enrollment::PLACEMENT)) {
+                $syncEnrollment($student);
+            }
+        });
+    }
+
+    /**
+     * Add a new student with their guardians, enrolled in a school year.
+     *
+     * @param  array<string, mixed>  $profile  name, student number, phone, status
+     * @param  array{education_level: string, grade_level: string, course_id?: int|null, section: string}  $placement
+     * @param  array<int, array{name: string, relationship: string, phone_number: string}>  $guardians
+     */
+    public static function admit(array $profile, array $placement, array $guardians, string $schoolYear): self
+    {
+        return DB::transaction(function () use ($profile, $placement, $guardians, $schoolYear): self {
+            $student = static::create([...$profile, ...$placement]);
+            $student->guardians()->createMany($guardians);
+
+            // Added to a past or upcoming year: enrolled in that year only.
+            if ($schoolYear !== SchoolYear::current()) {
+                $student->enrollments()->delete();
+                $student->enroll($schoolYear, $placement);
+            }
+
+            return $student;
+        });
+    }
+
+    /**
+     * Record where the student is in a school year. For the current year this
+     * also updates the level and section saved on the student.
+     *
+     * @param  array{education_level: string, grade_level: string, course_id?: int|null, section: string}  $placement
+     */
+    public function enroll(string $schoolYear, array $placement): Enrollment
+    {
+        $placement = ['course_id' => null, ...$placement];
+
+        if ($schoolYear === SchoolYear::current()) {
+            $this->update($placement);
+        }
+
+        return $this->enrollments()->updateOrCreate(['school_year' => $schoolYear], $placement);
+    }
+
+    public function enrollmentFor(string $schoolYear): ?Enrollment
+    {
+        return $this->enrollments()->where('school_year', $schoolYear)->first();
+    }
+
+    /**
+     * The student's section in a school year. Without an enrollment for that
+     * year, their current section is used, as it was before enrollments.
+     */
+    public function sectionIn(string $schoolYear): ?string
+    {
+        $enrollments = $this->relationLoaded('enrollments') ? $this->enrollments : $this->enrollments()->get();
+        $enrollment = $enrollments->firstWhere('school_year', $schoolYear);
+
+        return $enrollment !== null ? $enrollment->section : $this->section;
+    }
+
+    /**
+     * The grading system the student was on in a school year.
+     */
+    public function gradingSystemIn(string $schoolYear): string
+    {
+        return $this->enrollmentFor($schoolYear)?->gradingSystem() ?? $this->grading_system;
     }
 
     /** Excludes look-alike characters (0/O, 1/l/I) so printed slips are easy to type. */
@@ -211,6 +293,48 @@ class Student extends Authenticatable
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * Students enrolled in a school year.
+     *
+     * @param  Builder<Student>  $query
+     * @return Builder<Student>
+     */
+    public function scopeEnrolledIn(Builder $query, string $schoolYear): Builder
+    {
+        return $query->whereHas('enrollments', fn (Builder $q) => $q->where('school_year', $schoolYear));
+    }
+
+    /**
+     * Students who were in a section during a school year (see sectionIn()).
+     *
+     * @param  Builder<Student>  $query
+     * @return Builder<Student>
+     */
+    public function scopeInSectionDuring(Builder $query, string $section, string $schoolYear): Builder
+    {
+        $inYear = fn (Builder $q) => $q->where('school_year', $schoolYear);
+
+        return $query->where(fn (Builder $query) => $query
+            ->whereHas('enrollments', fn (Builder $q) => $inYear($q)->where('section', $section))
+            ->orWhere(fn (Builder $query) => $query->whereDoesntHave('enrollments', $inYear)->where('section', $section)));
+    }
+
+    /**
+     * @return BelongsTo<Course, $this>
+     */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    /**
+     * @return HasMany<Enrollment, $this>
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
     }
 
     /**

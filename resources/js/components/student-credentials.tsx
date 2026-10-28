@@ -37,6 +37,8 @@ type IssuedCredentials = {
     student_number: string;
     password: string;
     sms_sent: boolean | null;
+    /** How many numbers (student and guardians) the login was texted to. */
+    sms_recipients: number | null;
     slip_url: string;
 };
 
@@ -172,6 +174,27 @@ export function IssuedCredentialsDialog() {
                             <Alert>
                                 <AlertDescription>
                                     Sent to the guardian by SMS.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        {issued.sms_recipients !== null &&
+                            issued.sms_recipients > 0 && (
+                                <Alert>
+                                    <AlertDescription>
+                                        Texting the login to{' '}
+                                        {issued.sms_recipients} number
+                                        {issued.sms_recipients === 1
+                                            ? ''
+                                            : 's'}{' '}
+                                        (student and guardians).
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        {issued.sms_recipients === 0 && (
+                            <Alert variant="destructive">
+                                <AlertDescription>
+                                    No phone numbers on file to text. Give the
+                                    password to the student directly.
                                 </AlertDescription>
                             </Alert>
                         )}

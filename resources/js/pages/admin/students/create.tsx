@@ -1,13 +1,18 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import StudentController from '@/actions/App/Http/Controllers/Admin/StudentController';
-import { EducationLevelFields } from '@/components/education-level-fields';
 import type { EducationLevelOption } from '@/components/education-level-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PhoneInput } from '@/components/phone-input';
+import { StudentPlacementFields } from '@/components/student-placement-fields';
+import type {
+    CourseOption,
+    SectionOption,
+} from '@/components/student-placement-fields';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,9 +34,14 @@ const emptyGuardian: GuardianRow = {
 
 export default function StudentsCreate({
     educationLevels,
+    courses,
+    sectionOptions,
 }: {
     educationLevels: EducationLevelOption[];
+    courses: CourseOption[];
+    sectionOptions: SectionOption[];
 }) {
+    const { schoolYear } = usePage().props;
     const [guardians, setGuardians] = useState<GuardianRow[]>([
         { ...emptyGuardian },
     ]);
@@ -43,7 +53,7 @@ export default function StudentsCreate({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="New Student"
-                    description="Add a student and their parent/guardian contacts."
+                    description={`Add a student and their parent/guardian contacts. They are enrolled in S.Y. ${schoolYear?.selected ?? ''}.`}
                 />
 
                 <Form
@@ -84,16 +94,12 @@ export default function StudentsCreate({
                                 </div>
                             </div>
 
-                            <EducationLevelFields
+                            <StudentPlacementFields
                                 levels={educationLevels}
+                                courses={courses}
+                                sections={sectionOptions}
                                 errors={errors}
                             />
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="section">Section</Label>
-                                <Input id="section" name="section" required />
-                                <InputError message={errors.section} />
-                            </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="status">Status</Label>
@@ -219,6 +225,27 @@ export default function StudentsCreate({
                                     </div>
                                 ))}
                                 <InputError message={errors.guardians} />
+                            </div>
+
+                            <div className="flex items-start gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border">
+                                <Checkbox
+                                    id="send_credentials"
+                                    name="send_credentials"
+                                    value="1"
+                                    defaultChecked
+                                />
+                                <div className="grid gap-1">
+                                    <Label htmlFor="send_credentials">
+                                        Text the portal login now
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Creates a temporary password and sends
+                                        the student # and password by SMS to the
+                                        student&apos;s phone and every guardian.
+                                        It is also shown once on screen, with a
+                                        printable slip.
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="flex items-center gap-4">

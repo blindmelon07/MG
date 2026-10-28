@@ -16,10 +16,11 @@ class SmsService
 {
     public function send(string $recipient, string $message): bool
     {
+        // Retried here because the default "deferred" queue doesn't retry jobs.
         $response = Http::withHeaders([
             'X-API-KEY' => config('services.pinassms.key'),
             'Content-Type' => 'application/json',
-        ])->post(config('services.pinassms.url'), [
+        ])->timeout(15)->retry(2, 1000, throw: false)->post(config('services.pinassms.url'), [
             'recipient' => $this->normalize($recipient),
             'message' => $message,
         ]);

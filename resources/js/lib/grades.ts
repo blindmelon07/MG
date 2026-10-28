@@ -1,7 +1,7 @@
 import type { GradingSystem } from '@/types/auth';
 
 export const gradingSystemLabels: Record<GradingSystem, string> = {
-    k12: 'K-12 (quarterly)',
+    k12: 'K-12 (three terms)',
     college: 'College (semestral)',
 };
 

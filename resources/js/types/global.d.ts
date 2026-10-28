@@ -15,6 +15,12 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             kioskTheme: KioskTheme | null;
+            /** The school year staff are viewing; null for other visitors. */
+            schoolYear: {
+                selected: string;
+                current: string;
+                options: string[];
+            } | null;
             [key: string]: unknown;
         };
     }

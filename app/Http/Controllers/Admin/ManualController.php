@@ -10,7 +10,9 @@ use App\Http\Requests\Admin\UpdateManualRequest;
 use App\Models\Manual;
 use App\Models\ManualCategory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,7 +24,7 @@ class ManualController extends Controller
     {
         return Inertia::render('admin/manuals/index', [
             'manuals' => Manual::with(['category', 'creator'])
-                ->latest()
+                ->inReadingOrder()
                 ->paginate(15)
                 ->withQueryString(),
         ]);
@@ -41,6 +43,7 @@ class ManualController extends Controller
         $data['slug'] = $this->generateUniqueSlug(Manual::class, $data['title']);
         $data['created_by'] = $request->user()->id;
         $data['published_at'] = $data['status'] === 'published' ? Carbon::now() : null;
+        $data['sort_order'] = $this->nextPosition($data['manual_category_id']);
 
         $manual = Manual::create($data);
 
@@ -71,7 +74,18 @@ class ManualController extends Controller
             $data['published_at'] = null;
         }
 
+        $previousCategory = $manual->manual_category_id;
+
+        // A manual moved to another category goes to the end of it.
+        if ((int) $data['manual_category_id'] !== $previousCategory) {
+            $data['sort_order'] = $this->nextPosition($data['manual_category_id']);
+        }
+
         $manual->update($data);
+
+        if ($manual->manual_category_id !== $previousCategory) {
+            Manual::renumber($previousCategory);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Manual updated.')]);
 
@@ -83,9 +97,38 @@ class ManualController extends Controller
         $manual->media->each(fn ($media) => $this->detachMedia($media));
 
         $manual->delete();
+        Manual::renumber($manual->manual_category_id);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Manual deleted.')]);
 
         return to_route('admin.manuals.index');
+    }
+
+    /**
+     * Swap a manual with the one before or after it in its category.
+     */
+    public function move(Request $request, Manual $manual): RedirectResponse
+    {
+        $direction = $request->validate(['direction' => ['required', Rule::in(['up', 'down'])]])['direction'];
+
+        Manual::renumber($manual->manual_category_id);
+        $manual->refresh();
+
+        $neighbor = Manual::where('manual_category_id', $manual->manual_category_id)
+            ->where('sort_order', $direction === 'up' ? $manual->sort_order - 1 : $manual->sort_order + 1)
+            ->first();
+
+        if ($neighbor !== null) {
+            [$manual->sort_order, $neighbor->sort_order] = [$neighbor->sort_order, $manual->sort_order];
+            $manual->save();
+            $neighbor->save();
+        }
+
+        return back();
+    }
+
+    private function nextPosition(int|string $categoryId): int
+    {
+        return (int) Manual::where('manual_category_id', $categoryId)->max('sort_order') + 1;
     }
 }

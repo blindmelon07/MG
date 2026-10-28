@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Notification Queue Connection
+    |--------------------------------------------------------------------------
+    |
+    | Texts and emails about announcements and student logins. "deferred"
+    | sends them right after the page responds, so they go out even on a
+    | server with no `queue:work` process. Set it to "database" when a
+    | worker is running to get retries.
+    |
+    */
+
+    'notifications' => env('NOTIFICATIONS_QUEUE_CONNECTION', 'deferred'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
     |

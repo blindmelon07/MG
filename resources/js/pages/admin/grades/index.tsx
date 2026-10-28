@@ -1,8 +1,10 @@
-import { Form, Head, Link, router } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
 import { Download, History, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import GradeController from '@/actions/App/Http/Controllers/Admin/GradeController';
 import GradeImportController from '@/actions/App/Http/Controllers/Admin/GradeImportController';
+import { GradeTemplatePicker } from '@/components/grade-template-picker';
+import type { TemplateOptions } from '@/components/grade-template-picker';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -49,12 +51,12 @@ type GradeRow = {
     midterm: string | null;
     final_grade: string | null;
     remarks: string | null;
+    /** The student's section in that school year. */
+    section: string | null;
     student: {
         id: number;
         name: string;
         student_number: string | null;
-        grade_level: string | null;
-        section: string | null;
     };
 };
 
@@ -80,8 +82,9 @@ function breakdown(grade: GradeRow): string {
         return `Midterm ${formatGrade(grade.midterm, 'college')}`;
     }
 
-    return [grade.q1, grade.q2, grade.q3, grade.q4]
-        .map((q) => formatGrade(q, 'k12'))
+    // Three terms; a fourth value only on grades from the old quarterly system.
+    return [grade.q1, grade.q2, grade.q3, ...(grade.q4 ? [grade.q4] : [])]
+        .map((term) => formatGrade(term, 'k12'))
         .join(' · ');
 }
 
@@ -91,13 +94,17 @@ export default function GradesIndex({
     options,
     canManageAll,
     assignments,
+    templateOptions,
 }: {
     grades: Paginated<GradeRow>;
     filters: Filters;
     options: { schoolYears: string[]; subjects: string[] };
     canManageAll: boolean;
     assignments: Assignment[];
+    templateOptions: TemplateOptions | null;
 }) {
+    const { schoolYear } = usePage().props;
+    const viewingYear = schoolYear?.selected ?? '';
     const [importing, setImporting] = useState(false);
     const [system, setSystem] = useState<GradingSystem>(
         assignments.find((assignment) => assignment.grading_system)
@@ -117,9 +124,13 @@ export default function GradesIndex({
 
         router.get(
             gradesIndex().url,
-            Object.fromEntries(
-                Object.entries(next).filter(([, value]) => value !== ''),
-            ),
+            {
+                ...Object.fromEntries(
+                    Object.entries(next).filter(([, value]) => value !== ''),
+                ),
+                // Without a school year the list opens on the one being viewed.
+                school_year: next.school_year || 'all',
+            },
             { preserveState: true, replace: true },
         );
     };
@@ -230,7 +241,10 @@ export default function GradesIndex({
                         </SelectContent>
                     </Select>
 
-                    {Object.values(filters).some(Boolean) && (
+                    {(filters.search ||
+                        filters.section ||
+                        filters.subject ||
+                        filters.school_year !== viewingYear) && (
                         <Button variant="ghost" asChild>
                             <Link href={gradesIndex()}>Clear filters</Link>
                         </Button>
@@ -275,7 +289,8 @@ export default function GradesIndex({
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         No grades yet. Use &ldquo;Import
-                                        grades&rdquo; to upload a CSV.
+                                        grades&rdquo; to upload the Excel
+                                        template.
                                     </td>
                                 </tr>
                             )}
@@ -294,7 +309,7 @@ export default function GradesIndex({
                                         </div>
                                     </td>
                                     <td className="px-4 py-2">
-                                        {grade.student.section ?? '—'}
+                                        {grade.section ?? '—'}
                                     </td>
                                     <td className="px-4 py-2 whitespace-nowrap">
                                         {grade.school_year}
@@ -435,9 +450,10 @@ export default function GradesIndex({
                         <DialogTitle>Import grades</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Upload a CSV with one row per student per subject.
-                        Students are matched by student #. Re-importing the same
-                        subject and period updates the existing grade.
+                        Upload the Excel template (or a CSV) with one row per
+                        student per subject. Students are matched by student #.
+                        Re-importing the same subject and period updates the
+                        existing grade.
                     </p>
                     <Form
                         {...GradeImportController.store.form()}
@@ -475,7 +491,7 @@ export default function GradesIndex({
                                     <p className="text-xs text-muted-foreground">
                                         {system === 'college'
                                             ? 'Columns: term, subject code, units, midterm and final (1.00–5.00). Put INC or DRP in final_grade when needed.'
-                                            : 'Columns: Q1–Q4 (0–100). Leave final_grade blank to average the four quarters.'}
+                                            : 'Columns: term 1 to term 3 (0–100). Leave final_grade blank to average the three terms.'}
                                     </p>
                                     <InputError
                                         message={errors.grading_system}
@@ -493,6 +509,14 @@ export default function GradesIndex({
                                             : 'K-12'}{' '}
                                         template
                                     </a>
+                                    {templateOptions && (
+                                        <GradeTemplatePicker
+                                            key={system}
+                                            system={system}
+                                            schoolYear={viewingYear}
+                                            options={templateOptions}
+                                        />
+                                    )}
                                     {classTemplates.length > 0 && (
                                         <div className="grid gap-1">
                                             <span className="text-xs text-muted-foreground">
@@ -530,13 +554,13 @@ export default function GradesIndex({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="grades-file">
-                                        CSV file
+                                        Excel or CSV file
                                     </Label>
                                     <Input
                                         id="grades-file"
                                         name="file"
                                         type="file"
-                                        accept=".csv,text/csv"
+                                        accept=".xlsx,.xls,.csv"
                                         required
                                     />
                                     <InputError message={errors.file} />

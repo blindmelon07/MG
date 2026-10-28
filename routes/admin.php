@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementMediaController;
 use App\Http\Controllers\Admin\CampusLocationController;
 use App\Http\Controllers\Admin\CampusPanoramaController;
+use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\GradeAuditController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\GradeImportController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
 use App\Http\Controllers\Admin\ManualMediaController;
 use App\Http\Controllers\Admin\MapReferencePointController;
+use App\Http\Controllers\Admin\SchoolYearController;
+use App\Http\Controllers\Admin\SectionController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentCredentialController;
 use App\Http\Controllers\Admin\StudentImportController;
@@ -29,6 +32,7 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
         Route::resource('manuals', ManualController::class)
             ->except(['show']);
 
+        Route::post('manuals/{manual}/move', [ManualController::class, 'move'])->name('manuals.move');
         Route::post('manuals/{manual}/media', [ManualMediaController::class, 'store'])->name('manuals.media.store');
         Route::delete('manuals/{manual}/media/{media}', [ManualMediaController::class, 'destroy'])->name('manuals.media.destroy');
 
@@ -68,6 +72,16 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
         Route::resource('subjects', SubjectController::class)
             ->only(['index', 'store', 'update', 'destroy']);
 
+        Route::resource('courses', CourseController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+
+        Route::resource('sections', SectionController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+
+        Route::resource('school-years', SchoolYearController::class)
+            ->only(['index', 'store', 'destroy']);
+        Route::post('school-years/{school_year}/current', [SchoolYearController::class, 'makeCurrent'])->name('school-years.current');
+
         Route::resource('students', StudentController::class)
             ->except(['show']);
 
@@ -78,6 +92,8 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
     });
 
     Route::middleware('role:admin,registrar,teacher')->group(function () {
+        Route::post('school-year', [SchoolYearController::class, 'select'])->name('school-year.select');
+
         Route::get('grades', [GradeController::class, 'index'])->name('grades.index');
         Route::delete('grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
         Route::get('grades/import/template/{system}', [GradeImportController::class, 'template'])

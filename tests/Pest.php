@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\SchoolYear;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +45,15 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Replace the school years the migration seeded from today's date, so tests don't depend on it.
+ */
+function schoolYears(string $current, string ...$others): void
 {
-    // ..
+    SchoolYear::query()->delete();
+    SchoolYear::create(['name' => $current, 'is_current' => true]);
+
+    foreach ($others as $name) {
+        SchoolYear::create(['name' => $name]);
+    }
 }

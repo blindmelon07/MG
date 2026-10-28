@@ -1,4 +1,4 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import TeachingAssignmentController from '@/actions/App/Http/Controllers/Admin/TeachingAssignmentController';
@@ -55,15 +55,6 @@ type SectionOption = {
     section: string;
 };
 
-function currentSchoolYear(): string {
-    // Philippine school years start around June.
-    const now = new Date();
-    const start =
-        now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
-
-    return `${start}-${start + 1}`;
-}
-
 export default function TeachingAssignmentsIndex({
     assignments,
     level,
@@ -81,6 +72,7 @@ export default function TeachingAssignmentsIndex({
     sections: SectionOption[];
     subjects: SubjectOption[];
 }) {
+    const { schoolYear } = usePage().props;
     const [createOpen, setCreateOpen] = useState(false);
     const [deleting, setDeleting] = useState<Assignment | null>(null);
     const [formLevel, setFormLevel] = useState(level);
@@ -129,7 +121,7 @@ export default function TeachingAssignmentsIndex({
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <Heading
                         title="Teaching Assignments"
-                        description="Teachers can only import grades for the subjects and sections assigned here."
+                        description={`S.Y. ${schoolYear?.selected ?? ''}. Teachers can only import grades for the subjects and sections assigned here.`}
                     />
 
                     <Dialog
@@ -290,7 +282,9 @@ export default function TeachingAssignmentsIndex({
                                                     id="school_year"
                                                     name="school_year"
                                                     required
-                                                    defaultValue={currentSchoolYear()}
+                                                    defaultValue={
+                                                        schoolYear?.selected
+                                                    }
                                                     placeholder="2026-2027"
                                                 />
                                                 <InputError

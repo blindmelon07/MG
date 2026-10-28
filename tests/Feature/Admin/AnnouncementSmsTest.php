@@ -5,10 +5,36 @@ use App\Models\Announcement;
 use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
+use App\Notifications\AnnouncementPublished;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
+
+test('announcement texts and emails are sent right after the page responds, without a queue worker', function () {
+    config(['queue.default' => 'database']);
+    Http::fake(['pinassms.com/*' => Http::response(['status' => 'ok'])]);
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    Student::factory()->create(['phone_number' => '09171234567']);
+    $teacher = User::factory()->create(['role' => 'teacher']);
+
+    $this->actingAs($admin)->post(route('admin.announcements.store'), [
+        'title' => 'Foundation Day',
+        'content' => 'No classes tomorrow.',
+        'type' => 'announcement',
+        'status' => 'published',
+        'audience' => 'all',
+        'personnel_roles' => ['teacher'],
+    ])->assertRedirect(route('admin.announcements.index'));
+
+    Http::assertSent(fn ($request) => $request['recipient'] === '639171234567');
+    expect(DB::table('jobs')->count())->toBe(0)
+        ->and((new AnnouncementPublished(Announcement::firstOrFail()))->connection)->toBe('deferred')
+        ->and($teacher->email)->not->toBeNull();
+});
 
 test('publishing an announcement to all texts every active student and guardian', function () {
     Queue::fake();

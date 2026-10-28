@@ -17,7 +17,10 @@ class AnnouncementPublished extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public Announcement $announcement) {}
+    public function __construct(public Announcement $announcement)
+    {
+        $this->onConnection(config('queue.notifications'));
+    }
 
     /**
      * @return array<int, string>

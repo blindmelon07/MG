@@ -94,15 +94,15 @@ class DemoGradesSeeder extends Seeder
         foreach ($students as $i => [$name, $gradeLevel, $section, $ability]) {
             $student = $this->student(sprintf('K12-%03d', $i + 1), $name, $gradeLevel, $section, 'k12');
 
-            // Last school year: all four quarters in.
+            // Last school year: all three terms in.
             foreach (self::K12_SUBJECTS as $subject) {
-                $quarters = array_map(fn () => $this->k12Mark($ability), range(1, 4));
-                $this->k12Grade($student, '2025-2026', $subject, $quarters);
+                $terms = array_map(fn () => $this->k12Mark($ability), range(1, 3));
+                $this->k12Grade($student, '2025-2026', $subject, $terms);
             }
 
-            // This school year: only the first quarter so far.
+            // This school year: only the first term so far.
             foreach (self::K12_SUBJECTS as $subject) {
-                $this->k12Grade($student, '2026-2027', $subject, [$this->k12Mark($ability), null, null, null]);
+                $this->k12Grade($student, '2026-2027', $subject, [$this->k12Mark($ability), null, null]);
             }
         }
     }
@@ -146,20 +146,20 @@ class DemoGradesSeeder extends Seeder
     }
 
     /**
-     * @param  list<float|null>  $quarters
+     * @param  list<float|null>  $terms
      */
-    private function k12Grade(Student $student, string $schoolYear, string $subject, array $quarters): void
+    private function k12Grade(Student $student, string $schoolYear, string $subject, array $terms): void
     {
-        $final = Grade::k12Final($quarters);
+        $final = Grade::k12Final($terms);
 
         Grade::updateOrCreate(
             ['student_id' => $student->id, 'school_year' => $schoolYear, 'term' => null, 'subject' => $subject],
             [
                 'grading_system' => 'k12',
-                'q1' => $quarters[0],
-                'q2' => $quarters[1],
-                'q3' => $quarters[2],
-                'q4' => $quarters[3],
+                'q1' => $terms[0],
+                'q2' => $terms[1],
+                'q3' => $terms[2],
+                'q4' => null,
                 'final_grade' => $final,
                 'remarks' => Grade::remarksFor('k12', $final),
             ],

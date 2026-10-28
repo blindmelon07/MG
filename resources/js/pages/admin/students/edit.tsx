@@ -1,12 +1,18 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import StudentController from '@/actions/App/Http/Controllers/Admin/StudentController';
-import { EducationLevelFields } from '@/components/education-level-fields';
 import type { EducationLevelOption } from '@/components/education-level-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PhoneInput } from '@/components/phone-input';
+import { StudentPlacementFields } from '@/components/student-placement-fields';
+import type {
+    CourseOption,
+    Placement,
+    SectionOption,
+} from '@/components/student-placement-fields';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +32,15 @@ type GuardianRow = {
     phone_number: string;
 };
 
+type HistoryRow = {
+    id: number;
+    school_year: string;
+    education_level: string | null;
+    grade_level: string | null;
+    section: string | null;
+    course: { id: number; code: string } | null;
+};
+
 type EditedStudent = {
     id: number;
     name: string;
@@ -40,11 +55,26 @@ type EditedStudent = {
 
 export default function StudentsEdit({
     student,
+    placement,
+    enrolled,
+    history,
     educationLevels,
+    courses,
+    sectionOptions,
 }: {
     student: EditedStudent;
+    placement: Placement;
+    enrolled: boolean;
+    history: HistoryRow[];
     educationLevels: EducationLevelOption[];
+    courses: CourseOption[];
+    sectionOptions: SectionOption[];
 }) {
+    const { schoolYear } = usePage().props;
+    const year = schoolYear?.selected ?? '';
+    const levelLabel = (value: string | null) =>
+        educationLevels.find((level) => level.value === value)?.label ?? '—';
+
     const [guardians, setGuardians] = useState<GuardianRow[]>(
         student.guardians.length > 0
             ? student.guardians
@@ -58,8 +88,18 @@ export default function StudentsEdit({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Edit Student"
-                    description="Update this student's details and guardian contacts."
+                    description={`Update this student's details and guardian contacts. Level and section are for S.Y. ${year}; switch the school year at the top to edit another year.`}
                 />
+
+                {!enrolled && (
+                    <Alert className="max-w-2xl">
+                        <AlertDescription>
+                            {student.name} isn&apos;t enrolled in S.Y. {year}{' '}
+                            yet. Saving enrolls them with the level and section
+                            below, filled in from their latest school year.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <Form
                     {...StudentController.update.form(student.id)}
@@ -110,23 +150,13 @@ export default function StudentsEdit({
                                 </div>
                             </div>
 
-                            <EducationLevelFields
+                            <StudentPlacementFields
                                 levels={educationLevels}
-                                defaultEducationLevel={student.education_level}
-                                defaultGradeLevel={student.grade_level}
+                                courses={courses}
+                                sections={sectionOptions}
+                                placement={placement}
                                 errors={errors}
                             />
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="section">Section</Label>
-                                <Input
-                                    id="section"
-                                    name="section"
-                                    required
-                                    defaultValue={student.section ?? ''}
-                                />
-                                <InputError message={errors.section} />
-                            </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="status">Status</Label>
@@ -277,12 +307,65 @@ export default function StudentsEdit({
 
                             <div className="flex items-center gap-4">
                                 <Button type="submit" disabled={processing}>
-                                    Save Changes
+                                    {enrolled
+                                        ? 'Save Changes'
+                                        : `Save & enroll in S.Y. ${year}`}
                                 </Button>
                             </div>
                         </>
                     )}
                 </Form>
+
+                {history.length > 0 && (
+                    <section className="max-w-2xl space-y-2">
+                        <h2 className="text-sm font-semibold">
+                            Enrollment history
+                        </h2>
+                        <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                            <table className="w-full text-sm">
+                                <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
+                                    <tr>
+                                        <th className="px-4 py-2 font-medium">
+                                            School year
+                                        </th>
+                                        <th className="px-4 py-2 font-medium">
+                                            Level
+                                        </th>
+                                        <th className="px-4 py-2 font-medium">
+                                            Year &amp; section
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {history.map((row) => (
+                                        <tr
+                                            key={row.id}
+                                            className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
+                                        >
+                                            <td className="px-4 py-2 whitespace-nowrap">
+                                                {row.school_year}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                {levelLabel(
+                                                    row.education_level,
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                {[
+                                                    row.course?.code,
+                                                    row.grade_level,
+                                                    row.section,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' — ') || '—'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                )}
             </div>
         </>
     );

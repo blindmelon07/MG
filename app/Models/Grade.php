@@ -52,6 +52,12 @@ class Grade extends Model
 
     public const TERMS = ['1st Semester', '2nd Semester', 'Summer'];
 
+    /**
+     * JHS and SHS grade in three terms, kept in q1 to q3. q4 only holds
+     * grades from before the switch from four quarters.
+     */
+    public const K12_TERMS = ['q1', 'q2', 'q3'];
+
     /** K-12 grades are percentages; 75 is the DepEd passing mark. */
     public const K12_PASSING = 75;
 
@@ -122,7 +128,7 @@ class Grade extends Model
                 $query->orWhere(function (Builder $query) use ($assignment): void {
                     $query->where('subject', $assignment->subject)
                         ->where('school_year', $assignment->school_year)
-                        ->whereHas('student', fn (Builder $q) => $q->where('section', $assignment->section));
+                        ->whereHas('student', fn (Builder $q) => $q->inSectionDuring($assignment->section, $assignment->school_year));
                 });
             }
         });
@@ -135,21 +141,21 @@ class Grade extends Model
         }
 
         return $user->teachingAssignments()->get()
-            ->contains(fn (TeachingAssignment $a) => $a->covers($this->subject, $this->student->section, $this->school_year));
+            ->contains(fn (TeachingAssignment $a) => $a->covers($this->subject, $this->student->sectionIn($this->school_year), $this->school_year));
     }
 
     /**
-     * K-12 final grade is the rounded average of the four quarters.
+     * K-12 final grade is the rounded average of the terms, once every term is in.
      *
-     * @param  list<float|null>  $quarters
+     * @param  list<float|null>  $terms
      */
-    public static function k12Final(array $quarters): ?float
+    public static function k12Final(array $terms): ?float
     {
-        if (count($quarters) !== 4 || in_array(null, $quarters, true)) {
+        if ($terms === [] || in_array(null, $terms, true)) {
             return null;
         }
 
-        return round(array_sum($quarters) / 4);
+        return round(array_sum($terms) / count($terms));
     }
 
     public static function remarksFor(string $gradingSystem, ?float $final): ?string

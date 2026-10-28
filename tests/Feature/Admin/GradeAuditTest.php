@@ -9,12 +9,12 @@ use Illuminate\Http\UploadedFile;
 test('importing, re-importing and deleting grades leaves an audit trail', function () {
     $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
     Student::factory()->create(['student_number' => 'LRN-0001']);
-    $header = "student_number,student_name,school_year,subject,q1,q2,q3,q4,final_grade,remarks\n";
+    $header = "student_number,student_name,school_year,subject,term_1,term_2,term_3,final_grade,remarks\n";
 
-    foreach (['85,86,87,88', '85,86,87,95'] as $quarters) {
+    foreach (['85,86,87', '85,86,95'] as $terms) {
         $this->actingAs($registrar)->post(route('admin.grades.import.store'), [
             'grading_system' => 'k12',
-            'file' => UploadedFile::fake()->createWithContent('g.csv', $header."LRN-0001,,2026-2027,Mathematics,{$quarters},,\n"),
+            'file' => UploadedFile::fake()->createWithContent('g.csv', $header."LRN-0001,,2026-2027,Mathematics,{$terms},,\n"),
         ]);
     }
 
@@ -25,8 +25,8 @@ test('importing, re-importing and deleting grades leaves an audit trail', functi
 
     expect($audits->pluck('event')->all())->toBe(['created', 'updated', 'deleted'])
         ->and($audits->pluck('user_id')->unique()->all())->toBe([$registrar->id])
-        ->and($audits[1]->old_values)->toMatchArray(['q4' => '88.00'])
-        ->and((float) $audits[1]->new_values['q4'])->toBe(95.0)
+        ->and($audits[1]->old_values)->toMatchArray(['q3' => '87.00'])
+        ->and((float) $audits[1]->new_values['q3'])->toBe(95.0)
         ->and(GradeAudit::where('grade_id', $grade->id)->count())->toBe(3);
 });
 
