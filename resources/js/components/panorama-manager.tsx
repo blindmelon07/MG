@@ -2,9 +2,9 @@ import { Form, router } from '@inertiajs/react';
 import {
     Compass,
     LocateFixed,
-    MapPinned,
     Navigation2,
     Orbit,
+    Pencil,
     Trash2,
     Upload,
 } from 'lucide-react';
@@ -143,11 +143,11 @@ function SetNorthDialog({
 }
 
 /**
- * Fixes a photo's name and GPS spot. Cameras often save a stale or rough
- * position (especially indoors), so the spot can be re-taken by standing
- * there with a phone, or pasted from Google Maps.
+ * Fixes a photo's name, GPS spot or the photo itself. Cameras often save a
+ * stale or rough position (especially indoors), so the spot can be re-taken
+ * by standing there with a phone, or pasted from Google Maps.
  */
-function EditPositionDialog({
+function EditPanoramaDialog({
     panorama,
     onClose,
 }: {
@@ -181,9 +181,7 @@ function EditPositionDialog({
         <Dialog open onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>
-                        Edit position · {panoramaTitle(panorama)}
-                    </DialogTitle>
+                    <DialogTitle>Edit · {panoramaTitle(panorama)}</DialogTitle>
                     <DialogDescription>
                         Phones show the photo taken nearest to them, so this
                         spot should be exactly where the camera stood.
@@ -195,7 +193,7 @@ function EditPositionDialog({
                     onSuccess={onClose}
                     className="space-y-4"
                 >
-                    {({ processing, errors }) => (
+                    {({ processing, errors, progress }) => (
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-panorama-title">
@@ -208,6 +206,23 @@ function EditPositionDialog({
                                     placeholder="e.g. Chapel Driveway"
                                 />
                                 <InputError message={errors.title} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-panorama-image">
+                                    Replace photo
+                                </Label>
+                                <Input
+                                    id="edit-panorama-image"
+                                    name="image"
+                                    type="file"
+                                    accept="image/jpeg"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Optional. The new photo keeps the spot and
+                                    north set here.
+                                </p>
+                                <InputError message={errors.image} />
                             </div>
 
                             <div className="space-y-2 rounded-lg border p-3">
@@ -349,7 +364,11 @@ function EditPositionDialog({
                                         Cancel
                                     </Button>
                                 </DialogClose>
-                                <Button disabled={processing}>Save</Button>
+                                <Button disabled={processing}>
+                                    {progress
+                                        ? `Uploading ${progress.percentage}%`
+                                        : 'Save'}
+                                </Button>
                             </DialogFooter>
                         </>
                     )}
@@ -475,7 +494,7 @@ export function PanoramaManager({
                                         variant="outline"
                                         onClick={() => setEditing(panorama)}
                                     >
-                                        <MapPinned /> Position
+                                        <Pencil /> Edit
                                     </Button>
                                     <Button
                                         size="sm"
@@ -503,7 +522,7 @@ export function PanoramaManager({
             )}
 
             {editing && (
-                <EditPositionDialog
+                <EditPanoramaDialog
                     key={editing.id}
                     panorama={editing}
                     onClose={() => setEditing(null)}

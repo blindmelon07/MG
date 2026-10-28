@@ -113,6 +113,47 @@ test('admin can set where north is and remove a 360 photo', function () {
     Storage::disk('public')->assertMissing($panorama->path);
 });
 
+test('admin can replace a 360 photo and keep its position', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $panorama = CampusPanorama::factory()->create();
+    Storage::disk('public')->put($panorama->path, 'jpeg');
+    $oldPath = $panorama->path;
+
+    $this->actingAs($admin)
+        ->put(route('admin.campus-panoramas.update', $panorama), [
+            'title' => 'Library Hall',
+            'image' => panoramaUpload(),
+            'latitude' => 12.9705,
+            'longitude' => 123.9942,
+            'north_offset' => 90,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('admin.campus-locations.index'));
+
+    $panorama->refresh();
+    expect($panorama->title)->toBe('Library Hall');
+    expect($panorama->path)->not->toBe($oldPath);
+    expect($panorama->latitude)->toBe(12.9705);
+    Storage::disk('public')->assertExists($panorama->path);
+    Storage::disk('public')->assertMissing($oldPath);
+});
+
+test('a replacement 360 photo must be 2:1', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $panorama = CampusPanorama::factory()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.campus-panoramas.update', $panorama), [
+            'image' => UploadedFile::fake()->image('photo.jpg', 1600, 1200),
+            'latitude' => 12.9705,
+            'longitude' => 123.9942,
+            'north_offset' => 0,
+        ])
+        ->assertSessionHasErrors('image');
+
+    expect($panorama->fresh()->path)->toBe($panorama->path);
+});
+
 test('the kiosk map gets the 360 photos', function () {
     CampusPanorama::factory()->count(2)->create();
 

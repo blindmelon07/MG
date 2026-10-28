@@ -55,7 +55,23 @@ class CampusPanoramaController extends Controller
 
     public function update(UpdateCampusPanoramaRequest $request, CampusPanorama $campusPanorama): RedirectResponse
     {
-        $campusPanorama->update($request->validated());
+        $data = $request->safe()->except('image');
+
+        // A replacement photo keeps the position and north set here, since
+        // those are usually more exact than what the camera saved.
+        if ($request->hasFile('image')) {
+            try {
+                $data['path'] = PanoramaImage::store($request->file('image'));
+            } catch (RuntimeException) {
+                throw ValidationException::withMessages([
+                    'image' => __('That image couldn\'t be read. Try exporting it again as a JPEG.'),
+                ]);
+            }
+
+            Storage::disk('public')->delete($campusPanorama->path);
+        }
+
+        $campusPanorama->update($data);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('360° photo updated.')]);
 
