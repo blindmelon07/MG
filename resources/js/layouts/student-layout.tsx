@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { KeyRound, LogOut } from 'lucide-react';
+import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/routes/student';
 import { edit as passwordEdit } from '@/routes/student/password';
@@ -14,6 +15,7 @@ export default function StudentLayout({
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
+            <KioskThemeStyle />
             <header className="border-b border-sidebar-border/70 dark:border-sidebar-border">
                 <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
                     <div className="flex items-center gap-3">

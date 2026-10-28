@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import ChatbotWidget from '@/components/chatbot-widget';
+import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 import { cn } from '@/lib/utils';
@@ -102,6 +103,8 @@ export default function KioskLayout({
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
+            <KioskThemeStyle />
+
             {/* Phones: slim sticky app bar. */}
             <header className="sticky top-0 z-30 border-b border-sidebar-border/70 bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden dark:border-sidebar-border">
                 <div className="flex items-center gap-3 px-4 py-2.5">

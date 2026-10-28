@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\KioskTheme;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,6 +44,8 @@ class HandleInertiaRequests extends Middleware
                 'student' => $request->user('student')?->only(['id', 'name', 'student_number', 'grade_level', 'section', 'grading_system']),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Null until an admin changes the kiosk colors.
+            'kioskTheme' => fn () => KioskTheme::saved(),
         ];
     }
 }

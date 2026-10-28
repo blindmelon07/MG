@@ -1,3 +1,4 @@
+import type { KioskTheme } from '@/lib/kiosk-theme';
 import type { Auth } from '@/types/auth';
 
 declare module 'react' {
@@ -13,6 +14,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            kioskTheme: KioskTheme | null;
             [key: string]: unknown;
         };
     }

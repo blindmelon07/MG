@@ -8,6 +8,7 @@ import {
     Library,
     MapPin,
     Megaphone,
+    Palette,
     Tags,
     Users,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import { dashboard } from '@/routes';
 import { index as announcementsIndex } from '@/routes/admin/announcements';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 import { index as gradesIndex } from '@/routes/admin/grades';
+import { edit as kioskThemeEdit } from '@/routes/admin/kiosk-theme';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
 import { index as manualsIndex } from '@/routes/admin/manuals';
 import { index as studentsIndex } from '@/routes/admin/students';
@@ -102,6 +104,11 @@ export function AppSidebar() {
                       title: 'Campus Map',
                       href: campusLocationsIndex(),
                       icon: MapPin,
+                  },
+                  {
+                      title: 'Kiosk Colors',
+                      href: kioskThemeEdit(),
+                      icon: Palette,
                   },
               ]
             : []),

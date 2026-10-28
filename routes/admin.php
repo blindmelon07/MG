@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CampusPanoramaController;
 use App\Http\Controllers\Admin\GradeAuditController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\GradeImportController;
+use App\Http\Controllers\Admin\KioskThemeController;
 use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
 use App\Http\Controllers\Admin\ManualMediaController;
@@ -45,6 +46,10 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
 
         Route::resource('campus-panoramas', CampusPanoramaController::class)
             ->only(['store', 'update', 'destroy']);
+
+        Route::get('kiosk-theme', [KioskThemeController::class, 'edit'])->name('kiosk-theme.edit');
+        Route::put('kiosk-theme', [KioskThemeController::class, 'update'])->name('kiosk-theme.update');
+        Route::delete('kiosk-theme', [KioskThemeController::class, 'destroy'])->name('kiosk-theme.destroy');
     });
 
     Route::middleware('role:admin,registrar')->group(function () {
