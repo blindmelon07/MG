@@ -1,0 +1,88 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - link "Aemilianum College Inc. Aemilianum College Inc. Smart Information Kiosk" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "Aemilianum College Inc." [ref=e7]
+          - generic [ref=e8]:
+            - generic [ref=e9]: Aemilianum College Inc.
+            - generic [ref=e10]: Smart Information Kiosk
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: 03:56:10 PM
+            - generic [ref=e14]: Friday, October 30, 2026
+          - button "Install app" [ref=e16]
+          - button "Switch to light mode" [ref=e17]
+      - navigation [ref=e18]:
+        - generic [ref=e19]:
+          - link "Home" [ref=e20] [cursor=pointer]:
+            - /url: /
+          - link "School Manual" [ref=e24] [cursor=pointer]:
+            - /url: /manuals
+          - link "Announcements & Events" [ref=e27] [cursor=pointer]:
+            - /url: /announcements
+          - link "Campus Map" [ref=e31] [cursor=pointer]:
+            - /url: /maps
+          - link "My Grades" [ref=e34] [cursor=pointer]:
+            - /url: /student/login?kiosk=1
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - heading "Welcome to Aemilianum College Inc." [level=1] [ref=e41]
+          - paragraph [ref=e42]: Touch a tile below to browse the school manual, see the latest announcements, or check your grades.
+        - generic [ref=e43]:
+          - link "School Manual Browse institutional policies, academic guidelines, and student services." [ref=e44] [cursor=pointer]:
+            - /url: /manuals
+            - generic [ref=e45]:
+              - generic [ref=e46]: School Manual
+              - generic [ref=e50]: Browse institutional policies, academic guidelines, and student services.
+          - link "Announcements & Events Stay up to date with the latest school news and upcoming events." [ref=e51] [cursor=pointer]:
+            - /url: /announcements
+            - generic [ref=e52]:
+              - generic [ref=e53]: Announcements & Events
+              - generic [ref=e58]: Stay up to date with the latest school news and upcoming events.
+          - link "Campus Map Find your way around the campus and locate key buildings and offices." [ref=e59] [cursor=pointer]:
+            - /url: /maps
+            - generic [ref=e60]:
+              - generic [ref=e61]: Campus Map
+              - generic [ref=e66]: Find your way around the campus and locate key buildings and offices.
+          - link "My Grades Sign in with your student number to check your grades." [ref=e67] [cursor=pointer]:
+            - /url: /student/login?kiosk=1
+            - generic [ref=e68]:
+              - generic [ref=e69]: My Grades
+              - generic [ref=e74]: Sign in with your student number to check your grades.
+        - generic [ref=e75]:
+          - heading "Browse by category" [level=2] [ref=e76]
+          - generic [ref=e77]:
+            - link "Academic Policies2" [ref=e78] [cursor=pointer]:
+              - /url: /manuals?category=academic-policies
+            - link "Admission & Enrollment2" [ref=e79] [cursor=pointer]:
+              - /url: /manuals?category=admission-enrollment
+            - link "Campus Services3" [ref=e80] [cursor=pointer]:
+              - /url: /manuals?category=campus-services
+            - link "Student Handbook3" [ref=e81] [cursor=pointer]:
+              - /url: /manuals?category=student-handbook
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - heading "Latest announcements" [level=2] [ref=e84]
+            - link "View all" [ref=e85] [cursor=pointer]:
+              - /url: /announcements
+          - generic [ref=e88]:
+            - link "Sample Announcement for SMS announcement" [ref=e89] [cursor=pointer]:
+              - /url: /announcements/sample-announcement-for-sms
+              - generic [ref=e91]:
+                - generic [ref=e92]: Sample Announcement for SMS
+                - generic [ref=e97]: announcement
+            - link "Nulla totam beatae velit ea. announcement" [ref=e98] [cursor=pointer]:
+              - /url: /announcements/nulla-totam-beatae-velit-ea
+              - generic [ref=e100]:
+                - generic [ref=e101]: Nulla totam beatae velit ea.
+                - generic [ref=e106]: announcement
+            - link "General Parent-Teacher Assembly event" [ref=e107] [cursor=pointer]:
+              - /url: /announcements/general-parent-teacher-assembly
+              - generic [ref=e109]:
+                - generic [ref=e110]: General Parent-Teacher Assembly
+                - generic [ref=e114]: event
+    - contentinfo [ref=e115]: Aemilianum College Inc. — Smart Information Kiosk
+  - region "Notifications alt+T"
