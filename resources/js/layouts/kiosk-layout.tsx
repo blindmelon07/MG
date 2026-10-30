@@ -6,11 +6,14 @@ import {
     House,
     Map as MapIcon,
     Megaphone,
+    Moon,
+    Sun,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
+import { useAppearance } from '@/hooks/use-appearance';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 import { cn } from '@/lib/utils';
 import { home } from '@/routes';
@@ -92,6 +95,23 @@ function InstallButton({ className }: { className?: string }) {
     );
 }
 
+function ThemeToggle({ className }: { className?: string }) {
+    const { resolvedAppearance, updateAppearance } = useAppearance();
+    const isDark = resolvedAppearance === 'dark';
+
+    return (
+        <Button
+            size="icon"
+            variant="outline"
+            className={className}
+            onClick={() => updateAppearance(isDark ? 'light' : 'dark')}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+            {isDark ? <Sun /> : <Moon />}
+        </Button>
+    );
+}
+
 export default function KioskLayout({
     children,
 }: {
@@ -140,6 +160,7 @@ export default function KioskLayout({
                     </Link>
 
                     <InstallButton className="shrink-0" />
+                    <ThemeToggle className="shrink-0" />
                 </div>
             </header>
 
@@ -180,6 +201,7 @@ export default function KioskLayout({
 
                     <div className="flex items-center gap-4">
                         <InstallButton />
+                        <ThemeToggle />
                         <div className="text-right text-sm text-muted-foreground tabular-nums">
                             <div suppressHydrationWarning>
                                 {now.toLocaleDateString(undefined, {
