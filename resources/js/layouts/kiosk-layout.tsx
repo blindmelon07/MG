@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import ChatbotWidget from '@/components/chatbot-widget';
 import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
@@ -208,8 +207,7 @@ export default function KioskLayout({
             </main>
 
             <footer className="hidden border-t border-sidebar-border/70 px-6 py-4 text-center text-xs text-muted-foreground md:block dark:border-sidebar-border">
-                Aemilianum College Inc. &mdash; AI-Powered Smart Information
-                Kiosk
+                Aemilianum College Inc. &mdash; Smart Information Kiosk
             </footer>
 
             {/* Phones: app-style tab bar. */}
@@ -247,8 +245,6 @@ export default function KioskLayout({
                     })}
                 </div>
             </nav>
-
-            <ChatbotWidget />
         </div>
     );
 }

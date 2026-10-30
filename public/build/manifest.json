@@ -791,8 +791,8 @@
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
-  "_users-DlqHM8v9.js": {
-    "file": "assets/users-DlqHM8v9.js",
+  "_users-bb4p_mpj.js": {
+    "file": "assets/users-bb4p_mpj.js",
     "name": "users",
     "imports": [
       "_createLucideIcon-CL8Q_N-z.js"
@@ -833,7 +833,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DWXfMUoB.js",
+    "file": "assets/app-CVWraz_N.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -848,7 +848,6 @@
       "_select-C8powc6R.js",
       "_createLucideIcon-CL8Q_N-z.js",
       "_megaphone-ChyymaFy.js",
-      "_users-DlqHM8v9.js",
       "_chevron-right-CHxyUC_r.js",
       "_download-B97CHt5n.js",
       "_graduation-cap-SwfUrMcx.js",
@@ -857,13 +856,13 @@
       "_log-out-BMH9Nx_D.js",
       "_map-pin-CevKVmlW.js",
       "_map-loJ8b4q4.js",
+      "_users-bb4p_mpj.js",
       "_x-Do4Gm8jC.js",
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
       "_separator-BCn_Mw97.js",
       "_dist-DOB-Ujth.js",
       "_dist-DLeOB1ZA.js",
-      "_wayfinder-Dp7PqxvV.js",
       "_routes-IvQT6kKJ.js",
       "_profile-uNtLFEsD.js",
       "_roles-CijXeT8O.js",
@@ -1545,7 +1544,7 @@
     ]
   },
   "resources/js/pages/dashboard.tsx": {
-    "file": "assets/dashboard-B24kFO2X.js",
+    "file": "assets/dashboard-CQG3Nk0u.js",
     "name": "dashboard",
     "src": "resources/js/pages/dashboard.tsx",
     "isDynamicEntry": true,
@@ -1553,8 +1552,8 @@
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
       "_megaphone-ChyymaFy.js",
-      "_users-DlqHM8v9.js",
       "_campus-map-CXOafOPv.js",
+      "_users-bb4p_mpj.js",
       "_routes-IvQT6kKJ.js",
       "_announcements-BbMwyDKe.js",
       "_manual-categories-Uf1GK1Ry.js",
