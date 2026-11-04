@@ -30,6 +30,7 @@ class AnnouncementFactory extends Factory
             'event_end_at' => null,
             'location' => null,
             'status' => 'draft',
+            'is_featured' => false,
             'published_at' => null,
         ];
     }
@@ -49,6 +50,13 @@ class AnnouncementFactory extends Factory
             'event_start_at' => now()->addDays(3),
             'event_end_at' => now()->addDays(3)->addHours(2),
             'location' => fake()->streetAddress(),
+        ]);
+    }
+
+    public function featured(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_featured' => true,
         ]);
     }
 }

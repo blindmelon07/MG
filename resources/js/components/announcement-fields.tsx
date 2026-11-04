@@ -67,6 +67,36 @@ export function EventAreaField({
     );
 }
 
+/** Showcases a published, upcoming event at the top of the kiosk home page. */
+export function FeaturedEventField({
+    defaultChecked = false,
+    error,
+}: {
+    defaultChecked?: boolean;
+    error?: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <label className="flex items-center gap-2">
+                <Checkbox
+                    id="is_featured"
+                    name="is_featured"
+                    value="1"
+                    defaultChecked={defaultChecked}
+                />
+                <span className="text-sm font-medium">
+                    Feature this event on the kiosk home page
+                </span>
+            </label>
+            <p className="text-sm text-muted-foreground">
+                Featured events appear at the top of the kiosk home page once
+                published, until the day they end.
+            </p>
+            <InputError message={error} />
+        </div>
+    );
+}
+
 /** ACI personnel groups who also receive the announcement by SMS and email. */
 export function PersonnelAudienceField({
     roles,

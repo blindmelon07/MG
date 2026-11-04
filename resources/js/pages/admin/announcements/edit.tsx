@@ -4,6 +4,7 @@ import AnnouncementController from '@/actions/App/Http/Controllers/Admin/Announc
 import AnnouncementMediaController from '@/actions/App/Http/Controllers/Admin/AnnouncementMediaController';
 import {
     EventAreaField,
+    FeaturedEventField,
     MediaUploadField,
     PersonnelAudienceField,
 } from '@/components/announcement-fields';
@@ -53,6 +54,7 @@ type Announcement = {
     content: string;
     type: 'announcement' | 'event';
     status: 'draft' | 'published';
+    is_featured: boolean;
     audience: 'all' | 'targeted' | 'none';
     personnel_roles: string[] | null;
     campus_location_id: number | null;
@@ -214,6 +216,13 @@ export default function AnnouncementsEdit({
                                             announcement.campus_location_id
                                         }
                                         error={errors.campus_location_id}
+                                    />
+
+                                    <FeaturedEventField
+                                        defaultChecked={
+                                            announcement.is_featured
+                                        }
+                                        error={errors.is_featured}
                                     />
                                 </>
                             )}

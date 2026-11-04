@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string $content
  * @property string $type
  * @property string $status
+ * @property bool $is_featured
  * @property string $audience
  * @property list<string>|null $personnel_roles
  * @property string|null $location
@@ -37,6 +38,7 @@ use Illuminate\Support\Carbon;
     'location',
     'campus_location_id',
     'status',
+    'is_featured',
     'audience',
     'personnel_roles',
     'published_at',
@@ -69,6 +71,7 @@ class Announcement extends Model
             'event_end_at' => 'datetime:Y-m-d\TH:i:s',
             'published_at' => 'datetime',
             'personnel_roles' => 'array',
+            'is_featured' => 'boolean',
         ];
     }
 
@@ -79,6 +82,25 @@ class Announcement extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', 'published');
+    }
+
+    /**
+     * Published events marked as featured that haven't finished yet. An event
+     * stays featured through the whole day it ends.
+     *
+     * @param  Builder<Announcement>  $query
+     * @return Builder<Announcement>
+     */
+    public function scopeFeaturedEvents(Builder $query): Builder
+    {
+        $today = Carbon::today();
+
+        return $query->published()
+            ->where('type', 'event')
+            ->where('is_featured', true)
+            ->where(fn (Builder $query) => $query->where('event_end_at', '>=', $today)
+                ->orWhere(fn (Builder $query) => $query->whereNull('event_end_at')
+                    ->where('event_start_at', '>=', $today)));
     }
 
     /**

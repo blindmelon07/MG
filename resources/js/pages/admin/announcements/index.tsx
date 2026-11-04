@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import AnnouncementController from '@/actions/App/Http/Controllers/Admin/AnnouncementController';
 import Heading from '@/components/heading';
@@ -25,6 +25,7 @@ type Announcement = {
     title: string;
     type: 'announcement' | 'event';
     status: 'draft' | 'published';
+    is_featured: boolean;
     event_start_at: string | null;
     creator: { id: number; name: string };
 };
@@ -88,7 +89,15 @@ export default function AnnouncementsIndex({
                                     className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
                                 >
                                     <td className="px-4 py-2 font-medium">
-                                        {announcement.title}
+                                        <span className="flex items-center gap-2">
+                                            {announcement.title}
+                                            {announcement.is_featured && (
+                                                <Badge variant="outline">
+                                                    <Star className="fill-current text-amber-500" />
+                                                    Featured
+                                                </Badge>
+                                            )}
+                                        </span>
                                     </td>
                                     <td className="px-4 py-2 capitalize">
                                         {announcement.type}

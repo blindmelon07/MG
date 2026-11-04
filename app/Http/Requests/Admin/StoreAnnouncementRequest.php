@@ -28,6 +28,7 @@ class StoreAnnouncementRequest extends FormRequest
             'location' => ['nullable', 'string', 'max:255'],
             'campus_location_id' => ['nullable', 'integer', 'exists:campus_locations,id'],
             'status' => ['required', Rule::in(['draft', 'published'])],
+            'is_featured' => ['nullable', 'boolean'],
             'audience' => ['required', Rule::in(['all', 'targeted', 'none'])],
             'student_ids' => ['required_if:audience,targeted', 'array'],
             'student_ids.*' => ['integer', 'exists:students,id'],

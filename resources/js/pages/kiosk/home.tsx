@@ -6,6 +6,7 @@ import {
     GraduationCap,
     MapPin,
     Megaphone,
+    Star,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,10 +33,33 @@ type Announcement = {
     event_start_at: string | null;
 };
 
+type FeaturedEvent = {
+    id: number;
+    title: string;
+    slug: string;
+    summary: string;
+    event_start_at: string;
+    event_end_at: string | null;
+    location: string | null;
+    cover_url: string | null;
+};
+
+function formatEventDate(value: string): string {
+    return new Date(value).toLocaleString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+}
+
 export default function KioskHome({
+    featuredEvents,
     categories,
     latestAnnouncements,
 }: {
+    featuredEvents: FeaturedEvent[];
     categories: Category[];
     latestAnnouncements: Announcement[];
 }) {
@@ -53,6 +77,68 @@ export default function KioskHome({
                         latest announcements, or check your grades.
                     </p>
                 </section>
+
+                {featuredEvents.length > 0 && (
+                    <section>
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="flex items-center gap-2 text-lg font-semibold">
+                                <Star className="size-5 fill-current text-amber-500" />
+                                Featured events
+                            </h2>
+                            <Link
+                                href={announcementsIndex({
+                                    query: { type: 'event' },
+                                })}
+                                className="flex items-center text-sm font-medium text-primary hover:underline"
+                            >
+                                All events <ChevronRight className="size-4" />
+                            </Link>
+                        </div>
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {featuredEvents.map((event) => (
+                                <Link
+                                    key={event.id}
+                                    href={announcementShow(event.slug)}
+                                    className="group"
+                                >
+                                    <Card className="h-full gap-0 overflow-hidden py-0 transition-colors group-hover:border-primary">
+                                        {event.cover_url ? (
+                                            <img
+                                                src={event.cover_url}
+                                                alt=""
+                                                className="aspect-video w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex aspect-video w-full items-center justify-center bg-primary/10">
+                                                <CalendarDays className="size-12 text-primary" />
+                                            </div>
+                                        )}
+                                        <CardContent className="flex flex-col gap-2 py-4">
+                                            <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                                                <CalendarDays className="size-4" />
+                                                {formatEventDate(
+                                                    event.event_start_at,
+                                                )}
+                                            </span>
+                                            <h3 className="text-lg leading-snug font-semibold">
+                                                {event.title}
+                                            </h3>
+                                            {event.location && (
+                                                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                                    <MapPin className="size-4" />
+                                                    {event.location}
+                                                </span>
+                                            )}
+                                            <p className="text-sm text-muted-foreground">
+                                                {event.summary}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <Link href={manualsIndex()}>

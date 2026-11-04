@@ -3,6 +3,7 @@ import { useState } from 'react';
 import AnnouncementController from '@/actions/App/Http/Controllers/Admin/AnnouncementController';
 import {
     EventAreaField,
+    FeaturedEventField,
     MediaUploadField,
     PersonnelAudienceField,
 } from '@/components/announcement-fields';
@@ -154,6 +155,10 @@ export default function AnnouncementsCreate({
                                     <EventAreaField
                                         locations={campusLocations}
                                         error={errors.campus_location_id}
+                                    />
+
+                                    <FeaturedEventField
+                                        error={errors.is_featured}
                                     />
                                 </>
                             )}

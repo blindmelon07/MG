@@ -126,9 +126,13 @@ class AnnouncementController extends Controller
 
         $validated['personnel_roles'] = array_values(array_unique($validated['personnel_roles'] ?? [])) ?: null;
 
-        // Only events happen somewhere on the map.
+        // An unticked checkbox isn't sent at all.
+        $validated['is_featured'] = (bool) ($validated['is_featured'] ?? false);
+
+        // Only events happen somewhere on the map, and only events can be featured.
         if ($validated['type'] !== 'event') {
             $validated['campus_location_id'] = null;
+            $validated['is_featured'] = false;
         }
 
         return [$validated, $studentIds, $files];
