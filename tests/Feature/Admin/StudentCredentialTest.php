@@ -32,8 +32,8 @@ test('the temporary password can be texted to the first guardian', function () {
         ->post(route('admin.students.credentials.store', $student), ['send_sms' => '1'])
         ->assertInertiaFlash('credentials.sms_sent', true);
 
-    Http::assertSent(fn ($request) => str_contains($request['message'], 'LRN-0001')
-        && $request['recipient'] === '639171234567');
+    Http::assertSent(fn ($request) => str_contains($request['content'], 'LRN-0001')
+        && $request['recipient'] === '+639171234567');
 });
 
 /**
