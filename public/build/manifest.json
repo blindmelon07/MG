@@ -831,7 +831,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-B7SuehI0.css",
+    "file": "assets/app-Dolf29jy.css",
     "name": "app",
     "names": [
       "app.css"
@@ -840,7 +840,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-ZblYmkeW.js",
+    "file": "assets/app-B3Yk9E10.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1336,7 +1336,7 @@
     ]
   },
   "resources/js/pages/admin/subjects/index.tsx": {
-    "file": "assets/subjects-DWGd43tX.js",
+    "file": "assets/subjects-8cXJr-eN.js",
     "name": "subjects",
     "src": "resources/js/pages/admin/subjects/index.tsx",
     "isDynamicEntry": true,
@@ -1354,7 +1354,8 @@
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
-      "_dialog-Cx95ZIj2.js"
+      "_dialog-Cx95ZIj2.js",
+      "_student-placement-fields-DUbLwMTi.js"
     ]
   },
   "resources/js/pages/admin/teaching-assignments/index.tsx": {

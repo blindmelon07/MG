@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Course;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -48,6 +49,62 @@ test('the same subject cannot be added twice for one education level', function 
         'name' => 'Science',
         'education_level' => 'shs',
     ])->assertSessionHasNoErrors();
+});
+
+test('college subjects are filed under a course, or under general education without one', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    $bsit = Course::create(['code' => 'BSIT', 'name' => 'BS Information Technology', 'education_level' => 'college']);
+    $bsba = Course::create(['code' => 'BSBA', 'name' => 'BS Business Administration', 'education_level' => 'college']);
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Capstone Project',
+        'education_level' => 'college',
+        'course_id' => $bsit->id,
+    ])->assertSessionHasNoErrors();
+
+    // Another course can have a subject with the same name.
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Capstone Project',
+        'education_level' => 'college',
+        'course_id' => $bsba->id,
+    ])->assertSessionHasNoErrors();
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Capstone Project',
+        'education_level' => 'college',
+        'course_id' => $bsit->id,
+    ])->assertSessionHasErrors('name');
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Purposive Communication',
+        'education_level' => 'college',
+    ])->assertSessionHasNoErrors();
+
+    expect(Subject::where('course_id', $bsit->id)->pluck('name')->all())->toBe(['Capstone Project'])
+        ->and(Subject::where('name', 'Purposive Communication')->value('course_id'))->toBeNull();
+
+    $this->actingAs($registrar)->get(route('admin.subjects.index'))
+        ->assertInertia(fn ($page) => $page->has('courses', 2));
+});
+
+test('a subject only takes a course from its own education level', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    $maed = Course::create(['code' => 'MAED', 'name' => 'Master of Arts in Education', 'education_level' => 'graduate']);
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Thesis Writing',
+        'education_level' => 'college',
+        'course_id' => $maed->id,
+    ])->assertSessionHasErrors('course_id');
+
+    // Below college the course is ignored.
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Science',
+        'education_level' => 'jhs',
+        'course_id' => $maed->id,
+    ])->assertSessionHasNoErrors();
+
+    expect(Subject::where('name', 'Science')->value('course_id'))->toBeNull();
 });
 
 test('teachers cannot manage subjects', function () {

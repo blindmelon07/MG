@@ -60,6 +60,14 @@ class Course extends Model
     }
 
     /**
+     * @return HasMany<Subject, $this>
+     */
+    public function subjects(): HasMany
+    {
+        return $this->hasMany(Subject::class);
+    }
+
+    /**
      * @return HasMany<Student, $this>
      */
     public function students(): HasMany
