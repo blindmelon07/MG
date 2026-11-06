@@ -15,7 +15,7 @@ uses(RefreshDatabase::class);
 
 test('announcement texts and emails are sent right after the page responds, without a queue worker', function () {
     config(['queue.default' => 'database']);
-    Http::fake(['pinassms.com/*' => Http::response(['status' => 'ok'])]);
+    Http::fake(['unismsapi.com/*' => Http::response(['message' => ['status' => 'pending']], 201)]);
 
     $admin = User::factory()->create(['role' => 'admin']);
     Student::factory()->create(['phone_number' => '09171234567']);
@@ -30,7 +30,7 @@ test('announcement texts and emails are sent right after the page responds, with
         'personnel_roles' => ['teacher'],
     ])->assertRedirect(route('admin.announcements.index'));
 
-    Http::assertSent(fn ($request) => $request['recipient'] === '639171234567');
+    Http::assertSent(fn ($request) => $request['recipient'] === '+639171234567');
     expect(DB::table('jobs')->count())->toBe(0)
         ->and((new AnnouncementPublished(Announcement::firstOrFail()))->connection)->toBe('deferred')
         ->and($teacher->email)->not->toBeNull();

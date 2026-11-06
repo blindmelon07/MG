@@ -17,16 +17,19 @@ class SmsService
     public function send(string $recipient, string $message): bool
     {
         // Retried here because the default "deferred" queue doesn't retry jobs.
-        $response = Http::withHeaders([
-            'X-API-KEY' => config('services.pinassms.key'),
-            'Content-Type' => 'application/json',
-        ])->timeout(15)->retry(2, 1000, throw: false)->post(config('services.pinassms.url'), [
-            'recipient' => $this->normalize($recipient),
-            'message' => $message,
-        ]);
+        // UniSMS takes the secret key as the Basic auth username, with no password.
+        $response = Http::withBasicAuth((string) config('services.unisms.key'), '')
+            ->acceptJson()
+            ->timeout(15)
+            ->retry(2, 1000, throw: false)
+            ->post(config('services.unisms.url'), [
+                'recipient' => '+'.$this->normalize($recipient),
+                'content' => $message,
+                'sender_id' => config('services.unisms.sender_id'),
+            ]);
 
         if ($response->failed()) {
-            Log::error('PinasSMS send failed', [
+            Log::error('UniSMS send failed', [
                 'recipient' => $recipient,
                 'status' => $response->status(),
                 'body' => $response->body(),

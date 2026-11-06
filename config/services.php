@@ -35,9 +35,10 @@ return [
         ],
     ],
 
-    'pinassms' => [
-        'key' => env('PINASSMS_API_KEY'),
-        'url' => env('PINASSMS_URL', 'https://pinassms.com/api/sms/send'),
+    'unisms' => [
+        'key' => env('UNISMS_SECRET_KEY'),
+        'sender_id' => env('UNISMS_SENDER_ID'),
+        'url' => env('UNISMS_URL', 'https://unismsapi.com/api/sms'),
     ],
 
 ];
