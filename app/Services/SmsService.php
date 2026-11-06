@@ -92,15 +92,21 @@ class SmsService
         }
     }
 
+    /**
+     * No link in the text: PH networks drop SMS that contain URLs, even
+     * though UniSMS accepts them. The emailed copy carries the link.
+     */
     public function announcementMessage(Announcement $announcement): string
     {
         $excerpt = Str::limit(strip_tags($announcement->content), 120);
-        $where = $announcement->type === 'event' ? $announcement->campusLocation?->name : null;
+        $isEvent = $announcement->type === 'event';
+        $where = $isEvent ? $announcement->campusLocation?->name : null;
+        $when = $isEvent ? $announcement->event_start_at?->format('M j, Y g:i A') : null;
 
         return collect([
             "{$announcement->title}: {$excerpt}",
+            $when !== null ? "When: {$when}" : null,
             $where !== null ? "Venue: {$where}" : null,
-            $announcement->publicUrl(),
         ])->filter()->join("\n");
     }
 

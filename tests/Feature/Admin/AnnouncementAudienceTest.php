@@ -87,7 +87,7 @@ test('the sms for an event with a map area links to that spot on the campus map'
 
     expect($announcement->campus_location_id)->toBe($gym->id)
         ->and($announcement->publicUrl())->toBe($mapUrl);
-    Queue::assertPushed(fn (SendSmsJob $job) => str_contains($job->message, $mapUrl)
+    Queue::assertPushed(fn (SendSmsJob $job) => ! str_contains($job->message, 'http')
         && str_contains($job->message, 'Venue: Gymnasium'));
     Notification::assertSentTo(User::where('role', 'teacher')->first(), function (AnnouncementPublished $notification, array $channels, object $notifiable) use ($mapUrl) {
         return $notification->toMail($notifiable)->actionUrl === $mapUrl;
