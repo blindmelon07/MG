@@ -14,7 +14,9 @@ export type PortalGrade = {
     q2: string | null;
     q3: string | null;
     q4: string | null;
+    prelim: string | null;
     midterm: string | null;
+    finals: string | null;
     final_grade: string | null;
     remarks: string | null;
 };
@@ -36,6 +38,9 @@ export type PortalStudent = {
     section: string | null;
     grading_system: GradingSystem;
 };
+
+const COLLEGE_LABELS = ['Prelim', 'Midterm', 'Finals'];
+const COLLEGE_PERIODS = ['prelim', 'midterm', 'finals'] as const;
 
 function periodLabel(period: GradePeriod): string {
     return period.term
@@ -157,21 +162,24 @@ export default function StudentGradesView({
                                             >
                                                 Units
                                             </th>
+                                            {COLLEGE_LABELS.map((label) => (
+                                                <th
+                                                    key={label}
+                                                    className={cn(
+                                                        cell,
+                                                        'text-right font-medium',
+                                                    )}
+                                                >
+                                                    {label}
+                                                </th>
+                                            ))}
                                             <th
                                                 className={cn(
                                                     cell,
                                                     'text-right font-medium',
                                                 )}
                                             >
-                                                Midterm
-                                            </th>
-                                            <th
-                                                className={cn(
-                                                    cell,
-                                                    'text-right font-medium',
-                                                )}
-                                            >
-                                                Final
+                                                Grade
                                             </th>
                                             <th
                                                 className={cn(
@@ -255,17 +263,22 @@ export default function StudentGradesView({
                                                 >
                                                     {formatUnits(grade.units)}
                                                 </td>
-                                                <td
-                                                    className={cn(
-                                                        cell,
-                                                        'text-right',
-                                                    )}
-                                                >
-                                                    {formatGrade(
-                                                        grade.midterm,
-                                                        'college',
-                                                    )}
-                                                </td>
+                                                {COLLEGE_PERIODS.map(
+                                                    (period) => (
+                                                        <td
+                                                            key={period}
+                                                            className={cn(
+                                                                cell,
+                                                                'text-right',
+                                                            )}
+                                                        >
+                                                            {formatGrade(
+                                                                grade[period],
+                                                                'college',
+                                                            )}
+                                                        </td>
+                                                    ),
+                                                )}
                                                 <td
                                                     className={cn(
                                                         cell,

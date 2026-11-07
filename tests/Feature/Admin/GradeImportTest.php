@@ -103,10 +103,11 @@ test('college grades are stored per term with INC accepted as a final grade', fu
     $student = Student::factory()->create(['student_number' => '2026-00123', 'grading_system' => 'college']);
 
     $csv = <<<'CSV'
-    student_number,student_name,school_year,term,subject_code,subject,units,midterm,final_grade,remarks
-    2026-00123,Ana Reyes,2026-2027,1st sem,IT 101,Introduction to Computing,3,1.75,1.50,
-    2026-00123,Ana Reyes,2026-2027,1st sem,MATH 101,College Algebra,3,2.00,INC,
-    2026-00123,Ana Reyes,2026-2027,1st sem,PE 1,Physical Education,2,,5.00,
+    student_number,student_name,school_year,term,subject_code,subject,units,prelim,midterm,finals,grade,remarks
+    2026-00123,Ana Reyes,2026-2027,1st sem,IT 101,Introduction to Computing,3,1.25,1.75,1.50,1.50,
+    2026-00123,Ana Reyes,2026-2027,1st sem,MATH 101,College Algebra,3,2.00,2.00,,INC,
+    2026-00123,Ana Reyes,2026-2027,1st sem,PE 1,Physical Education,2,,,,5.00,
+    2026-00123,Ana Reyes,2026-2027,1st sem,IT 102,Computer Programming 1,3,1.00,1.50,2.00,,
     CSV;
 
     $this->actingAs($registrar)->post(route('admin.grades.import.store'), [
@@ -116,15 +117,20 @@ test('college grades are stored per term with INC accepted as a final grade', fu
 
     $grades = $student->grades()->get()->keyBy('subject');
 
-    expect($grades)->toHaveCount(3)
+    expect($grades)->toHaveCount(4)
         ->and($grades['Introduction to Computing']->term)->toBe('1st Semester')
         ->and($grades['Introduction to Computing']->remarks)->toBe('Passed')
         ->and($grades['College Algebra']->final_grade)->toBeNull()
         ->and($grades['College Algebra']->remarks)->toBe('INC')
-        ->and($grades['Physical Education']->remarks)->toBe('Failed');
+        ->and($grades['Introduction to Computing']->prelim)->toBe('1.25')
+        ->and($grades['Introduction to Computing']->finals)->toBe('1.50')
+        ->and($grades['College Algebra']->final_grade)->toBeNull()
+        ->and($grades['Physical Education']->remarks)->toBe('Failed')
+        ->and($grades['Computer Programming 1']->final_grade)->toBe('1.50')
+        ->and($grades['Computer Programming 1']->remarks)->toBe('Passed');
 
-    // GWA only counts graded subjects: (1.50*3 + 5.00*2) / 5
-    expect(Grade::averageOf($grades->values(), 'college'))->toBe(2.9);
+    // GWA only counts graded subjects: (1.50*3 + 5.00*2 + 1.50*3) / 8
+    expect(Grade::averageOf($grades->values(), 'college'))->toBe(2.38);
 });
 
 test('rows with invalid data are reported and skipped', function () {

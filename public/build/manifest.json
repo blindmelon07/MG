@@ -780,8 +780,8 @@
       "_wayfinder-Dp7PqxvV.js"
     ]
   },
-  "_use-verify-on-history-restore-j8eix5f-.js": {
-    "file": "assets/use-verify-on-history-restore-j8eix5f-.js",
+  "_use-verify-on-history-restore-BNPpEBXY.js": {
+    "file": "assets/use-verify-on-history-restore-BNPpEBXY.js",
     "name": "use-verify-on-history-restore",
     "imports": [
       "_rolldown-runtime-Bh1tDfsg.js",
@@ -840,7 +840,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-B3Yk9E10.js",
+    "file": "assets/app-U9F9aAvj.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1074,7 +1074,7 @@
     ]
   },
   "resources/js/pages/admin/grades/index.tsx": {
-    "file": "assets/grades-2dB5npYz.js",
+    "file": "assets/grades-U-UMwUoo.js",
     "name": "grades",
     "src": "resources/js/pages/admin/grades/index.tsx",
     "isDynamicEntry": true,
@@ -1679,7 +1679,7 @@
     ]
   },
   "resources/js/pages/kiosk/student/grades.tsx": {
-    "file": "assets/grades-CpfqPwAt.js",
+    "file": "assets/grades-Ca5UUW0-.js",
     "name": "grades",
     "src": "resources/js/pages/kiosk/student/grades.tsx",
     "isDynamicEntry": true,
@@ -1688,7 +1688,7 @@
       "_log-out-BMH9Nx_D.js",
       "_button-BgGnKiEl.js",
       "_student-Dtxt8Ru-.js",
-      "_use-verify-on-history-restore-j8eix5f-.js",
+      "_use-verify-on-history-restore-BNPpEBXY.js",
       "_use-idle-logout-CVV44JY9.js"
     ]
   },
@@ -1781,13 +1781,13 @@
     ]
   },
   "resources/js/pages/student/grades.tsx": {
-    "file": "assets/grades-CNFNbi0y.js",
+    "file": "assets/grades-CwYI6s51.js",
     "name": "grades",
     "src": "resources/js/pages/student/grades.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_utils-BatuX27z.js",
-      "_use-verify-on-history-restore-j8eix5f-.js"
+      "_use-verify-on-history-restore-BNPpEBXY.js"
     ]
   },
   "resources/js/pages/student/login.tsx": {

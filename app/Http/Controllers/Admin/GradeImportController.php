@@ -27,11 +27,17 @@ class GradeImportController extends Controller
 {
     private const HEADERS = [
         'k12' => ['student_number', 'student_name', 'year_level', 'section', 'school_year', 'subject', 'term_1', 'term_2', 'term_3', 'final_grade', 'remarks'],
-        'college' => ['student_number', 'student_name', 'year_level', 'section', 'school_year', 'term', 'subject_code', 'subject', 'units', 'midterm', 'final_grade', 'remarks'],
+        'college' => ['student_number', 'student_name', 'year_level', 'section', 'school_year', 'term', 'subject_code', 'subject', 'units', 'prelim', 'midterm', 'finals', 'grade', 'remarks'],
     ];
 
-    /** Older templates named the K-12 terms q1 to q3; read those too. */
-    private const HEADER_ALIASES = ['q1' => 'term_1', 'q2' => 'term_2', 'q3' => 'term_3'];
+    /**
+     * Older templates named the K-12 terms q1 to q3; read those too. The college
+     * template calls the total grade "grade"; it is stored as final_grade.
+     */
+    private const HEADER_ALIASES = ['q1' => 'term_1', 'q2' => 'term_2', 'q3' => 'term_3', 'grade' => 'final_grade'];
+
+    /** The college grading periods, in Grade::COLLEGE_PERIODS order. */
+    private const COLLEGE_PERIOD_LABELS = ['prelim' => 'Prelim', 'midterm' => 'Midterm', 'finals' => 'Finals'];
 
     /** Non-numeric values accepted in the final_grade column, stored as remarks. */
     private const SPECIAL_REMARKS = ['INC', 'DRP', 'W', 'NG', 'OD', 'UD'];
@@ -329,23 +335,34 @@ class GradeImportController extends Controller
             return 'Units must be a number from 0 to 12.';
         }
 
-        $midterm = $this->number($data['midterm'] ?? null, 1, 5);
+        $periods = [];
 
-        if ($midterm === false) {
-            return 'Midterm must be on the 1.00 to 5.00 scale.';
+        foreach (Grade::COLLEGE_PERIODS as $column) {
+            $value = $this->number($data[$column] ?? null, 1, 5);
+
+            if ($value === false) {
+                return self::COLLEGE_PERIOD_LABELS[$column].' must be on the 1.00 to 5.00 scale.';
+            }
+
+            $periods[$column] = $value;
         }
 
         [$final, $remarks] = $this->finalAndRemarks($data, 1, 5);
 
         if ($final === false) {
-            return 'Final grade must be on the 1.00 to 5.00 scale, or INC/DRP.';
+            return 'Grade must be on the 1.00 to 5.00 scale, or INC/DRP.';
+        }
+
+        // A blank grade is the average of the three periods; INC or DRP leaves it blank.
+        if ($final === null && $remarks === null) {
+            $final = Grade::collegeFinal(array_values($periods));
         }
 
         return [
             'term' => $term,
             'subject_code' => $this->clean($data['subject_code'] ?? null),
             'units' => $units,
-            'midterm' => $midterm,
+            ...$periods,
             'final_grade' => $final,
             'remarks' => $remarks ?? Grade::remarksFor('college', $final),
         ];

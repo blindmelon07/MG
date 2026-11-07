@@ -48,7 +48,9 @@ type GradeRow = {
     q2: string | null;
     q3: string | null;
     q4: string | null;
+    prelim: string | null;
     midterm: string | null;
+    finals: string | null;
     final_grade: string | null;
     remarks: string | null;
     /** The student's section in that school year. */
@@ -79,7 +81,12 @@ const ALL = '__all__';
 
 function breakdown(grade: GradeRow): string {
     if (grade.grading_system === 'college') {
-        return `Midterm ${formatGrade(grade.midterm, 'college')}`;
+        return [grade.prelim, grade.midterm, grade.finals]
+            .map(
+                (period, index) =>
+                    `${['P', 'M', 'F'][index]} ${formatGrade(period, 'college')}`,
+            )
+            .join(' · ');
     }
 
     // Three terms; a fourth value only on grades from the old quarterly system.
@@ -490,7 +497,7 @@ export default function GradesIndex({
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
                                         {system === 'college'
-                                            ? 'Columns: term, subject code, units, midterm and final (1.00–5.00). Put INC or DRP in final_grade when needed.'
+                                            ? 'Columns: term, subject code, units, prelim, midterm and finals (1.00–5.00). Leave grade blank to average the three, or put INC or DRP in it.'
                                             : 'Columns: term 1 to term 3 (0–100). Leave final_grade blank to average the three terms.'}
                                     </p>
                                     <InputError

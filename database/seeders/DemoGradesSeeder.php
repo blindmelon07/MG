@@ -56,7 +56,7 @@ class DemoGradesSeeder extends Seeder
             ['PE 2', 'Rhythmic Activities', '2'],
             ['NSTP 2', 'National Service Training Program 2', '3'],
         ],
-        // Current semester: midterms are in, finals aren't yet.
+        // Current semester: prelims and midterms are in, finals aren't yet.
         '2026-2027|1st Semester' => [
             ['IT 201', 'Data Structures and Algorithms', '3'],
             ['IT 202', 'Information Management', '3'],
@@ -176,8 +176,10 @@ class DemoGradesSeeder extends Seeder
         float $ability,
         bool $current,
     ): void {
+        $prelim = $this->collegeMark($ability);
         $midterm = $this->collegeMark($ability);
-        $final = $current ? null : $this->collegeMark($ability);
+        $finals = $current ? null : $this->collegeMark($ability);
+        $final = Grade::collegeFinal([$prelim, $midterm, $finals]);
         $remarks = $current ? null : Grade::remarksFor('college', $final);
 
         // One incomplete in the weakest student's record, to show how INC looks.
@@ -192,7 +194,9 @@ class DemoGradesSeeder extends Seeder
                 'grading_system' => 'college',
                 'subject_code' => $code,
                 'units' => $units,
+                'prelim' => $prelim,
                 'midterm' => $midterm,
+                'finals' => $finals,
                 'final_grade' => $final,
                 'remarks' => $remarks,
             ],

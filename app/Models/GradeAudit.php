@@ -28,7 +28,7 @@ class GradeAudit extends Model
     public const UPDATED_AT = null;
 
     /** Columns worth tracking; timestamps and bookkeeping are left out. */
-    public const TRACKED = ['school_year', 'term', 'subject_code', 'subject', 'units', 'q1', 'q2', 'q3', 'q4', 'midterm', 'final_grade', 'remarks'];
+    public const TRACKED = ['school_year', 'term', 'subject_code', 'subject', 'units', 'q1', 'q2', 'q3', 'q4', 'prelim', 'midterm', 'finals', 'final_grade', 'remarks'];
 
     /**
      * Get the attributes that should be cast.

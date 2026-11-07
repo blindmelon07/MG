@@ -23,7 +23,9 @@ use Illuminate\Support\Collection;
  * @property string|null $q2
  * @property string|null $q3
  * @property string|null $q4
+ * @property string|null $prelim
  * @property string|null $midterm
+ * @property string|null $finals
  * @property string|null $final_grade
  * @property string|null $remarks
  * @property int|null $encoded_by
@@ -40,7 +42,9 @@ use Illuminate\Support\Collection;
     'q2',
     'q3',
     'q4',
+    'prelim',
     'midterm',
+    'finals',
     'final_grade',
     'remarks',
     'encoded_by',
@@ -61,6 +65,9 @@ class Grade extends Model
     /** K-12 grades are percentages; 75 is the DepEd passing mark. */
     public const K12_PASSING = 75;
 
+    /** College grades in three periods; final_grade holds the total grade. */
+    public const COLLEGE_PERIODS = ['prelim', 'midterm', 'finals'];
+
     /** College grades use the 1.00 (highest) to 5.00 (failed) scale; 3.00 passes. */
     public const COLLEGE_PASSING = 3.0;
 
@@ -77,7 +84,9 @@ class Grade extends Model
             'q2' => 'decimal:2',
             'q3' => 'decimal:2',
             'q4' => 'decimal:2',
+            'prelim' => 'decimal:2',
             'midterm' => 'decimal:2',
+            'finals' => 'decimal:2',
             'final_grade' => 'decimal:2',
         ];
     }
@@ -156,6 +165,20 @@ class Grade extends Model
         }
 
         return round(array_sum($terms) / count($terms));
+    }
+
+    /**
+     * College total grade is the average of prelim, midterm and finals, once all three are in.
+     *
+     * @param  list<float|null>  $periods
+     */
+    public static function collegeFinal(array $periods): ?float
+    {
+        if ($periods === [] || in_array(null, $periods, true)) {
+            return null;
+        }
+
+        return round(array_sum($periods) / count($periods), 2);
     }
 
     public static function remarksFor(string $gradingSystem, ?float $final): ?string

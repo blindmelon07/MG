@@ -39,7 +39,7 @@ class GradeController extends Controller
                     ? (float) $grades->sum(fn (Grade $grade) => (float) $grade->units)
                     : null,
                 'grades' => $grades->map(fn (Grade $grade) => $grade->only([
-                    'id', 'subject_code', 'subject', 'units', 'q1', 'q2', 'q3', 'q4', 'midterm', 'final_grade', 'remarks',
+                    'id', 'subject_code', 'subject', 'units', 'q1', 'q2', 'q3', 'q4', 'prelim', 'midterm', 'finals', 'final_grade', 'remarks',
                 ]))->values()->all(),
             ];
         }
