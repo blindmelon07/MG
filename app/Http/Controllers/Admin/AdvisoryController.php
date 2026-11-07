@@ -10,6 +10,8 @@ use App\Models\Student;
 use App\Models\SuspensionNotice;
 use App\Models\User;
 use App\Services\SmsService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,17 +24,54 @@ class AdvisoryController extends Controller
     /**
      * The registrar's list of section advisers for the school year being viewed.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $year = SchoolYear::selected();
+        [$sort, $direction] = $this->sorting($request, 'sort', 'direction', ['adviser', 'grade_level', 'section', 'notices'], 'grade_level', 'asc');
+        [$noticeSort, $noticeDirection] = $this->sorting($request, 'notice_sort', 'notice_direction', ['starts_on', 'section', 'sent_by', 'recipients', 'sent_at'], 'sent_at', 'desc');
+
+        $advisories = Advisory::with('adviser:id,name')
+            ->withCount('suspensionNotices')
+            ->where('school_year', $year);
+
+        match ($sort) {
+            'adviser' => $advisories->orderBy(User::select('name')->whereColumn('users.id', 'advisories.user_id'), $direction),
+            'section' => $advisories->orderBy('section', $direction),
+            'notices' => $advisories->orderBy('suspension_notices_count', $direction),
+            default => $this->orderByGradeLevel($advisories, $direction),
+        };
+
+        $notices = SuspensionNotice::where('school_year', $year);
+
+        match ($noticeSort) {
+            'starts_on' => $notices->orderBy('starts_on', $noticeDirection),
+            'section' => $this->orderByGradeLevel($notices, $noticeDirection),
+            'sent_by' => $notices->orderBy('sent_by_name', $noticeDirection),
+            'recipients' => $notices->orderBy('recipient_count', $noticeDirection),
+            default => $notices->orderBy('created_at', $noticeDirection),
+        };
 
         return Inertia::render('admin/advisories/index', [
-            'advisories' => Advisory::with('adviser:id,name')
-                ->withCount('suspensionNotices')
-                ->where('school_year', $year)
-                ->orderBy('grade_level')
+            'advisories' => $advisories
                 ->orderBy('section')
-                ->get(),
+                ->orderBy('id')
+                ->paginate(15)
+                ->withQueryString(),
+            // Every notice sent this school year, including by advisers since removed.
+            'notices' => $notices
+                ->orderBy('id', $noticeDirection)
+                ->paginate(15, pageName: 'notices_page')
+                ->withQueryString()
+                ->through(fn (SuspensionNotice $notice) => [
+                    ...$notice->only(['id', 'grade_level', 'section', 'sent_by_name', 'reason', 'recipient_count']),
+                    'starts_on' => $notice->starts_on->toDateString(),
+                    'ends_on' => $notice->ends_on?->toDateString(),
+                    'created_at' => $notice->created_at->toIso8601String(),
+                ]),
+            'sorting' => [
+                'advisories' => ['sort' => $sort, 'direction' => $direction],
+                'notices' => ['sort' => $noticeSort, 'direction' => $noticeDirection],
+            ],
             'educationLevels' => $this->educationLevels(),
             'teachers' => User::where('role', 'teacher')->orderBy('name')->get(['id', 'name']),
             'sections' => Section::whereIn('education_level', Advisory::EDUCATION_LEVELS)
@@ -132,6 +171,40 @@ class AdvisoryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Adviser removed.')]);
 
         return to_route('admin.advisories.index');
+    }
+
+    /**
+     * The column and direction asked for, falling back to the default when the
+     * query string names anything outside the allowed columns.
+     *
+     * @param  list<string>  $columns
+     * @return array{0: string, 1: 'asc'|'desc'}
+     */
+    private function sorting(Request $request, string $sortKey, string $directionKey, array $columns, string $default, string $defaultDirection): array
+    {
+        $sort = $request->string($sortKey)->toString();
+
+        if (! in_array($sort, $columns, true)) {
+            return [$default, $defaultDirection === 'desc' ? 'desc' : 'asc'];
+        }
+
+        return [$sort, $request->string($directionKey)->toString() === 'desc' ? 'desc' : 'asc'];
+    }
+
+    /**
+     * Year levels in school order ("Grade 7" before "Grade 10"), then section.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     */
+    private function orderByGradeLevel(Builder $query, string $direction): void
+    {
+        $direction = $direction === 'desc' ? 'desc' : 'asc';
+
+        $query->orderByRaw('LENGTH(grade_level) '.$direction)
+            ->orderBy('grade_level', $direction)
+            ->orderBy('section', $direction);
     }
 
     /**

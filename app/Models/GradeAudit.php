@@ -60,12 +60,15 @@ class GradeAudit extends Model
         return $this->belongsTo(Student::class);
     }
 
-    public static function record(Grade $grade, string $event): void
+    /**
+     * @param  array<string, mixed>  $extra  noted alongside the grade's values, e.g. a return reason
+     */
+    public static function record(Grade $grade, string $event, array $extra = []): void
     {
         $tracked = array_flip(self::TRACKED);
 
         [$old, $new] = match ($event) {
-            'created', 'approved' => [null, array_intersect_key($grade->getAttributes(), $tracked)],
+            'created', 'approved', 'returned' => [null, [...array_intersect_key($grade->getAttributes(), $tracked), ...$extra]],
             'deleted' => [array_intersect_key($grade->getOriginal(), $tracked), null],
             default => [
                 array_intersect_key(array_intersect_key($grade->getOriginal(), $grade->getChanges()), $tracked),

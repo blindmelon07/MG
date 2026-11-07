@@ -58,8 +58,8 @@ test('registrar can assign a teacher as a section adviser', function () {
     $this->actingAs($registrar)->get(route('admin.advisories.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/advisories/index')
-            ->has('advisories', 1)
-            ->where('advisories.0.adviser.name', $teacher->name));
+            ->has('advisories.data', 1)
+            ->where('advisories.data.0.adviser.name', $teacher->name));
 });
 
 test('a section has one adviser per school year and must exist', function () {
@@ -214,4 +214,97 @@ test('the adviser sees their advisory class and its notices', function () {
             ->has('advisories.0.notices', 1)
             ->where('advisories.0.notices.0.starts_on', '2026-11-09')
             ->where('advisories.0.notices.0.ends_on', null));
+});
+
+test('a notice keeps its own copy of the section even when created directly', function () {
+    $teacher = User::factory()->withTwoFactor()->create(['role' => 'teacher', 'name' => 'Maria Santos']);
+
+    $notice = advisoryFor($teacher)->suspensionNotices()->create([
+        'sent_by' => $teacher->id,
+        'starts_on' => '2026-11-09',
+        'reason' => 'Typhoon',
+        'message' => 'CLASS SUSPENSION',
+    ]);
+
+    expect($notice)
+        ->section->toBe('St. Thomas')
+        ->school_year->toBe('2026-2027')
+        ->sent_by_name->toBe('Maria Santos');
+});
+
+test('removing an adviser keeps the suspension notices they sent on record', function () {
+    Queue::fake();
+
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    $teacher = User::factory()->withTwoFactor()->create(['role' => 'teacher', 'name' => 'Maria Santos']);
+    $advisory = advisoryFor($teacher);
+    shsStudent(['phone_number' => '09171234567']);
+
+    $this->actingAs($teacher)->post(route('admin.advisories.suspension-notices.store', $advisory), [
+        'starts_on' => now()->addDay()->toDateString(),
+        'reason' => 'Flooding',
+    ]);
+
+    $this->actingAs($registrar)->delete(route('admin.advisories.destroy', $advisory))
+        ->assertRedirect(route('admin.advisories.index'));
+
+    expect(Advisory::count())->toBe(0)
+        ->and(SuspensionNotice::sole())
+        ->advisory_id->toBeNull()
+        ->section->toBe('St. Thomas')
+        ->grade_level->toBe('Grade 11')
+        ->school_year->toBe('2026-2027')
+        ->sent_by_name->toBe('Maria Santos');
+
+    $this->actingAs($registrar)->get(route('admin.advisories.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('notices.data', 1)
+            ->where('notices.data.0.section', 'St. Thomas')
+            ->where('notices.data.0.sent_by_name', 'Maria Santos')
+            ->where('notices.data.0.reason', 'Flooding'));
+});
+
+test('the advisers page sorts and pages both tables independently', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+
+    foreach (['Grade 7', 'Grade 10', 'Grade 8'] as $grade) {
+        advisoryFor(User::factory()->create(['role' => 'teacher']), ['education_level' => 'jhs', 'grade_level' => $grade]);
+    }
+    foreach (range(1, 17) as $i) {
+        advisoryFor(User::factory()->create(['role' => 'teacher', 'name' => sprintf('Teacher %02d', $i)]), ['section' => "Section {$i}"]);
+    }
+
+    $advisory = Advisory::where('grade_level', 'Grade 7')->sole();
+    foreach ([['2026-11-10', 5], ['2026-11-12', 40], ['2026-11-11', 12]] as [$day, $count]) {
+        $advisory->suspensionNotices()->create(['starts_on' => $day, 'reason' => 'Rain', 'message' => 'X', 'recipient_count' => $count]);
+    }
+
+    // Default: year levels in school order, 15 per page.
+    $this->actingAs($registrar)->get(route('admin.advisories.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('advisories.total', 20)
+            ->has('advisories.data', 15)
+            ->where('advisories.data.0.grade_level', 'Grade 7')
+            ->where('advisories.data.1.grade_level', 'Grade 8')
+            ->where('advisories.data.2.grade_level', 'Grade 10')
+            ->where('sorting.advisories', ['sort' => 'grade_level', 'direction' => 'asc'])
+            ->where('notices.data.0.starts_on', '2026-11-11'));
+
+    // Adviser name, descending, second page; the notice log sorts on its own.
+    $this->actingAs($registrar)->get(route('admin.advisories.index', [
+        'sort' => 'adviser', 'direction' => 'desc', 'page' => 2,
+        'notice_sort' => 'recipients', 'notice_direction' => 'desc',
+    ]))->assertInertia(fn (Assert $page) => $page
+        ->where('advisories.current_page', 2)
+        ->has('advisories.data', 5)
+        ->where('notices.current_page', 1)
+        ->where('notices.data.0.recipient_count', 40)
+        ->where('notices.data.2.recipient_count', 5));
+
+    // Unknown columns fall back to the default instead of reaching the query.
+    $this->actingAs($registrar)->get(route('admin.advisories.index', ['sort' => 'password', 'notice_sort' => 'id;drop']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sorting.advisories.sort', 'grade_level')
+            ->where('sorting.notices', ['sort' => 'sent_at', 'direction' => 'desc']));
 });

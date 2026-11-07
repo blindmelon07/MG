@@ -120,3 +120,21 @@ test('the alert email names the device and links to account security', function 
         ->and(implode(' ', $mail->introLines))->toContain('Safari on iOS')->toContain('203.0.113.5')
         ->and($mail->actionUrl)->toBe(route('security.edit'));
 });
+
+test('behind a trusted proxy the visitor\'s real IP is recorded, otherwise the connecting IP', function () {
+    $user = User::factory()->create();
+    $login = fn () => $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.5'])
+        ->withHeader('X-Forwarded-For', '203.0.113.9')
+        ->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
+
+    // No proxies configured: a forged X-Forwarded-For header is ignored.
+    $login();
+    Notification::assertSentTo($user, LoginAlert::class, fn (LoginAlert $alert) => $alert->attempt->ip === '10.0.0.5');
+
+    $this->post(route('logout'));
+    Notification::fake();
+    config(['trustedproxy.proxies' => '10.0.0.0/8']);
+
+    $login();
+    Notification::assertSentTo($user, LoginAlert::class, fn (LoginAlert $alert) => $alert->attempt->ip === '203.0.113.9');
+});

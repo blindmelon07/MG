@@ -16,7 +16,7 @@ type Values = Record<string, string | number | null>;
 
 type Audit = {
     id: number;
-    event: 'created' | 'updated' | 'deleted' | 'approved';
+    event: 'created' | 'updated' | 'deleted' | 'approved' | 'returned';
     old_values: Values | null;
     new_values: Values | null;
     ip_address: string | null;
@@ -33,6 +33,7 @@ const eventVariant = {
     updated: 'default',
     deleted: 'destructive',
     approved: 'outline',
+    returned: 'destructive',
 } as const;
 
 function show(value: string | number | null | undefined): string {
@@ -51,6 +52,9 @@ function describe(audit: Audit): string[] {
 
         return [
             `${subject}, ${show(values.school_year)}${values.term ? ` ${values.term}` : ''}: final ${show(values.final_grade)}`,
+            ...(values.return_reason
+                ? [`Reason: ${String(values.return_reason)}`]
+                : []),
         ];
     }
 

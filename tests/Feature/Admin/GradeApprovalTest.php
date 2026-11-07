@@ -6,7 +6,9 @@ use App\Models\GradeAudit;
 use App\Models\Student;
 use App\Models\TeachingAssignment;
 use App\Models\User;
+use App\Notifications\GradesReturned;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -145,4 +147,55 @@ test('teachers cannot approve grades or delete posted college grades', function 
 
     $this->actingAs($teacher)->delete(route('admin.grades.destroy', $grade));
     expect(Grade::count())->toBe(1);
+});
+
+test('the registrar can return pending grades to the teacher with a reason', function () {
+    Notification::fake();
+
+    $teacher = collegeTeacher();
+    $student = collegeStudent();
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar', 'name' => 'Liza Bautista']);
+    $row = "2026-00123,,,BSIT 1-A,2026-2027,1st Semester,IT 101,Introduction to Computing,3,1.25,1.50,%s,,\n";
+
+    importCollege($teacher, sprintf($row, ''));
+    $grade = Grade::sole();
+
+    $this->actingAs($registrar)->post(route('admin.grades.return'), ['ids' => [$grade->id], 'reason' => ''])
+        ->assertSessionHasErrors('reason');
+
+    $this->actingAs($registrar)->post(route('admin.grades.return'), ['ids' => [$grade->id], 'reason' => 'Finals grade is missing.'])
+        ->assertRedirect();
+
+    $grade->refresh();
+    expect($grade->isReturned())->toBeTrue()
+        ->and($grade->isPosted())->toBeFalse()
+        ->and($grade->return_reason)->toBe('Finals grade is missing.')
+        ->and(GradeAudit::where('event', 'returned')->sole()->new_values['return_reason'])->toBe('Finals grade is missing.');
+
+    Notification::assertSentTo($teacher, GradesReturned::class, fn (GradesReturned $n) => $n->count === 1
+        && $n->reason === 'Finals grade is missing.'
+        && $n->subjects === ['Introduction to Computing']);
+
+    // Returned grades wait for the teacher, so they leave the registrar's queue.
+    $this->actingAs($registrar)->get(route('admin.grades.index'))
+        ->assertInertia(fn (Assert $page) => $page->where('pendingCount', 0)->where('returnedCount', 1));
+    $this->actingAs($teacher)->get(route('admin.grades.index', ['status' => 'returned']))
+        ->assertInertia(fn (Assert $page) => $page->where('returnedCount', 1)->has('grades.data', 1));
+    $this->actingAs($student, 'student')->get(route('student.grades'))
+        ->assertInertia(fn (Assert $page) => $page->has('periods', 0));
+
+    // The teacher's correction goes back to the registrar.
+    importCollege($teacher, sprintf($row, '1.75'));
+    $grade->refresh();
+    expect($grade->isReturned())->toBeFalse()
+        ->and($grade->return_reason)->toBeNull()
+        ->and(Grade::pendingApproval()->count())->toBe(1);
+});
+
+test('teachers cannot return grades', function () {
+    $teacher = collegeTeacher();
+    $grade = Grade::factory()->pending()->create(['grading_system' => 'college']);
+
+    $this->actingAs($teacher)->post(route('admin.grades.return'), ['ids' => [$grade->id], 'reason' => 'x'])
+        ->assertForbidden();
 });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Advisory;
 use App\Models\SchoolYear;
+use App\Models\SuspensionNotice;
 use App\Services\SmsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class SuspensionNoticeController extends Controller
         $endsOn = isset($data['ends_on']) ? Carbon::parse($data['ends_on']) : null;
 
         $notice = $advisory->suspensionNotices()->create([
-            'sent_by' => $user->id,
+            ...SuspensionNotice::snapshot($advisory, $user),
             'starts_on' => $startsOn,
             'ends_on' => $endsOn,
             'reason' => trim($data['reason']),

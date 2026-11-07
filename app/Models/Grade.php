@@ -32,6 +32,9 @@ use Illuminate\Support\Collection;
  * @property int|null $encoded_by
  * @property Carbon|null $approved_at
  * @property int|null $approved_by
+ * @property Carbon|null $returned_at
+ * @property int|null $returned_by
+ * @property string|null $return_reason
  */
 #[Fillable([
     'student_id',
@@ -53,6 +56,9 @@ use Illuminate\Support\Collection;
     'encoded_by',
     'approved_at',
     'approved_by',
+    'returned_at',
+    'returned_by',
+    'return_reason',
 ])]
 class Grade extends Model
 {
@@ -94,6 +100,7 @@ class Grade extends Model
             'finals' => 'decimal:2',
             'final_grade' => 'decimal:2',
             'approved_at' => 'datetime',
+            'returned_at' => 'datetime',
         ];
     }
 
@@ -124,12 +131,30 @@ class Grade extends Model
     }
 
     /**
+     * Waiting for the registrar: not posted and not sent back to the teacher.
+     *
      * @param  Builder<Grade>  $query
      * @return Builder<Grade>
      */
     public function scopePendingApproval(Builder $query): Builder
     {
-        return $query->whereNull('approved_at');
+        return $query->whereNull('approved_at')->whereNull('returned_at');
+    }
+
+    /**
+     * Sent back to the teacher by the registrar, waiting for a corrected upload.
+     *
+     * @param  Builder<Grade>  $query
+     * @return Builder<Grade>
+     */
+    public function scopeReturned(Builder $query): Builder
+    {
+        return $query->whereNull('approved_at')->whereNotNull('returned_at');
+    }
+
+    public function isReturned(): bool
+    {
+        return $this->approved_at === null && $this->returned_at !== null;
     }
 
     /**
@@ -137,9 +162,41 @@ class Grade extends Model
      */
     public function approve(User $approver): void
     {
-        $this->forceFill(['approved_at' => now(), 'approved_by' => $approver->id])->save();
+        $this->forceFill([
+            'approved_at' => now(),
+            'approved_by' => $approver->id,
+            'returned_at' => null,
+            'returned_by' => null,
+            'return_reason' => null,
+        ])->save();
 
         GradeAudit::record($this, 'approved');
+    }
+
+    /**
+     * Send a pending grade back to the teacher who uploaded it, with the
+     * reason. It stays hidden from the student until a corrected upload is
+     * approved.
+     */
+    public function returnToTeacher(User $registrar, string $reason): void
+    {
+        $this->forceFill([
+            'returned_at' => now(),
+            'returned_by' => $registrar->id,
+            'return_reason' => $reason,
+        ])->save();
+
+        GradeAudit::record($this, 'returned', ['return_reason' => $reason]);
+    }
+
+    /**
+     * Clear the "returned" mark, e.g. when the teacher uploads a correction.
+     *
+     * @return $this
+     */
+    public function clearReturn(): static
+    {
+        return $this->forceFill(['returned_at' => null, 'returned_by' => null, 'return_reason' => null]);
     }
 
     /**

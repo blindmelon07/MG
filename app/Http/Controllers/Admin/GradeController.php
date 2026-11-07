@@ -12,9 +12,12 @@ use App\Models\Section;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
+use App\Models\User;
+use App\Notifications\GradesReturned;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,7 +36,7 @@ class GradeController extends Controller
             'school_year' => $schoolYear === 'all' ? '' : $schoolYear,
             'section' => $request->string('section')->trim()->toString(),
             'subject' => $request->string('subject')->trim()->toString(),
-            'status' => in_array($status = $request->string('status')->toString(), ['pending', 'posted'], true) ? $status : '',
+            'status' => in_array($status = $request->string('status')->toString(), ['pending', 'returned', 'posted'], true) ? $status : '',
         ];
 
         $visible = Grade::query()->visibleTo($user);
@@ -61,6 +64,7 @@ class GradeController extends Controller
             'grades' => $grades,
             'filters' => $filters,
             'pendingCount' => (clone $visible)->pendingApproval()->count(),
+            'returnedCount' => (clone $visible)->returned()->count(),
             'canApprove' => $user->canManageAllGrades(),
             'options' => [
                 'schoolYears' => (clone $visible)->distinct()->pluck('school_year')->merge(SchoolYear::names())->unique()->sortDesc()->values(),
@@ -147,6 +151,48 @@ class GradeController extends Controller
     }
 
     /**
+     * Send pending college grades back to the teachers who uploaded them,
+     * with the reason, instead of posting them. Each teacher is emailed.
+     */
+    public function returnToTeacher(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer'],
+            'reason' => ['required', 'string', 'max:255'],
+        ], [
+            'reason.required' => __('Tell the teacher what to correct.'),
+        ]);
+
+        $registrar = $request->user('web');
+        $reason = trim($data['reason']);
+
+        $grades = DB::transaction(function () use ($data, $registrar, $reason) {
+            $grades = Grade::pendingApproval()->whereKey($data['ids'])->get();
+            $grades->each(fn (Grade $grade) => $grade->returnToTeacher($registrar, $reason));
+
+            return $grades;
+        });
+
+        $grades->groupBy('encoded_by')->each(function (Collection $teacherGrades, int|string $teacherId) use ($registrar, $reason): void {
+            $teacher = $teacherId === '' ? null : User::find($teacherId);
+
+            $teacher?->notify(new GradesReturned(
+                $teacherGrades->count(),
+                array_values($teacherGrades->map(fn (Grade $grade): string => $grade->subject)->unique()->sort()->all()),
+                $reason,
+                $registrar->name,
+            ));
+        });
+
+        Inertia::flash('toast', $grades->isNotEmpty()
+            ? ['type' => 'success', 'message' => trans_choice(':count grade returned to the teacher.|:count grades returned to the teachers.', $grades->count())]
+            : ['type' => 'info', 'message' => __('No grades were waiting for approval.')]);
+
+        return back();
+    }
+
+    /**
      * @param  Builder<Grade>  $query
      * @param  array{search: string, school_year: string, section: string, subject: string, status: string}  $filters
      * @return Builder<Grade>
@@ -166,6 +212,7 @@ class GradeController extends Controller
                     ->whereDoesntHave('student.enrollments', fn (Builder $q) => $q->whereColumn('enrollments.school_year', 'grades.school_year'))
                     ->whereHas('student', fn (Builder $q) => $q->where('section', $filters['section'])))))
             ->when($filters['status'] === 'pending', fn (Builder $query) => $query->pendingApproval())
+            ->when($filters['status'] === 'returned', fn (Builder $query) => $query->returned())
             ->when($filters['status'] === 'posted', fn (Builder $query) => $query->posted());
     }
 

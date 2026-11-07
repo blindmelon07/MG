@@ -6,6 +6,9 @@ import { EducationLevelFields } from '@/components/education-level-fields';
 import type { EducationLevelOption } from '@/components/education-level-fields';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PaginationLinks } from '@/components/pagination-links';
+import { SortableHeader } from '@/components/sortable-header';
+import type { SortState } from '@/components/sortable-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +30,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { index as advisoriesIndex } from '@/routes/admin/advisories';
+import type { Paginated } from '@/types/pagination';
 
 type Advisory = {
     id: number;
@@ -40,6 +44,33 @@ type Advisory = {
 
 type Teacher = { id: number; name: string };
 
+type NoticeLogEntry = {
+    id: number;
+    grade_level: string | null;
+    section: string | null;
+    sent_by_name: string | null;
+    reason: string;
+    recipient_count: number;
+    starts_on: string;
+    ends_on: string | null;
+    created_at: string;
+};
+
+const formatDay = (date: string) =>
+    new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+
+// The notice log sorts and pages independently of the advisers table.
+const noticeSortKeys = {
+    sortKey: 'notice_sort',
+    directionKey: 'notice_direction',
+    pageKey: 'notices_page',
+};
+
 type SectionOption = {
     education_level: string;
     grade_level: string;
@@ -48,11 +79,15 @@ type SectionOption = {
 
 export default function AdvisoriesIndex({
     advisories,
+    notices,
+    sorting,
     educationLevels,
     teachers,
     sections,
 }: {
-    advisories: Advisory[];
+    advisories: Paginated<Advisory>;
+    notices: Paginated<NoticeLogEntry>;
+    sorting: { advisories: SortState; notices: SortState };
     educationLevels: EducationLevelOption[];
     teachers: Teacher[];
     sections: SectionOption[];
@@ -262,28 +297,42 @@ export default function AdvisoriesIndex({
                     <table className="w-full text-sm">
                         <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
                             <tr>
-                                <th className="px-4 py-2 font-medium">
+                                <SortableHeader
+                                    column="adviser"
+                                    state={sorting.advisories}
+                                >
                                     Adviser
-                                </th>
-                                <th className="px-4 py-2 font-medium">
+                                </SortableHeader>
+                                <SortableHeader
+                                    column="grade_level"
+                                    state={sorting.advisories}
+                                >
                                     Year level
-                                </th>
-                                <th className="px-4 py-2 font-medium">
+                                </SortableHeader>
+                                <SortableHeader
+                                    column="section"
+                                    state={sorting.advisories}
+                                >
                                     Section
-                                </th>
+                                </SortableHeader>
                                 <th className="px-4 py-2 font-medium">
                                     School year
                                 </th>
-                                <th className="px-4 py-2 text-right font-medium">
+                                <SortableHeader
+                                    column="notices"
+                                    state={sorting.advisories}
+                                    defaultDirection="desc"
+                                    className="text-right"
+                                >
                                     Suspension notices sent
-                                </th>
+                                </SortableHeader>
                                 <th className="px-4 py-2 font-medium">
                                     <span className="sr-only">Actions</span>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {advisories.length === 0 && (
+                            {advisories.data.length === 0 && (
                                 <tr>
                                     <td
                                         colSpan={6}
@@ -294,7 +343,7 @@ export default function AdvisoriesIndex({
                                     </td>
                                 </tr>
                             )}
-                            {advisories.map((advisory) => (
+                            {advisories.data.map((advisory) => (
                                 <tr
                                     key={advisory.id}
                                     className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
@@ -335,6 +384,117 @@ export default function AdvisoriesIndex({
                         </tbody>
                     </table>
                 </div>
+
+                <PaginationLinks page={advisories} noun="advisers" />
+
+                <section className="space-y-3">
+                    <div>
+                        <h2 className="font-semibold">
+                            Suspension notices sent
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Every class suspension notice texted this school
+                            year, including by advisers who have since been
+                            removed.
+                        </p>
+                    </div>
+                    <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                        <table className="w-full text-sm">
+                            <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
+                                <tr>
+                                    <SortableHeader
+                                        {...noticeSortKeys}
+                                        column="starts_on"
+                                        state={sorting.notices}
+                                        defaultDirection="desc"
+                                    >
+                                        No classes on
+                                    </SortableHeader>
+                                    <SortableHeader
+                                        {...noticeSortKeys}
+                                        column="section"
+                                        state={sorting.notices}
+                                    >
+                                        Section
+                                    </SortableHeader>
+                                    <th className="px-4 py-2 font-medium">
+                                        Reason
+                                    </th>
+                                    <SortableHeader
+                                        {...noticeSortKeys}
+                                        column="sent_at"
+                                        state={sorting.notices}
+                                        defaultDirection="desc"
+                                    >
+                                        Sent
+                                    </SortableHeader>
+                                    <SortableHeader
+                                        {...noticeSortKeys}
+                                        column="sent_by"
+                                        state={sorting.notices}
+                                    >
+                                        Sent by
+                                    </SortableHeader>
+                                    <SortableHeader
+                                        {...noticeSortKeys}
+                                        column="recipients"
+                                        state={sorting.notices}
+                                        defaultDirection="desc"
+                                        className="text-right"
+                                    >
+                                        Numbers texted
+                                    </SortableHeader>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {notices.data.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={6}
+                                            className="px-4 py-6 text-center text-muted-foreground"
+                                        >
+                                            No suspension notices sent this
+                                            school year.
+                                        </td>
+                                    </tr>
+                                )}
+                                {notices.data.map((notice) => (
+                                    <tr
+                                        key={notice.id}
+                                        className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
+                                    >
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {formatDay(notice.starts_on)}
+                                            {notice.ends_on &&
+                                                notice.ends_on !==
+                                                    notice.starts_on &&
+                                                ` – ${formatDay(notice.ends_on)}`}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {notice.grade_level} –{' '}
+                                            {notice.section}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {notice.reason}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {new Date(
+                                                notice.created_at,
+                                            ).toLocaleString()}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {notice.sent_by_name ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-2 text-right tabular-nums">
+                                            {notice.recipient_count}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <PaginationLinks page={notices} noun="notices" />
+                </section>
             </div>
 
             <Dialog
@@ -348,8 +508,8 @@ export default function AdvisoriesIndex({
                     <p className="text-sm text-muted-foreground">
                         {deleting?.adviser.name} will no longer advise{' '}
                         {deleting?.grade_level} – {deleting?.section}. Grades
-                        already imported are kept, but the history of suspension
-                        notices sent to this section is deleted.
+                        already imported and suspension notices already sent
+                        stay on record.
                     </p>
                     {deleting && (
                         <Form

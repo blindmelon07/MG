@@ -317,12 +317,13 @@ class GradeImportController extends Controller
         // A teacher's new or changed college grade waits for the registrar,
         // even if an earlier version was already posted.
         if (Grade::needsApproval($system, $user)) {
+            // A changed upload also answers an earlier "returned" note.
             if ($changed) {
-                $grade->forceFill(['approved_at' => null, 'approved_by' => null]);
+                $grade->forceFill(['approved_at' => null, 'approved_by' => null])->clearReturn();
                 $this->pending++;
             }
         } elseif ($changed || ! $grade->isPosted()) {
-            $grade->forceFill(['approved_at' => now(), 'approved_by' => $user->id]);
+            $grade->forceFill(['approved_at' => now(), 'approved_by' => $user->id])->clearReturn();
         }
 
         $grade->save();
