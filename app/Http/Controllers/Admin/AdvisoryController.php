@@ -62,9 +62,13 @@ class AdvisoryController extends Controller
                     'student_count' => $advisory->students()->count(),
                     'recipient_count' => $advisory->school_year === $current ? $sms->suspensionRecipients($advisory)->count() : 0,
                     'notices' => $advisory->suspensionNotices
-                        ->map(fn (SuspensionNotice $notice) => $notice->only([
-                            'id', 'starts_on', 'ends_on', 'reason', 'message', 'recipient_count', 'created_at',
-                        ]))
+                        // Plain Y-m-d days: the page reads them as calendar dates, not instants.
+                        ->map(fn (SuspensionNotice $notice) => [
+                            ...$notice->only(['id', 'reason', 'message', 'recipient_count']),
+                            'starts_on' => $notice->starts_on->toDateString(),
+                            'ends_on' => $notice->ends_on?->toDateString(),
+                            'created_at' => $notice->created_at->toIso8601String(),
+                        ])
                         ->all(),
                 ]),
             'today' => now()->toDateString(),
@@ -83,7 +87,7 @@ class AdvisoryController extends Controller
             'school_year' => ['required', 'string', 'regex:/^\d{4}-\d{4}$/'],
         ], [
             'user_id.exists' => __('Choose a user with the teacher role.'),
-            'education_level.in' => __('Only Senior High School sections have advisers.'),
+            'education_level.in' => __('Only Junior and Senior High School sections have advisers.'),
             'grade_level.in' => __('Choose a year level for this education level.'),
             'school_year.regex' => __('School year must look like 2026-2027.'),
         ]);

@@ -116,6 +116,7 @@ test('the alert email names the device and links to account security', function 
     $mail = (new LoginAlert($attempt))->toMail($user);
 
     expect($mail->subject)->toContain('Failed sign-in attempt')
+        ->and($mail->greeting)->toBe("Hi {$user->name},")
         ->and(implode(' ', $mail->introLines))->toContain('Safari on iOS')->toContain('203.0.113.5')
         ->and($mail->actionUrl)->toBe(route('security.edit'));
 });

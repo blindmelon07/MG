@@ -300,8 +300,8 @@
     "file": "assets/grades-C9MPTuPs.js",
     "name": "grades"
   },
-  "_grades-CsWvcjFi.js": {
-    "file": "assets/grades-CsWvcjFi.js",
+  "_grades-DPddoJFL.js": {
+    "file": "assets/grades-DPddoJFL.js",
     "name": "grades",
     "imports": [
       "_wayfinder-Dp7PqxvV.js"
@@ -845,7 +845,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Dolf29jy.css",
+    "file": "assets/app-yxsU6GDa.css",
     "name": "app",
     "names": [
       "app.css"
@@ -854,7 +854,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-o-KFxWBT.js",
+    "file": "assets/app-CVXh06eH.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -893,7 +893,7 @@
       "_announcements-BbMwyDKe.js",
       "_campus-locations-CZCCvOif.js",
       "_courses-CoM-hRTm.js",
-      "_grades-CsWvcjFi.js",
+      "_grades-DPddoJFL.js",
       "_manual-categories-Uf1GK1Ry.js",
       "_manuals-ITSznNRd.js",
       "_school-year-CjdhBAxH.js",
@@ -1122,7 +1122,7 @@
     ]
   },
   "resources/js/pages/admin/grades/history.tsx": {
-    "file": "assets/history-DRdS65KE.js",
+    "file": "assets/history-DX1EEA8G.js",
     "name": "history",
     "src": "resources/js/pages/admin/grades/history.tsx",
     "isDynamicEntry": true,
@@ -1132,13 +1132,13 @@
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
       "_roles-CijXeT8O.js",
-      "_grades-CsWvcjFi.js",
+      "_grades-DPddoJFL.js",
       "_heading-BnUFVXSK.js",
       "_badge-CxV2eUM6.js"
     ]
   },
   "resources/js/pages/admin/grades/index.tsx": {
-    "file": "assets/grades-CCoQ4dCj.js",
+    "file": "assets/grades-BqSyveHR.js",
     "name": "grades",
     "src": "resources/js/pages/admin/grades/index.tsx",
     "isDynamicEntry": true,
@@ -1147,19 +1147,21 @@
       "_utils-BatuX27z.js",
       "_select-C8powc6R.js",
       "_createLucideIcon-CL8Q_N-z.js",
+      "_check-C_euNqdO.js",
       "_download-B97CHt5n.js",
       "_trash-2-DHtd3mcB.js",
       "_upload-CJ1g3TtS.js",
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
       "_wayfinder-Dp7PqxvV.js",
-      "_grades-CsWvcjFi.js",
+      "_grades-DPddoJFL.js",
       "_heading-BnUFVXSK.js",
       "_input-error-CCtbayb3.js",
       "_label-G6RNAPU-.js",
       "_alert-DsvWhfSM.js",
       "_dialog-Cx95ZIj2.js",
       "_badge-CxV2eUM6.js",
+      "_checkbox-Ds6EZIr8.js",
       "_grades-C9MPTuPs.js",
       "_student-placement-fields-DUbLwMTi.js"
     ]

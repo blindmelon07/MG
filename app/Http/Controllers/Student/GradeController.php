@@ -17,7 +17,9 @@ class GradeController extends Controller
     {
         $student = $request->user('student');
 
+        // Grades waiting for the registrar's approval stay hidden.
         $groups = $student->grades()
+            ->posted()
             ->orderBy('subject')
             ->get()
             ->groupBy(fn (Grade $grade) => $grade->school_year.'|'.($grade->term ?? ''))

@@ -15,6 +15,7 @@ use App\Models\TeachingAssignment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,23 +33,13 @@ class GradeController extends Controller
             'school_year' => $schoolYear === 'all' ? '' : $schoolYear,
             'section' => $request->string('section')->trim()->toString(),
             'subject' => $request->string('subject')->trim()->toString(),
+            'status' => in_array($status = $request->string('status')->toString(), ['pending', 'posted'], true) ? $status : '',
         ];
 
         $visible = Grade::query()->visibleTo($user);
 
-        $grades = (clone $visible)
+        $grades = $this->filtered(clone $visible, $filters)
             ->with('student:id,name,student_number,grade_level,section')
-            ->when($filters['search'] !== '', fn (Builder $query) => $query->whereHas('student', function (Builder $query) use ($filters): void {
-                $query->where(fn (Builder $query) => $query->where('name', 'like', "%{$filters['search']}%")
-                    ->orWhere('student_number', 'like', "%{$filters['search']}%"));
-            }))
-            ->when($filters['school_year'] !== '', fn (Builder $query) => $query->where('school_year', $filters['school_year']))
-            ->when($filters['subject'] !== '', fn (Builder $query) => $query->where('subject', $filters['subject']))
-            ->when($filters['section'] !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
-                ->whereHas('student.enrollments', fn (Builder $q) => $q->where('section', $filters['section'])->whereColumn('enrollments.school_year', 'grades.school_year'))
-                ->orWhere(fn (Builder $query) => $query
-                    ->whereDoesntHave('student.enrollments', fn (Builder $q) => $q->whereColumn('enrollments.school_year', 'grades.school_year'))
-                    ->whereHas('student', fn (Builder $q) => $q->where('section', $filters['section'])))))
             ->orderByDesc('school_year')
             ->orderBy('subject')
             ->orderBy(Student::select('name')->whereColumn('students.id', 'grades.student_id'))
@@ -69,6 +60,8 @@ class GradeController extends Controller
         return Inertia::render('admin/grades/index', [
             'grades' => $grades,
             'filters' => $filters,
+            'pendingCount' => (clone $visible)->pendingApproval()->count(),
+            'canApprove' => $user->canManageAllGrades(),
             'options' => [
                 'schoolYears' => (clone $visible)->distinct()->pluck('school_year')->merge(SchoolYear::names())->unique()->sortDesc()->values(),
                 'subjects' => (clone $visible)->distinct()->orderBy('subject')->pluck('subject'),
@@ -107,9 +100,87 @@ class GradeController extends Controller
         ]);
     }
 
+    /**
+     * Post pending college grades for students to see: the chosen ones, or
+     * every pending grade matching the list's filters.
+     */
+    public function approve(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required_without:all', 'array', 'max:500'],
+            'ids.*' => ['integer'],
+            'all' => ['sometimes', 'boolean'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'school_year' => ['nullable', 'string', 'max:9'],
+            'section' => ['nullable', 'string', 'max:255'],
+            'subject' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $query = Grade::query()->pendingApproval();
+
+        if ($request->boolean('all')) {
+            $query = $this->filtered($query, [
+                'search' => trim((string) ($data['search'] ?? '')),
+                'school_year' => trim((string) ($data['school_year'] ?? '')),
+                'section' => trim((string) ($data['section'] ?? '')),
+                'subject' => trim((string) ($data['subject'] ?? '')),
+                'status' => '',
+            ]);
+        } else {
+            $query->whereKey($data['ids']);
+        }
+
+        $count = 0;
+
+        DB::transaction(function () use ($query, $request, &$count): void {
+            $query->get()->each(function (Grade $grade) use ($request, &$count): void {
+                $grade->approve($request->user('web'));
+                $count++;
+            });
+        });
+
+        Inertia::flash('toast', $count > 0
+            ? ['type' => 'success', 'message' => trans_choice(':count grade posted to students.|:count grades posted to students.', $count)]
+            : ['type' => 'info', 'message' => __('No grades were waiting for approval.')]);
+
+        return back();
+    }
+
+    /**
+     * @param  Builder<Grade>  $query
+     * @param  array{search: string, school_year: string, section: string, subject: string, status: string}  $filters
+     * @return Builder<Grade>
+     */
+    private function filtered(Builder $query, array $filters): Builder
+    {
+        return $query
+            ->when($filters['search'] !== '', fn (Builder $query) => $query->whereHas('student', function (Builder $query) use ($filters): void {
+                $query->where(fn (Builder $query) => $query->where('name', 'like', "%{$filters['search']}%")
+                    ->orWhere('student_number', 'like', "%{$filters['search']}%"));
+            }))
+            ->when($filters['school_year'] !== '', fn (Builder $query) => $query->where('school_year', $filters['school_year']))
+            ->when($filters['subject'] !== '', fn (Builder $query) => $query->where('subject', $filters['subject']))
+            ->when($filters['section'] !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->whereHas('student.enrollments', fn (Builder $q) => $q->where('section', $filters['section'])->whereColumn('enrollments.school_year', 'grades.school_year'))
+                ->orWhere(fn (Builder $query) => $query
+                    ->whereDoesntHave('student.enrollments', fn (Builder $q) => $q->whereColumn('enrollments.school_year', 'grades.school_year'))
+                    ->whereHas('student', fn (Builder $q) => $q->where('section', $filters['section'])))))
+            ->when($filters['status'] === 'pending', fn (Builder $query) => $query->pendingApproval())
+            ->when($filters['status'] === 'posted', fn (Builder $query) => $query->posted());
+    }
+
     public function destroy(Request $request, Grade $grade): RedirectResponse
     {
-        abort_unless($grade->isVisibleTo($request->user('web')), 403);
+        $user = $request->user('web');
+
+        abort_unless($grade->isVisibleTo($user), 403);
+
+        // Teachers can't take back a college grade the registrar has posted.
+        if (Grade::needsApproval($grade->grading_system, $user) && $grade->isPosted()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('This grade is already posted. Ask the registrar to change or remove it.')]);
+
+            return back();
+        }
 
         $grade->delete();
 

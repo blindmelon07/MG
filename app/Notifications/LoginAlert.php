@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use App\Support\LoginAttempt;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -48,7 +49,11 @@ class LoginAlert extends Notification implements ShouldQueue
                 ->line('Someone tried to sign in to your account with a wrong password.'),
         };
 
+        // Error-styled mail otherwise opens with Laravel's "Whoops!".
+        $name = $notifiable instanceof User ? $notifiable->name : null;
+
         return $message
+            ->greeting($name !== null ? "Hi {$name}," : 'Hello,')
             ->line("**When:** {$attempt->time()}")
             ->line("**Device:** {$attempt->device}")
             ->line('**IP address:** '.($attempt->ip ?? 'unknown'))

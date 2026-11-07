@@ -30,6 +30,15 @@ class GradeFactory extends Factory
             'q4' => null,
             'final_grade' => 86,
             'remarks' => 'Passed',
+            'approved_at' => now(),
         ];
+    }
+
+    /**
+     * A college grade a teacher uploaded, waiting for the registrar's approval.
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => ['approved_at' => null, 'approved_by' => null]);
     }
 }

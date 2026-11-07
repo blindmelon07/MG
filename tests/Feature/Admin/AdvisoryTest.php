@@ -83,7 +83,7 @@ test('a section has one adviser per school year and must exist', function () {
     $this->actingAs($registrar)->post(route('admin.advisories.store'), [...$payload, 'section' => 'Nowhere'])
         ->assertSessionHasErrors('section');
 
-    $this->actingAs($registrar)->post(route('admin.advisories.store'), [...$payload, 'education_level' => 'jhs', 'grade_level' => 'Grade 8'])
+    $this->actingAs($registrar)->post(route('admin.advisories.store'), [...$payload, 'education_level' => 'college', 'grade_level' => '1st Year'])
         ->assertSessionHasErrors('education_level');
 
     expect(Advisory::count())->toBe(1);
@@ -211,5 +211,7 @@ test('the adviser sees their advisory class and its notices', function () {
             ->where('advisories.0.student_count', 1)
             ->where('advisories.0.recipient_count', 1)
             ->where('advisories.0.is_current', true)
-            ->has('advisories.0.notices', 1));
+            ->has('advisories.0.notices', 1)
+            ->where('advisories.0.notices.0.starts_on', '2026-11-09')
+            ->where('advisories.0.notices.0.ends_on', null));
 });

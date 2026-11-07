@@ -16,7 +16,7 @@ type Values = Record<string, string | number | null>;
 
 type Audit = {
     id: number;
-    event: 'created' | 'updated' | 'deleted';
+    event: 'created' | 'updated' | 'deleted' | 'approved';
     old_values: Values | null;
     new_values: Values | null;
     ip_address: string | null;
@@ -32,6 +32,7 @@ const eventVariant = {
     created: 'secondary',
     updated: 'default',
     deleted: 'destructive',
+    approved: 'outline',
 } as const;
 
 function show(value: string | number | null | undefined): string {
@@ -46,7 +47,7 @@ function describe(audit: Audit): string[] {
     const subject = show(newValues.subject ?? oldValues.subject);
 
     if (audit.event !== 'updated') {
-        const values = audit.event === 'created' ? newValues : oldValues;
+        const values = audit.event === 'deleted' ? oldValues : newValues;
 
         return [
             `${subject}, ${show(values.school_year)}${values.term ? ` ${values.term}` : ''}: final ${show(values.final_grade)}`,

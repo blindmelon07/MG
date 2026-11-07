@@ -94,6 +94,7 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
             ->only(['index', 'store', 'destroy']);
 
         Route::get('grades/history', [GradeAuditController::class, 'index'])->name('grades.history');
+        Route::post('grades/approve', [GradeController::class, 'approve'])->name('grades.approve');
     });
 
     Route::middleware('role:admin,registrar,teacher')->group(function () {

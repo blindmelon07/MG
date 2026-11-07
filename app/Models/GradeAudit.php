@@ -65,7 +65,7 @@ class GradeAudit extends Model
         $tracked = array_flip(self::TRACKED);
 
         [$old, $new] = match ($event) {
-            'created' => [null, array_intersect_key($grade->getAttributes(), $tracked)],
+            'created', 'approved' => [null, array_intersect_key($grade->getAttributes(), $tracked)],
             'deleted' => [array_intersect_key($grade->getOriginal(), $tracked), null],
             default => [
                 array_intersect_key(array_intersect_key($grade->getOriginal(), $grade->getChanges()), $tracked),

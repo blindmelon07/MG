@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -29,6 +30,8 @@ use Illuminate\Support\Collection;
  * @property string|null $final_grade
  * @property string|null $remarks
  * @property int|null $encoded_by
+ * @property Carbon|null $approved_at
+ * @property int|null $approved_by
  */
 #[Fillable([
     'student_id',
@@ -48,6 +51,8 @@ use Illuminate\Support\Collection;
     'final_grade',
     'remarks',
     'encoded_by',
+    'approved_at',
+    'approved_by',
 ])]
 class Grade extends Model
 {
@@ -88,7 +93,61 @@ class Grade extends Model
             'midterm' => 'decimal:2',
             'finals' => 'decimal:2',
             'final_grade' => 'decimal:2',
+            'approved_at' => 'datetime',
         ];
+    }
+
+    /**
+     * College grades a teacher uploads are posted only once the registrar
+     * approves them. Registrar and admin uploads, and K-12 grades (encoded
+     * by subject teachers and advisers), are posted right away.
+     */
+    public static function needsApproval(string $gradingSystem, User $encoder): bool
+    {
+        return $gradingSystem === 'college' && ! $encoder->canManageAllGrades();
+    }
+
+    public function isPosted(): bool
+    {
+        return $this->approved_at !== null;
+    }
+
+    /**
+     * Grades students can see.
+     *
+     * @param  Builder<Grade>  $query
+     * @return Builder<Grade>
+     */
+    public function scopePosted(Builder $query): Builder
+    {
+        return $query->whereNotNull('approved_at');
+    }
+
+    /**
+     * @param  Builder<Grade>  $query
+     * @return Builder<Grade>
+     */
+    public function scopePendingApproval(Builder $query): Builder
+    {
+        return $query->whereNull('approved_at');
+    }
+
+    /**
+     * Post the grade for students to see.
+     */
+    public function approve(User $approver): void
+    {
+        $this->forceFill(['approved_at' => now(), 'approved_by' => $approver->id])->save();
+
+        GradeAudit::record($this, 'approved');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     protected static function booted(): void

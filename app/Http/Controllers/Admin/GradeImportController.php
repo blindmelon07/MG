@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Advisory;
 use App\Models\Course;
 use App\Models\Grade;
+use App\Models\GradeAudit;
 use App\Models\SchoolYear;
 use App\Models\Student;
 use App\Models\Subject;
@@ -45,6 +46,9 @@ class GradeImportController extends Controller
 
     /** @var array<string, Student|null> */
     private array $students = [];
+
+    /** College grades in this import that now wait for the registrar's approval. */
+    private int $pending = 0;
 
     /**
      * An Excel template listing the enrolled students to grade: a teacher's
@@ -301,19 +305,27 @@ class GradeImportController extends Controller
         $term = $values['term'];
         unset($values['term']);
 
-        $grade = Grade::updateOrCreate(
-            [
-                'student_id' => $student->id,
-                'school_year' => $schoolYear,
-                'term' => $term,
-                'subject' => $subject,
-            ],
-            [
-                ...$values,
-                'grading_system' => $system,
-                'encoded_by' => $user->id,
-            ],
-        );
+        $grade = Grade::firstOrNew([
+            'student_id' => $student->id,
+            'school_year' => $schoolYear,
+            'term' => $term,
+            'subject' => $subject,
+        ]);
+        $grade->fill([...$values, 'grading_system' => $system, 'encoded_by' => $user->id]);
+        $changed = ! $grade->exists || $grade->isDirty(GradeAudit::TRACKED);
+
+        // A teacher's new or changed college grade waits for the registrar,
+        // even if an earlier version was already posted.
+        if (Grade::needsApproval($system, $user)) {
+            if ($changed) {
+                $grade->forceFill(['approved_at' => null, 'approved_by' => null]);
+                $this->pending++;
+            }
+        } elseif ($changed || ! $grade->isPosted()) {
+            $grade->forceFill(['approved_at' => now(), 'approved_by' => $user->id]);
+        }
+
+        $grade->save();
 
         SchoolYear::firstOrCreate(['name' => $schoolYear]);
 
@@ -536,6 +548,10 @@ class GradeImportController extends Controller
 
         if ($updated > 0) {
             $parts[] = "{$updated} existing grade(s) updated.";
+        }
+
+        if ($this->pending > 0) {
+            $parts[] = "{$this->pending} college grade(s) will be posted to students once the registrar approves them.";
         }
 
         if ($errors !== []) {

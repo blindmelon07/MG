@@ -1,5 +1,5 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { Download, History, Trash2, Upload } from 'lucide-react';
+import { Check, Download, History, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import GradeController from '@/actions/App/Http/Controllers/Admin/GradeController';
 import GradeImportController from '@/actions/App/Http/Controllers/Admin/GradeImportController';
@@ -10,6 +10,7 @@ import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { formatGrade, gradingSystemLabels, isFailing } from '@/lib/grades';
 import {
+    approve as approveGrades,
     history as gradesHistory,
     index as gradesIndex,
 } from '@/routes/admin/grades';
@@ -53,6 +55,8 @@ type GradeRow = {
     finals: string | null;
     final_grade: string | null;
     remarks: string | null;
+    /** Null while a teacher's college grade waits for the registrar. */
+    approved_at: string | null;
     /** The student's section in that school year. */
     section: string | null;
     student: {
@@ -83,6 +87,7 @@ type Filters = {
     school_year: string;
     section: string;
     subject: string;
+    status: '' | 'pending' | 'posted';
 };
 
 const ALL = '__all__';
@@ -111,6 +116,8 @@ export default function GradesIndex({
     assignments,
     advisories,
     templateOptions,
+    pendingCount,
+    canApprove,
 }: {
     grades: Paginated<GradeRow>;
     filters: Filters;
@@ -119,6 +126,8 @@ export default function GradesIndex({
     assignments: Assignment[];
     advisories: AdvisoryOption[];
     templateOptions: TemplateOptions | null;
+    pendingCount: number;
+    canApprove: boolean;
 }) {
     const { schoolYear } = usePage().props;
     const viewingYear = schoolYear?.selected ?? '';
@@ -140,6 +149,42 @@ export default function GradesIndex({
     );
     const [deleting, setDeleting] = useState<GradeRow | null>(null);
     const [searchTerm, setSearchTerm] = useState(filters.search);
+    const [selected, setSelected] = useState<number[]>([]);
+    const [approving, setApproving] = useState(false);
+
+    const pendingOnPage = grades.data
+        .filter((grade) => grade.approved_at === null)
+        .map((grade) => grade.id);
+    const allPendingSelected =
+        pendingOnPage.length > 0 &&
+        pendingOnPage.every((id) => selected.includes(id));
+
+    const approve = (payload: Record<string, string | boolean | number[]>) =>
+        router.post(approveGrades().url, payload, {
+            preserveScroll: true,
+            onStart: () => setApproving(true),
+            onFinish: () => setApproving(false),
+            onSuccess: () => setSelected([]),
+        });
+
+    const approveAllMatching = () =>
+        approve({
+            all: true,
+            search: filters.search,
+            school_year: filters.school_year,
+            section: filters.section,
+            subject: filters.subject,
+        });
+
+    // Teachers can't delete a college grade once the registrar has posted it.
+    const canDelete = (grade: GradeRow) =>
+        canManageAll ||
+        grade.grading_system !== 'college' ||
+        grade.approved_at === null;
+
+    const pendingMessage = canApprove
+        ? `${pendingCount} college grade${pendingCount === 1 ? ' is' : 's are'} waiting for your approval before students can see ${pendingCount === 1 ? 'it' : 'them'}.`
+        : `${pendingCount} of your college grade${pendingCount === 1 ? ' is' : 's are'} waiting for the registrar\u2019s approval. Students see grades once they are posted.`;
 
     const applyFilters = (changes: Partial<Filters>) => {
         const next = { ...filters, search: searchTerm, ...changes };
@@ -201,6 +246,25 @@ export default function GradesIndex({
                             advisory class yet. Ask the Registrar&apos;s Office
                             to assign your subjects and sections before
                             importing grades.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {pendingCount > 0 && (
+                    <Alert>
+                        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                            <span>{pendingMessage}</span>
+                            {filters.status !== 'pending' && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        applyFilters({ status: 'pending' })
+                                    }
+                                >
+                                    Show pending grades
+                                </Button>
+                            )}
                         </AlertDescription>
                     </Alert>
                 )}
@@ -267,9 +331,33 @@ export default function GradesIndex({
                         </SelectContent>
                     </Select>
 
+                    <Select
+                        value={filters.status || ALL}
+                        onValueChange={(value) =>
+                            applyFilters({
+                                status:
+                                    value === ALL
+                                        ? ''
+                                        : (value as Filters['status']),
+                            })
+                        }
+                    >
+                        <SelectTrigger className="w-48" aria-label="Status">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL}>All statuses</SelectItem>
+                            <SelectItem value="pending">
+                                Waiting for approval
+                            </SelectItem>
+                            <SelectItem value="posted">Posted</SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     {(filters.search ||
                         filters.section ||
                         filters.subject ||
+                        filters.status ||
                         filters.school_year !== viewingYear) && (
                         <Button variant="ghost" asChild>
                             <Link href={gradesIndex()}>Clear filters</Link>
@@ -277,10 +365,54 @@ export default function GradesIndex({
                     )}
                 </div>
 
+                {canApprove && pendingOnPage.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            size="sm"
+                            disabled={approving || selected.length === 0}
+                            onClick={() => approve({ ids: selected })}
+                        >
+                            <Check /> Approve selected ({selected.length})
+                        </Button>
+                        {filters.status === 'pending' &&
+                            grades.total > pendingOnPage.length && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={approving}
+                                    onClick={approveAllMatching}
+                                >
+                                    <Check /> Approve all {grades.total} pending
+                                </Button>
+                            )}
+                        <span className="text-xs text-muted-foreground">
+                            Approved grades are posted to students right away.
+                        </span>
+                    </div>
+                )}
+
                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
                             <tr>
+                                {canApprove && (
+                                    <th className="w-10 px-4 py-2">
+                                        <Checkbox
+                                            aria-label="Select all pending grades on this page"
+                                            disabled={
+                                                pendingOnPage.length === 0
+                                            }
+                                            checked={allPendingSelected}
+                                            onCheckedChange={(checked) =>
+                                                setSelected(
+                                                    checked
+                                                        ? pendingOnPage
+                                                        : [],
+                                                )
+                                            }
+                                        />
+                                    </th>
+                                )}
                                 <th className="px-4 py-2 font-medium">
                                     Student
                                 </th>
@@ -311,7 +443,7 @@ export default function GradesIndex({
                             {grades.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={8}
+                                        colSpan={canApprove ? 9 : 8}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         No grades yet. Use &ldquo;Import
@@ -325,6 +457,34 @@ export default function GradesIndex({
                                     key={grade.id}
                                     className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
                                 >
+                                    {canApprove && (
+                                        <td className="px-4 py-2">
+                                            {grade.approved_at === null && (
+                                                <Checkbox
+                                                    aria-label={`Select ${grade.student.name} in ${grade.subject}`}
+                                                    checked={selected.includes(
+                                                        grade.id,
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setSelected((ids) =>
+                                                            checked
+                                                                ? [
+                                                                      ...ids,
+                                                                      grade.id,
+                                                                  ]
+                                                                : ids.filter(
+                                                                      (id) =>
+                                                                          id !==
+                                                                          grade.id,
+                                                                  ),
+                                                        )
+                                                    }
+                                                />
+                                            )}
+                                        </td>
+                                    )}
                                     <td className="px-4 py-2">
                                         <div className="font-medium">
                                             {grade.student.name}
@@ -376,21 +536,49 @@ export default function GradesIndex({
                                         ) : (
                                             '—'
                                         )}
+                                        {grade.approved_at === null && (
+                                            <Badge
+                                                variant="outline"
+                                                className="ml-1 border-amber-500/50 text-amber-700 dark:text-amber-400"
+                                            >
+                                                Pending approval
+                                            </Badge>
+                                        )}
                                     </td>
                                     <td className="px-4 py-2">
                                         <div className="flex justify-end">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    setDeleting(grade)
-                                                }
-                                            >
-                                                <Trash2 />
-                                                <span className="sr-only">
-                                                    Delete
-                                                </span>
-                                            </Button>
+                                            {canApprove &&
+                                                grade.approved_at === null && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        disabled={approving}
+                                                        onClick={() =>
+                                                            approve({
+                                                                ids: [grade.id],
+                                                            })
+                                                        }
+                                                    >
+                                                        <Check />
+                                                        <span className="sr-only">
+                                                            Approve
+                                                        </span>
+                                                    </Button>
+                                                )}
+                                            {canDelete(grade) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        setDeleting(grade)
+                                                    }
+                                                >
+                                                    <Trash2 />
+                                                    <span className="sr-only">
+                                                        Delete
+                                                    </span>
+                                                </Button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

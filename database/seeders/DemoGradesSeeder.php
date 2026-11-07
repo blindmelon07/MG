@@ -156,6 +156,7 @@ class DemoGradesSeeder extends Seeder
             ['student_id' => $student->id, 'school_year' => $schoolYear, 'term' => null, 'subject' => $subject],
             [
                 'grading_system' => 'k12',
+                'approved_at' => now(),
                 'q1' => $terms[0],
                 'q2' => $terms[1],
                 'q3' => $terms[2],
@@ -192,6 +193,7 @@ class DemoGradesSeeder extends Seeder
             ['student_id' => $student->id, 'school_year' => $schoolYear, 'term' => $term, 'subject' => $title],
             [
                 'grading_system' => 'college',
+                'approved_at' => now(),
                 'subject_code' => $code,
                 'units' => $units,
                 'prelim' => $prelim,

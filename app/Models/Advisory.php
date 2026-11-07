@@ -23,8 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['user_id', 'education_level', 'grade_level', 'section', 'school_year'])]
 class Advisory extends Model
 {
-    /** Education levels whose sections have advisers. */
-    public const EDUCATION_LEVELS = ['shs'];
+    /** Basic Education levels, whose sections have advisers. */
+    public const EDUCATION_LEVELS = ['jhs', 'shs'];
 
     /**
      * @return BelongsTo<User, $this>
