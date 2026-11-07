@@ -70,6 +70,14 @@ type Assignment = {
     grading_system: GradingSystem | null;
 };
 
+type AdvisoryOption = {
+    id: number;
+    grade_level: string;
+    section: string;
+    school_year: string;
+    grading_system: GradingSystem;
+};
+
 type Filters = {
     search: string;
     school_year: string;
@@ -101,6 +109,7 @@ export default function GradesIndex({
     options,
     canManageAll,
     assignments,
+    advisories,
     templateOptions,
 }: {
     grades: Paginated<GradeRow>;
@@ -108,20 +117,26 @@ export default function GradesIndex({
     options: { schoolYears: string[]; subjects: string[] };
     canManageAll: boolean;
     assignments: Assignment[];
+    advisories: AdvisoryOption[];
     templateOptions: TemplateOptions | null;
 }) {
     const { schoolYear } = usePage().props;
     const viewingYear = schoolYear?.selected ?? '';
     const [importing, setImporting] = useState(false);
     const [system, setSystem] = useState<GradingSystem>(
-        assignments.find((assignment) => assignment.grading_system)
-            ?.grading_system ?? 'k12',
+        advisories[0]?.grading_system ??
+            assignments.find((assignment) => assignment.grading_system)
+                ?.grading_system ??
+            'k12',
     );
     // A class-list template only has rows for students on the matching grading system.
     const classTemplates = assignments.filter(
         (assignment) =>
             assignment.grading_system === null ||
             assignment.grading_system === system,
+    );
+    const advisoryTemplates = advisories.filter(
+        (advisory) => advisory.grading_system === system,
     );
     const [deleting, setDeleting] = useState<GradeRow | null>(null);
     const [searchTerm, setSearchTerm] = useState(filters.search);
@@ -142,7 +157,8 @@ export default function GradesIndex({
         );
     };
 
-    const noAssignments = !canManageAll && assignments.length === 0;
+    const noAssignments =
+        !canManageAll && assignments.length === 0 && advisories.length === 0;
 
     return (
         <>
@@ -155,7 +171,9 @@ export default function GradesIndex({
                         description={
                             canManageAll
                                 ? 'Import and review grades for all students.'
-                                : 'Import and review grades for the classes assigned to you.'
+                                : advisories.length > 0
+                                  ? 'Import and review grades for the classes assigned to you and every subject of your advisory class.'
+                                  : 'Import and review grades for the classes assigned to you.'
                         }
                     />
 
@@ -179,9 +197,10 @@ export default function GradesIndex({
                 {noAssignments && (
                     <Alert>
                         <AlertDescription>
-                            You don&apos;t have any teaching assignments yet.
-                            Ask the Registrar&apos;s Office to assign your
-                            subjects and sections before importing grades.
+                            You don&apos;t have any teaching assignments or an
+                            advisory class yet. Ask the Registrar&apos;s Office
+                            to assign your subjects and sections before
+                            importing grades.
                         </AlertDescription>
                     </Alert>
                 )}
@@ -552,6 +571,38 @@ export default function GradesIndex({
                                                         {assignment.section} (
                                                         {assignment.school_year}
                                                         )
+                                                    </a>
+                                                ),
+                                            )}
+                                        </div>
+                                    )}
+                                    {advisoryTemplates.length > 0 && (
+                                        <div className="grid gap-1">
+                                            <span className="text-xs text-muted-foreground">
+                                                Your advisory class (fill in the
+                                                subject column for any subject):
+                                            </span>
+                                            {advisoryTemplates.map(
+                                                (advisory) => (
+                                                    <a
+                                                        key={advisory.id}
+                                                        href={
+                                                            importTemplate(
+                                                                system,
+                                                                {
+                                                                    query: {
+                                                                        advisory:
+                                                                            advisory.id,
+                                                                    },
+                                                                },
+                                                            ).url
+                                                        }
+                                                        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                                    >
+                                                        <Download className="size-4" />
+                                                        {advisory.grade_level} —{' '}
+                                                        {advisory.section} (
+                                                        {advisory.school_year})
                                                     </a>
                                                 ),
                                             )}

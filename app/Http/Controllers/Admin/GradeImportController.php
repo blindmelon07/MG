@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Advisory;
 use App\Models\Course;
 use App\Models\Grade;
 use App\Models\SchoolYear;
@@ -56,6 +57,7 @@ class GradeImportController extends Controller
 
         $filters = $request->validate([
             'assignment' => ['nullable', 'integer'],
+            'advisory' => ['nullable', 'integer'],
             'school_year' => ['nullable', 'string', 'max:9'],
             'education_level' => ['nullable', Rule::in($this->levelsFor($system))],
             'grade_level' => ['nullable', 'string', 'max:255'],
@@ -65,6 +67,10 @@ class GradeImportController extends Controller
         ]);
 
         $assignment = null;
+
+        if (! empty($filters['advisory'])) {
+            return $this->advisoryTemplate($request, $system, $filters);
+        }
 
         if (! empty($filters['assignment'])) {
             $assignment = TeachingAssignment::findOrFail($filters['assignment']);
@@ -86,6 +92,32 @@ class GradeImportController extends Controller
         $name = $assignment !== null
             ? "{$assignment->subject} {$assignment->section} {$year}"
             : collect([$filters['grade_level'] ?? null, $filters['section'] ?? null, $subject, $filtered ? $year : 'template'])->filter()->join(' ');
+
+        return Spreadsheet::download($this->workbook($system, $rows), 'grades-'.$system.'-'.str($name)->slug().'.xlsx');
+    }
+
+    /**
+     * An adviser's section class list. Every subject is open to the adviser,
+     * so the subject column is left for them to fill unless one is chosen.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function advisoryTemplate(Request $request, string $system, array $filters): StreamedResponse
+    {
+        $user = $request->user('web');
+        $advisory = Advisory::query()->whereKey($request->integer('advisory'))->firstOrFail();
+        abort_unless($user->canManageAllGrades() || $advisory->user_id === $user->id, 403);
+
+        $subject = $filters['subject'] ?? null;
+        $students = $advisory->inClass(Student::active()->whereNotNull('student_number'))
+            ->with(['enrollments' => fn ($query) => $query->where('school_year', $advisory->school_year)])
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Student $student) => ($student->enrollments->first()?->gradingSystem() ?? $student->grading_system) === $system)
+            ->values();
+        $rows = array_values(array_map(fn (Student $student) => $this->blankRow($system, $student, $advisory->school_year, $subject), $students->all()));
+
+        $name = collect([$advisory->grade_level, $advisory->section, $subject, $advisory->school_year])->filter()->join(' ');
 
         return Spreadsheet::download($this->workbook($system, $rows), 'grades-'.$system.'-'.str($name)->slug().'.xlsx');
     }
@@ -157,6 +189,7 @@ class GradeImportController extends Controller
         $user = $request->user('web');
         $system = $request->string('grading_system')->toString();
         $assignments = $user->canManageAllGrades() ? null : $user->teachingAssignments()->get();
+        $advisories = $user->canManageAllGrades() ? null : $user->advisories()->get();
 
         try {
             $rows = Spreadsheet::rows($request->file('file')->getRealPath(), $request->file('file')->getClientOriginalExtension());
@@ -187,7 +220,7 @@ class GradeImportController extends Controller
             }
 
             $data = array_combine($header, array_slice(array_pad($row, count($header), null), 0, count($header)));
-            $result = $this->importRow($data, $system, $user, $assignments);
+            $result = $this->importRow($data, $system, $user, $assignments, $advisories);
 
             match ($result['status']) {
                 'created' => $created++,
@@ -207,9 +240,10 @@ class GradeImportController extends Controller
     /**
      * @param  array<string, mixed>  $data
      * @param  Collection<int, TeachingAssignment>|null  $assignments  null when the user may import for anyone
+     * @param  Collection<int, Advisory>|null  $advisories  null when the user may import for anyone
      * @return array{status: 'created'|'updated'|'error', message: string|null}
      */
-    private function importRow(array $data, string $system, User $user, ?Collection $assignments): array
+    private function importRow(array $data, string $system, User $user, ?Collection $assignments, ?Collection $advisories): array
     {
         $studentNumber = $this->clean($data['student_number'] ?? null);
 
@@ -245,7 +279,12 @@ class GradeImportController extends Controller
 
         $section = $student->sectionIn($schoolYear);
 
-        if ($assignments !== null && ! $assignments->contains(fn (TeachingAssignment $a) => $a->covers($subject, $section, $schoolYear))) {
+        // Teachers grade their assigned subjects; advisers grade every subject of their advisory class.
+        $allowed = $assignments === null
+            || $assignments->contains(fn (TeachingAssignment $a) => $a->covers($subject, $section, $schoolYear))
+            || $advisories->contains(fn (Advisory $a) => $a->covers($student, $schoolYear));
+
+        if (! $allowed) {
             $section ??= 'no section';
 
             return $this->error("You are not assigned to {$subject} for {$section} ({$schoolYear}).");

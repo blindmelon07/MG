@@ -115,7 +115,7 @@ class Grade extends Model
     }
 
     /**
-     * Limit grades to the classes a teacher is assigned to.
+     * Limit grades to the classes a teacher is assigned to or advises.
      *
      * @param  Builder<Grade>  $query
      * @return Builder<Grade>
@@ -127,17 +127,26 @@ class Grade extends Model
         }
 
         $assignments = $user->teachingAssignments()->get();
+        $advisories = $user->advisories()->get();
 
-        if ($assignments->isEmpty()) {
+        if ($assignments->isEmpty() && $advisories->isEmpty()) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function (Builder $query) use ($assignments): void {
+        return $query->where(function (Builder $query) use ($assignments, $advisories): void {
             foreach ($assignments as $assignment) {
                 $query->orWhere(function (Builder $query) use ($assignment): void {
                     $query->where('subject', $assignment->subject)
                         ->where('school_year', $assignment->school_year)
                         ->whereHas('student', fn (Builder $q) => $q->inSectionDuring($assignment->section, $assignment->school_year));
+                });
+            }
+
+            // Advisers see every subject of their advisory class.
+            foreach ($advisories as $advisory) {
+                $query->orWhere(function (Builder $query) use ($advisory): void {
+                    $query->where('school_year', $advisory->school_year)
+                        ->whereIn('student_id', $advisory->inClass(Student::query())->select('id'));
                 });
             }
         });
@@ -150,7 +159,8 @@ class Grade extends Model
         }
 
         return $user->teachingAssignments()->get()
-            ->contains(fn (TeachingAssignment $a) => $a->covers($this->subject, $this->student->sectionIn($this->school_year), $this->school_year));
+            ->contains(fn (TeachingAssignment $a) => $a->covers($this->subject, $this->student->sectionIn($this->school_year), $this->school_year))
+            || $user->advisories()->get()->contains(fn (Advisory $a) => $a->covers($this->student, $this->school_year));
     }
 
     /**

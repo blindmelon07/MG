@@ -97,6 +97,16 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * The sections this teacher advises.
+     *
+     * @return HasMany<Advisory, $this>
+     */
+    public function advisories(): HasMany
+    {
+        return $this->hasMany(Advisory::class);
+    }
+
+    /**
      * @return HasMany<Manual, $this>
      */
     public function manuals(): HasMany

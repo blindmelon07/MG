@@ -12,6 +12,7 @@ import {
     MapPin,
     Megaphone,
     Palette,
+    School,
     Tags,
     Users,
 } from 'lucide-react';
@@ -29,6 +30,10 @@ import {
 } from '@/components/ui/sidebar';
 import { hasRole } from '@/lib/roles';
 import { dashboard } from '@/routes';
+import {
+    index as advisoriesIndex,
+    mine as myAdvisory,
+} from '@/routes/admin/advisories';
 import { index as announcementsIndex } from '@/routes/admin/announcements';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 import { index as coursesIndex } from '@/routes/admin/courses';
@@ -88,6 +93,11 @@ export function AppSidebar() {
                       href: myTeachingAssignments(),
                       icon: BookUser,
                   },
+                  {
+                      title: 'My Advisory Class',
+                      href: myAdvisory(),
+                      icon: School,
+                  },
               ]
             : []),
         ...(hasRole(user, 'admin', 'registrar')
@@ -111,6 +121,11 @@ export function AppSidebar() {
                       title: 'Teaching Assignments',
                       href: teachingAssignmentsIndex(),
                       icon: BookUser,
+                  },
+                  {
+                      title: 'Advisers',
+                      href: advisoriesIndex(),
+                      icon: School,
                   },
                   {
                       title: 'School Years',

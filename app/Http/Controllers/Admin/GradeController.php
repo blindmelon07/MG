@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Advisory;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Grade;
@@ -92,6 +93,16 @@ class GradeController extends Controller
                         'grading_system' => $assignment->education_level
                             ? Student::gradingSystemFor($assignment->education_level)
                             : null,
+                    ]),
+            // Sections the teacher advises: any subject, for the section's students.
+            'advisories' => $user->canManageAllGrades()
+                ? []
+                : $user->advisories()
+                    ->orderByDesc('school_year')
+                    ->get(['id', 'education_level', 'grade_level', 'section', 'school_year'])
+                    ->map(fn (Advisory $advisory) => [
+                        ...$advisory->only(['id', 'grade_level', 'section', 'school_year']),
+                        'grading_system' => Student::gradingSystemFor($advisory->education_level),
                     ]),
         ]);
     }

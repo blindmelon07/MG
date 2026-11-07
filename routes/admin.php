@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdvisoryController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementMediaController;
 use App\Http\Controllers\Admin\CampusLocationController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentCredentialController;
 use App\Http\Controllers\Admin\StudentImportController;
 use App\Http\Controllers\Admin\SubjectController;
+use App\Http\Controllers\Admin\SuspensionNoticeController;
 use App\Http\Controllers\Admin\TeachingAssignmentController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserTwoFactorController;
@@ -88,6 +90,9 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
         Route::resource('teaching-assignments', TeachingAssignmentController::class)
             ->only(['index', 'store', 'destroy']);
 
+        Route::resource('advisories', AdvisoryController::class)
+            ->only(['index', 'store', 'destroy']);
+
         Route::get('grades/history', [GradeAuditController::class, 'index'])->name('grades.history');
     });
 
@@ -104,6 +109,10 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
 
     Route::middleware('role:teacher')->group(function () {
         Route::get('my-teaching-assignments', [TeachingAssignmentController::class, 'mine'])->name('teaching-assignments.mine');
+        Route::get('my-advisory', [AdvisoryController::class, 'mine'])->name('advisories.mine');
+        Route::post('advisories/{advisory}/suspension-notices', [SuspensionNoticeController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('advisories.suspension-notices.store');
     });
 
     Route::middleware('super_admin')->group(function () {

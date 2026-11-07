@@ -3,11 +3,15 @@
 namespace App\Services;
 
 use App\Jobs\SendSmsJob;
+use App\Models\Advisory;
 use App\Models\Announcement;
 use App\Models\Student;
+use App\Models\SuspensionNotice;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -90,6 +94,57 @@ class SmsService
         foreach ($recipients as $recipient) {
             SendSmsJob::dispatch($recipient, $message);
         }
+    }
+
+    /**
+     * The phone numbers a suspension notice for the advisory class goes to:
+     * its active students and their guardians, each number once.
+     *
+     * @return BaseCollection<int, string>
+     */
+    public function suspensionRecipients(Advisory $advisory): BaseCollection
+    {
+        return $advisory->students()
+            ->with('guardians')
+            ->get()
+            ->flatMap(fn (Student $student) => [
+                $student->phone_number,
+                ...$student->guardians->pluck('phone_number'),
+            ])
+            ->filter()
+            ->unique(fn (string $phone) => $this->normalize($phone))
+            ->values();
+    }
+
+    /**
+     * Text a class suspension notice to the advisory class. Returns how many
+     * numbers it was sent to.
+     */
+    public function sendSuspensionNotice(SuspensionNotice $notice): int
+    {
+        $recipients = $this->suspensionRecipients($notice->advisory);
+
+        foreach ($recipients as $recipient) {
+            SendSmsJob::dispatch($recipient, $notice->message);
+        }
+
+        return $recipients->count();
+    }
+
+    /**
+     * The text of a class suspension notice. Like announcements, no link.
+     */
+    public function suspensionMessage(Advisory $advisory, string $adviserName, Carbon $startsOn, ?Carbon $endsOn, string $reason): string
+    {
+        $when = $endsOn !== null && ! $endsOn->isSameDay($startsOn)
+            ? "from {$startsOn->format('D, M j, Y')} to {$endsOn->format('D, M j, Y')}"
+            : "on {$startsOn->format('D, M j, Y')}";
+
+        return collect([
+            "CLASS SUSPENSION: {$advisory->label()} has no classes {$when}.",
+            'Reason: '.trim($reason),
+            "- {$adviserName}, Class Adviser",
+        ])->join("\n");
     }
 
     /**
