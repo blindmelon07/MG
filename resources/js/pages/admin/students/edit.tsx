@@ -49,6 +49,7 @@ type EditedStudent = {
     grade_level: string | null;
     section: string | null;
     phone_number: string | null;
+    email: string | null;
     status: 'active' | 'inactive';
     guardians: GuardianRow[];
 };
@@ -148,6 +149,21 @@ export default function StudentsEdit({
                                     />
                                     <InputError message={errors.phone_number} />
                                 </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">
+                                    Student&apos;s email (optional)
+                                </Label>
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="off"
+                                    defaultValue={student.email ?? ''}
+                                    placeholder="student@example.com"
+                                />
+                                <InputError message={errors.email} />
                             </div>
 
                             <StudentPlacementFields

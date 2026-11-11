@@ -10,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\SchoolYear;
 use App\Models\Section;
 use App\Models\Student;
+use App\Notifications\StudentsAdded;
 use App\Services\StudentCredentials;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,7 +24,7 @@ use Inertia\Response;
 class StudentController extends Controller
 {
     /** Student columns that don't change from one school year to the next. */
-    private const PROFILE = ['name', 'student_number', 'phone_number', 'status'];
+    private const PROFILE = ['name', 'student_number', 'phone_number', 'email', 'status'];
 
     public function index(Request $request): Response
     {
@@ -89,7 +90,11 @@ class StudentController extends Controller
         if ($request->boolean('send_credentials')) {
             $password = $student->issueTemporaryPassword();
             $texted = $credentials->text($student, $password);
-            $credentials->flash($request, $student, $password, ['sms_recipients' => $texted]);
+            $emailed = $credentials->email($student, $password);
+            $credentials->flash($request, $student, $password, [
+                'sms_recipients' => $texted,
+                'emailed_to' => $emailed ? $student->email : null,
+            ]);
 
             Log::info('Student credentials issued', [
                 'user_id' => $request->user('web')?->id,
@@ -97,6 +102,8 @@ class StudentController extends Controller
                 'student_ids' => [$student->id],
             ]);
         }
+
+        StudentsAdded::send([$student], $year, $request->user('web'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Student added to S.Y. :year.', ['year' => $year])]);
 

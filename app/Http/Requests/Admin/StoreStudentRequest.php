@@ -27,6 +27,7 @@ class StoreStudentRequest extends FormRequest
             'student_number' => ['required', 'string', 'max:255', 'unique:students,student_number'],
             ...$this->placementRules(),
             'phone_number' => ['nullable', 'string', new PhilippineMobileNumber],
+            'email' => ['nullable', 'string', 'email', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'send_credentials' => ['sometimes', 'boolean'],
             'guardians' => ['required', 'array', 'min:1'],

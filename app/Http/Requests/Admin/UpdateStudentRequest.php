@@ -31,6 +31,7 @@ class UpdateStudentRequest extends FormRequest
             'student_number' => ['required', 'string', 'max:255', Rule::unique('students', 'student_number')->ignore($student)],
             ...$this->placementRules(),
             'phone_number' => ['nullable', 'string', new PhilippineMobileNumber],
+            'email' => ['nullable', 'string', 'email', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'guardians' => ['required', 'array', 'min:1'],
             'guardians.*.id' => ['nullable', 'integer', Rule::exists('guardians', 'id')->where('student_id', $studentId)],

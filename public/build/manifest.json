@@ -299,9 +299,9 @@
       "_createLucideIcon-CL8Q_N-z.js"
     ]
   },
-  "_fonts-C9MNnjVw.css": {
-    "file": "assets/fonts-C9MNnjVw.css",
-    "src": "_fonts-C9MNnjVw.css"
+  "_fonts-iZg3g7Zp.css": {
+    "file": "assets/fonts-iZg3g7Zp.css",
+    "src": "_fonts-iZg3g7Zp.css"
   },
   "_grades-BI61cUmL.js": {
     "file": "assets/grades-BI61cUmL.js",
@@ -366,6 +366,14 @@
   "_instrument-sans-600-normal-B9e8oLYv.woff": {
     "file": "assets/instrument-sans-600-normal-B9e8oLYv.woff",
     "src": "_instrument-sans-600-normal-B9e8oLYv.woff"
+  },
+  "_instrument-sans-700-normal-CYfAanHo.woff2": {
+    "file": "assets/instrument-sans-700-normal-CYfAanHo.woff2",
+    "src": "_instrument-sans-700-normal-CYfAanHo.woff2"
+  },
+  "_instrument-sans-700-normal-DfAjL1vF.woff": {
+    "file": "assets/instrument-sans-700-normal-DfAjL1vF.woff",
+    "src": "_instrument-sans-700-normal-DfAjL1vF.woff"
   },
   "_key-round-Bh2U9gRZ.js": {
     "file": "assets/key-round-Bh2U9gRZ.js",
@@ -859,7 +867,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-CsJSMhJp.css",
+    "file": "assets/app-C2k7oQlt.css",
     "name": "app",
     "names": [
       "app.css"
@@ -868,7 +876,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DR8KPXuG.js",
+    "file": "assets/app-uWPSeLDl.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1343,7 +1351,7 @@
     ]
   },
   "resources/js/pages/admin/students/create.tsx": {
-    "file": "assets/create-DemM1kEr.js",
+    "file": "assets/create-NUh-gptj.js",
     "name": "create",
     "src": "resources/js/pages/admin/students/create.tsx",
     "isDynamicEntry": true,
@@ -1366,7 +1374,7 @@
     ]
   },
   "resources/js/pages/admin/students/edit.tsx": {
-    "file": "assets/edit-BlQkFJTp.js",
+    "file": "assets/edit--uPyGGEe.js",
     "name": "edit",
     "src": "resources/js/pages/admin/students/edit.tsx",
     "isDynamicEntry": true,
@@ -1389,7 +1397,7 @@
     ]
   },
   "resources/js/pages/admin/students/index.tsx": {
-    "file": "assets/students-t4LKnOtV.js",
+    "file": "assets/students-B67pHWDD.js",
     "name": "students",
     "src": "resources/js/pages/admin/students/index.tsx",
     "isDynamicEntry": true,
@@ -1693,7 +1701,7 @@
     ]
   },
   "resources/js/pages/kiosk/home.tsx": {
-    "file": "assets/home-CiLaguQA.js",
+    "file": "assets/home-CqKvqVrg.js",
     "name": "home",
     "src": "resources/js/pages/kiosk/home.tsx",
     "isDynamicEntry": true,

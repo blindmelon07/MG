@@ -69,10 +69,10 @@ export default function KioskHome({
 
             <div className="flex flex-col gap-10">
                 <section className="text-center">
-                    <h1 className="text-3xl font-semibold tracking-tight">
+                    <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
                         Welcome to Aemilianum College Inc.
                     </h1>
-                    <p className="mt-2 text-muted-foreground">
+                    <p className="mt-2 text-lg text-muted-foreground">
                         Touch a tile below to browse the school manual, see the
                         latest announcements, or check your grades.
                     </p>
@@ -81,7 +81,7 @@ export default function KioskHome({
                 {featuredEvents.length > 0 && (
                     <section>
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="flex items-center gap-2 text-lg font-semibold">
+                            <h2 className="flex items-center gap-2 text-xl font-bold">
                                 <Star className="size-5 fill-current text-amber-500" />
                                 Featured events
                             </h2>
@@ -89,7 +89,7 @@ export default function KioskHome({
                                 href={announcementsIndex({
                                     query: { type: 'event' },
                                 })}
-                                className="flex items-center text-sm font-medium text-primary hover:underline"
+                                className="flex items-center text-base font-semibold text-primary hover:underline"
                             >
                                 All events <ChevronRight className="size-4" />
                             </Link>
@@ -120,7 +120,7 @@ export default function KioskHome({
                                                     event.event_start_at,
                                                 )}
                                             </span>
-                                            <h3 className="text-lg leading-snug font-semibold">
+                                            <h3 className="text-xl leading-snug font-bold">
                                                 {event.title}
                                             </h3>
                                             {event.location && (
@@ -129,7 +129,7 @@ export default function KioskHome({
                                                     {event.location}
                                                 </span>
                                             )}
-                                            <p className="text-sm text-muted-foreground">
+                                            <p className="text-base text-muted-foreground">
                                                 {event.summary}
                                             </p>
                                         </CardContent>
@@ -142,14 +142,14 @@ export default function KioskHome({
 
                 <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <Link href={manualsIndex()}>
-                        <Card className="h-full transition-colors hover:border-primary">
+                        <Card className="h-full border-2 transition-colors hover:border-primary">
                             <CardHeader>
-                                <BookOpen className="size-10 text-primary" />
-                                <CardTitle className="text-xl">
+                                <BookOpen className="size-12 text-primary" />
+                                <CardTitle className="text-2xl font-bold">
                                     School Manual
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="text-muted-foreground">
+                            <CardContent className="text-base text-muted-foreground">
                                 Browse institutional policies, academic
                                 guidelines, and student services.
                             </CardContent>
@@ -157,14 +157,14 @@ export default function KioskHome({
                     </Link>
 
                     <Link href={announcementsIndex()}>
-                        <Card className="h-full transition-colors hover:border-primary">
+                        <Card className="h-full border-2 transition-colors hover:border-primary">
                             <CardHeader>
-                                <Megaphone className="size-10 text-primary" />
-                                <CardTitle className="text-xl">
+                                <Megaphone className="size-12 text-primary" />
+                                <CardTitle className="text-2xl font-bold">
                                     Announcements & Events
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="text-muted-foreground">
+                            <CardContent className="text-base text-muted-foreground">
                                 Stay up to date with the latest school news and
                                 upcoming events.
                             </CardContent>
@@ -172,14 +172,14 @@ export default function KioskHome({
                     </Link>
 
                     <Link href={mapsIndex()}>
-                        <Card className="h-full transition-colors hover:border-primary">
+                        <Card className="h-full border-2 transition-colors hover:border-primary">
                             <CardHeader>
-                                <MapPin className="size-10 text-primary" />
-                                <CardTitle className="text-xl">
+                                <MapPin className="size-12 text-primary" />
+                                <CardTitle className="text-2xl font-bold">
                                     Campus Map
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="text-muted-foreground">
+                            <CardContent className="text-base text-muted-foreground">
                                 Find your way around the campus and locate key
                                 buildings and offices.
                             </CardContent>
@@ -187,14 +187,14 @@ export default function KioskHome({
                     </Link>
 
                     <Link href={studentLogin({ query: { kiosk: 1 } })}>
-                        <Card className="h-full transition-colors hover:border-primary">
+                        <Card className="h-full border-2 transition-colors hover:border-primary">
                             <CardHeader>
-                                <GraduationCap className="size-10 text-primary" />
-                                <CardTitle className="text-xl">
+                                <GraduationCap className="size-12 text-primary" />
+                                <CardTitle className="text-2xl font-bold">
                                     My Grades
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="text-muted-foreground">
+                            <CardContent className="text-base text-muted-foreground">
                                 Sign in with your student number to check your
                                 grades.
                             </CardContent>
@@ -204,7 +204,7 @@ export default function KioskHome({
 
                 {categories.length > 0 && (
                     <section>
-                        <h2 className="mb-4 text-lg font-semibold">
+                        <h2 className="mb-4 text-xl font-bold">
                             Browse by category
                         </h2>
                         <div className="flex flex-wrap gap-3">
@@ -214,7 +214,7 @@ export default function KioskHome({
                                     href={manualsIndex({
                                         query: { category: category.slug },
                                     })}
-                                    className="rounded-full border border-sidebar-border/70 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent dark:border-sidebar-border"
+                                    className="rounded-full border border-2 border-sidebar-border/70 px-5 py-2.5 text-base font-semibold transition-colors hover:bg-accent dark:border-sidebar-border"
                                 >
                                     {category.name}
                                     <span className="ml-2 text-muted-foreground">
@@ -229,12 +229,12 @@ export default function KioskHome({
                 {latestAnnouncements.length > 0 && (
                     <section>
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">
+                            <h2 className="text-xl font-bold">
                                 Latest announcements
                             </h2>
                             <Link
                                 href={announcementsIndex()}
-                                className="flex items-center text-sm font-medium text-primary hover:underline"
+                                className="flex items-center text-base font-semibold text-primary hover:underline"
                             >
                                 View all <ChevronRight className="size-4" />
                             </Link>
@@ -254,7 +254,7 @@ export default function KioskHome({
                                                 ) : (
                                                     <Megaphone className="size-5 text-primary" />
                                                 )}
-                                                <span className="font-medium">
+                                                <span className="text-lg font-semibold">
                                                     {announcement.title}
                                                 </span>
                                             </div>

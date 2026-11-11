@@ -39,6 +39,8 @@ type IssuedCredentials = {
     sms_sent: boolean | null;
     /** How many numbers (student and guardians) the login was texted to. */
     sms_recipients: number | null;
+    /** The student's email the login was sent to, if any. */
+    emailed_to: string | null;
     slip_url: string;
 };
 
@@ -190,7 +192,14 @@ export function IssuedCredentialsDialog() {
                                     </AlertDescription>
                                 </Alert>
                             )}
-                        {issued.sms_recipients === 0 && (
+                        {issued.emailed_to && (
+                            <Alert>
+                                <AlertDescription>
+                                    Emailing the login to {issued.emailed_to}.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        {issued.sms_recipients === 0 && !issued.emailed_to && (
                             <Alert variant="destructive">
                                 <AlertDescription>
                                     No phone numbers on file to text. Give the

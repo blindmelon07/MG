@@ -494,8 +494,10 @@ export default function StudentsIndex({
                                         htmlFor="import-send-credentials"
                                         className="leading-snug font-normal"
                                     >
-                                        Text each new student&apos;s portal
-                                        login to the student and their guardians
+                                        Send each new student&apos;s portal
+                                        login by SMS to the student and their
+                                        guardians, and by email to the student
+                                        if the email column is filled in
                                     </Label>
                                 </div>
                                 <DialogFooter className="mt-4">

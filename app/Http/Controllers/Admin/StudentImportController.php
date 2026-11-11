@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\SchoolYear;
 use App\Models\Section;
 use App\Models\Student;
+use App\Notifications\StudentsAdded;
 use App\Rules\PhilippineMobileNumber;
 use App\Services\StudentCredentials;
 use App\Support\Spreadsheet;
@@ -33,7 +34,7 @@ class StudentImportController extends Controller
      */
     private function headers(): array
     {
-        $headers = ['name', 'student_number', 'education_level', 'grade_level', 'course', 'section', 'status', 'phone_number'];
+        $headers = ['name', 'student_number', 'education_level', 'grade_level', 'course', 'section', 'status', 'phone_number', 'email'];
 
         for ($i = 1; $i <= self::GUARDIAN_SLOTS; $i++) {
             $headers[] = "guardian_{$i}_name";
@@ -173,9 +174,10 @@ class StudentImportController extends Controller
         $year = SchoolYear::selected();
         $sendCredentials = $request->boolean('send_credentials');
 
-        $counts = ['created' => 0, 'enrolled' => 0, 'unchanged' => 0, 'texted' => 0];
+        $counts = ['created' => 0, 'enrolled' => 0, 'unchanged' => 0, 'texted' => 0, 'emailed' => 0];
         $errors = [];
         $issuedTo = [];
+        $created = [];
         $rowNumber = 1;
 
         foreach ($rows as $row) {
@@ -196,8 +198,14 @@ class StudentImportController extends Controller
 
             $counts[$result['status']]++;
 
+            if ($result['status'] === 'created') {
+                $created[] = $result['student'];
+            }
+
             if ($result['status'] === 'created' && $sendCredentials) {
-                $counts['texted'] += $credentials->text($result['student'], $result['student']->issueTemporaryPassword());
+                $password = $result['student']->issueTemporaryPassword();
+                $counts['texted'] += $credentials->text($result['student'], $password);
+                $counts['emailed'] += (int) $credentials->email($result['student'], $password);
                 $issuedTo[] = $result['student']->id;
             }
         }
@@ -209,6 +217,8 @@ class StudentImportController extends Controller
                 'student_ids' => $issuedTo,
             ]);
         }
+
+        StudentsAdded::send($created, $year, $request->user('web'), imported: true);
 
         Inertia::flash('toast', [
             'type' => $errors === [] ? 'success' : ($counts['created'] + $counts['enrolled'] > 0 ? 'warning' : 'error'),
@@ -297,6 +307,12 @@ class StudentImportController extends Controller
             return $this->error('Student phone number must be exactly 11 digits (09XXXXXXXXX).');
         }
 
+        $email = $this->clean($data['email'] ?? null);
+
+        if ($email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return $this->error("Email \"{$email}\" is not a valid email address.");
+        }
+
         $status = strtolower($this->clean($data['status'] ?? null) ?? 'active');
 
         if (! in_array($status, ['active', 'inactive'], true)) {
@@ -307,6 +323,7 @@ class StudentImportController extends Controller
             'name' => $name,
             'student_number' => $studentNumber,
             'phone_number' => $phoneNumber,
+            'email' => $email,
             'status' => $status,
         ], $placement, $guardians, $year);
 
@@ -397,7 +414,7 @@ class StudentImportController extends Controller
     }
 
     /**
-     * @param  array{created: int, enrolled: int, unchanged: int, texted: int}  $counts
+     * @param  array{created: int, enrolled: int, unchanged: int, texted: int, emailed: int}  $counts
      * @param  list<string>  $errors
      */
     private function summarize(array $counts, string $year, array $errors): string
@@ -414,6 +431,10 @@ class StudentImportController extends Controller
 
         if ($counts['texted'] > 0) {
             $parts[] = "Login details texted to {$counts['texted']} number(s).";
+        }
+
+        if ($counts['emailed'] > 0) {
+            $parts[] = "Login details emailed to {$counts['emailed']} student(s).";
         }
 
         if ($errors !== []) {

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -25,6 +26,7 @@ use Illuminate\Support\Str;
  * @property string|null $section
  * @property string $grading_system
  * @property string|null $phone_number
+ * @property string|null $email
  * @property string $status
  * @property string|null $password
  * @property bool $must_change_password
@@ -39,13 +41,14 @@ use Illuminate\Support\Str;
     'section',
     'grading_system',
     'phone_number',
+    'email',
     'status',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class Student extends Authenticatable
 {
     /** @use HasFactory<StudentFactory> */
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     public const GRADING_SYSTEMS = ['k12', 'college'];
 

@@ -141,3 +141,49 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+ * Kiosk high-visibility mode. The kiosk stands in open, brightly lit areas
+ * and is read from a step back, so its pages get larger type, darker hint
+ * text, firmer borders and heavier weights. Everything is mixed from the
+ * theme colors (including the ones an admin picks), so it suits any theme.
+ * Phones are held close, so only tablet and kiosk screens are scaled up.
+ */
+@media (min-width: 768px) {
+    html:has(.kiosk-root) {
+        font-size: 112.5%;
+    }
+}
+
+@media (min-width: 1280px) {
+    html:has(.kiosk-root) {
+        font-size: 125%;
+    }
+}
+
+/* On the root so dialogs, menus and toasts outside the layout match. */
+:root:has(.kiosk-root) {
+    --color-muted-foreground: color-mix(
+        in oklab,
+        var(--muted-foreground) 45%,
+        var(--foreground)
+    );
+    --color-border: color-mix(in oklab, var(--border) 60%, var(--foreground));
+    --color-input: color-mix(in oklab, var(--input) 60%, var(--foreground));
+    --color-sidebar-border: color-mix(
+        in oklab,
+        var(--sidebar-border) 60%,
+        var(--foreground)
+    );
+}
+
+.kiosk-root {
+    font-weight: 500;
+    /* Antialiasing thins strokes; full rendering holds up better in glare. */
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+}
+
+.kiosk-root :is(h1, h2, h3) {
+    font-weight: 700;
+}

@@ -94,6 +94,20 @@ export default function StudentsCreate({
                                 </div>
                             </div>
 
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">
+                                    Student&apos;s email (optional)
+                                </Label>
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="off"
+                                    placeholder="student@example.com"
+                                />
+                                <InputError message={errors.email} />
+                            </div>
+
                             <StudentPlacementFields
                                 levels={educationLevels}
                                 courses={courses}
@@ -236,14 +250,15 @@ export default function StudentsCreate({
                                 />
                                 <div className="grid gap-1">
                                     <Label htmlFor="send_credentials">
-                                        Text the portal login now
+                                        Send the portal login now
                                     </Label>
                                     <p className="text-xs text-muted-foreground">
                                         Creates a temporary password and sends
                                         the student # and password by SMS to the
-                                        student&apos;s phone and every guardian.
-                                        It is also shown once on screen, with a
-                                        printable slip.
+                                        student&apos;s phone and every guardian,
+                                        and by email to the student if an email
+                                        is given. It is also shown once on
+                                        screen, with a printable slip.
                                     </p>
                                 </div>
                             </div>

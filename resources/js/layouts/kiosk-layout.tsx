@@ -121,7 +121,7 @@ export default function KioskLayout({
     const { url } = usePage();
 
     return (
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
+        <div className="kiosk-root flex min-h-screen flex-col bg-background text-foreground">
             <KioskThemeStyle />
 
             {/* Phones: slim sticky app bar. */}
@@ -171,13 +171,13 @@ export default function KioskLayout({
                         <img
                             src="/logo.png"
                             alt="Aemilianum College Inc."
-                            className="size-12"
+                            className="size-14"
                         />
                         <div className="flex flex-col">
-                            <span className="text-lg font-semibold tracking-tight">
+                            <span className="text-xl font-bold tracking-tight">
                                 Aemilianum College Inc.
                             </span>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-base text-muted-foreground">
                                 Smart Information Kiosk
                             </span>
                         </div>
@@ -186,7 +186,7 @@ export default function KioskLayout({
                     <div className="flex items-center gap-4">
                         <div className="text-right tabular-nums">
                             <div
-                                className="text-lg font-semibold tracking-tight"
+                                className="text-2xl font-bold tracking-tight"
                                 suppressHydrationWarning
                             >
                                 {now.toLocaleTimeString(undefined, {
@@ -220,12 +220,13 @@ export default function KioskLayout({
                                 key={item.title}
                                 href={item.href}
                                 className={cn(
-                                    'flex shrink-0 items-center gap-2 rounded-lg px-4 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
-                                    isActive(url, item.href.url) &&
-                                        'bg-accent text-accent-foreground',
+                                    'flex shrink-0 items-center gap-2 rounded-lg px-4 py-3 text-lg font-semibold transition-colors',
+                                    isActive(url, item.href.url)
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'text-foreground hover:bg-accent hover:text-accent-foreground',
                                 )}
                             >
-                                <item.icon className="size-5" />
+                                <item.icon className="size-6" />
                                 {item.title}
                             </Link>
                         ))}
@@ -238,7 +239,7 @@ export default function KioskLayout({
                 {children}
             </main>
 
-            <footer className="hidden border-t border-sidebar-border/70 px-6 py-4 text-center text-xs text-muted-foreground md:block dark:border-sidebar-border">
+            <footer className="hidden border-t border-sidebar-border/70 px-6 py-4 text-center text-sm text-muted-foreground md:block dark:border-sidebar-border">
                 Aemilianum College Inc. &mdash; Smart Information Kiosk
             </footer>
 
@@ -257,7 +258,7 @@ export default function KioskLayout({
                                 href={item.href}
                                 aria-current={active ? 'page' : undefined}
                                 className={cn(
-                                    'flex flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors',
+                                    'flex flex-col items-center gap-1 py-2 text-xs font-semibold transition-colors',
                                     active
                                         ? 'text-primary'
                                         : 'text-muted-foreground',
@@ -266,7 +267,8 @@ export default function KioskLayout({
                                 <span
                                     className={cn(
                                         'flex h-7 w-12 items-center justify-center rounded-full transition-colors',
-                                        active && 'bg-primary/10',
+                                        active &&
+                                            'bg-primary text-primary-foreground',
                                     )}
                                 >
                                     <item.icon className="size-5" />

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendSmsJob;
 use App\Models\Student;
+use App\Notifications\StudentLoginCredentials;
 use App\Support\LoginSlips;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -56,6 +57,20 @@ class StudentCredentials
     }
 
     /**
+     * Queue the login to the student's email, if they have one. Returns whether it was sent.
+     */
+    public function email(Student $student, string $password): bool
+    {
+        if (blank($student->email)) {
+            return false;
+        }
+
+        $student->notify(new StudentLoginCredentials($password));
+
+        return true;
+    }
+
+    /**
      * Show the password to the registrar once, with a link to its printable slip.
      *
      * @param  array<string, mixed>  $extra  e.g. how the password was texted
@@ -75,6 +90,7 @@ class StudentCredentials
             'password' => $password,
             'sms_sent' => null,
             'sms_recipients' => null,
+            'emailed_to' => null,
             ...$extra,
             'slip_url' => route('admin.students.credentials.slip', $token),
         ]);
