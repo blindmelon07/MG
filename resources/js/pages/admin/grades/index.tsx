@@ -1,5 +1,13 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { Check, Download, History, Trash2, Undo2, Upload } from 'lucide-react';
+import {
+    Check,
+    Download,
+    Eye,
+    History,
+    Trash2,
+    Undo2,
+    Upload,
+} from 'lucide-react';
 import { useState } from 'react';
 import GradeController from '@/actions/App/Http/Controllers/Admin/GradeController';
 import GradeImportController from '@/actions/App/Http/Controllers/Admin/GradeImportController';
@@ -10,7 +18,6 @@ import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -87,6 +94,34 @@ type AdvisoryOption = {
     grading_system: GradingSystem;
 };
 
+/** One subject's pending grades, approved or returned together. */
+type PendingSubject = {
+    school_year: string;
+    term: string | null;
+    subject: string;
+    subject_code: string | null;
+    /** The teacher who uploaded them. */
+    encoded_by: number | null;
+    teacher: string | null;
+    count: number;
+    sections: string[];
+};
+
+function subjectPayload(subject: PendingSubject) {
+    return {
+        school_year: subject.school_year,
+        term: subject.term,
+        subject: subject.subject,
+        encoded_by: subject.encoded_by,
+    };
+}
+
+function subjectLabel(subject: PendingSubject) {
+    return subject.subject_code
+        ? `${subject.subject_code} ${subject.subject}`
+        : subject.subject;
+}
+
 type Filters = {
     search: string;
     school_year: string;
@@ -124,6 +159,7 @@ export default function GradesIndex({
     pendingCount,
     returnedCount,
     canApprove,
+    pendingSubjects,
 }: {
     grades: Paginated<GradeRow>;
     filters: Filters;
@@ -135,6 +171,7 @@ export default function GradesIndex({
     pendingCount: number;
     returnedCount: number;
     canApprove: boolean;
+    pendingSubjects: PendingSubject[];
 }) {
     const { schoolYear } = usePage().props;
     const viewingYear = schoolYear?.selected ?? '';
@@ -156,23 +193,19 @@ export default function GradesIndex({
     );
     const [deleting, setDeleting] = useState<GradeRow | null>(null);
     const [searchTerm, setSearchTerm] = useState(filters.search);
-    const [selected, setSelected] = useState<number[]>([]);
     const [approving, setApproving] = useState(false);
-
-    // Returned grades wait for the teacher, not the registrar.
-    const pendingOnPage = grades.data
-        .filter(
-            (grade) => grade.approved_at === null && grade.returned_at === null,
-        )
-        .map((grade) => grade.id);
-    const [returning, setReturning] = useState<number[] | null>(null);
+    // The subject being approved or returned, as a whole.
+    const [confirmingApproval, setConfirmingApproval] =
+        useState<PendingSubject | null>(null);
+    const [returning, setReturning] = useState<PendingSubject | null>(null);
     const [returnReason, setReturnReason] = useState('');
     const [returnError, setReturnError] = useState<string | undefined>();
 
     const submitReturn = () =>
+        returning &&
         router.post(
             returnGrades().url,
-            { ids: returning ?? [], reason: returnReason },
+            { ...subjectPayload(returning), reason: returnReason },
             {
                 preserveScroll: true,
                 onStart: () => setApproving(true),
@@ -182,30 +215,29 @@ export default function GradesIndex({
                     setReturning(null);
                     setReturnReason('');
                     setReturnError(undefined);
-                    setSelected([]);
                 },
             },
         );
-    const allPendingSelected =
-        pendingOnPage.length > 0 &&
-        pendingOnPage.every((id) => selected.includes(id));
 
-    const approve = (payload: Record<string, string | boolean | number[]>) =>
-        router.post(approveGrades().url, payload, {
+    const submitApproval = () =>
+        confirmingApproval &&
+        router.post(approveGrades().url, subjectPayload(confirmingApproval), {
             preserveScroll: true,
             onStart: () => setApproving(true),
             onFinish: () => setApproving(false),
-            onSuccess: () => setSelected([]),
+            onSuccess: () => setConfirmingApproval(null),
         });
 
-    const approveAllMatching = () =>
-        approve({
-            all: true,
-            search: filters.search,
-            school_year: filters.school_year,
-            section: filters.section,
-            subject: filters.subject,
+    const reviewSubject = (subject: PendingSubject) => {
+        setSearchTerm('');
+        applyFilters({
+            subject: subject.subject,
+            school_year: subject.school_year,
+            section: '',
+            search: '',
+            status: 'pending',
         });
+    };
 
     // Teachers can't delete a college grade once the registrar has posted it.
     const canDelete = (grade: GradeRow) =>
@@ -213,9 +245,7 @@ export default function GradesIndex({
         grade.grading_system !== 'college' ||
         grade.approved_at === null;
 
-    const pendingMessage = canApprove
-        ? `${pendingCount} college grade${pendingCount === 1 ? ' is' : 's are'} waiting for your approval before students can see ${pendingCount === 1 ? 'it' : 'them'}.`
-        : `${pendingCount} of your college grade${pendingCount === 1 ? ' is' : 's are'} waiting for the registrar\u2019s approval. Students see grades once they are posted.`;
+    const pendingMessage = `${pendingCount} of your college grade${pendingCount === 1 ? ' is' : 's are'} waiting for the registrar\u2019s approval. Students see grades once they are posted.`;
 
     const applyFilters = (changes: Partial<Filters>) => {
         const next = { ...filters, search: searchTerm, ...changes };
@@ -306,7 +336,90 @@ export default function GradesIndex({
                     </Alert>
                 )}
 
-                {pendingCount > 0 && (
+                {canApprove && pendingSubjects.length > 0 && (
+                    <section className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
+                        <div>
+                            <h2 className="font-semibold">
+                                Waiting for approval
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                {pendingSubjects.length} subject
+                                {pendingSubjects.length === 1 ? '' : 's'} (
+                                {pendingCount} grade
+                                {pendingCount === 1 ? '' : 's'}). Each subject
+                                is approved or returned as a whole; approved
+                                grades are posted to students right away.
+                            </p>
+                        </div>
+                        <ul className="divide-y divide-sidebar-border/70 overflow-hidden rounded-lg border border-sidebar-border/70 bg-background dark:divide-sidebar-border dark:border-sidebar-border">
+                            {pendingSubjects.map((subject) => (
+                                <li
+                                    key={[
+                                        subject.school_year,
+                                        subject.term,
+                                        subject.subject,
+                                        subject.encoded_by,
+                                    ].join('|')}
+                                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                                >
+                                    <div className="min-w-0">
+                                        <div className="font-medium">
+                                            {subjectLabel(subject)}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {[
+                                                subject.term,
+                                                `S.Y. ${subject.school_year}`,
+                                                subject.sections.join(', '),
+                                                subject.teacher
+                                                    ? `by ${subject.teacher}`
+                                                    : null,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Badge variant="secondary">
+                                            {subject.count} student
+                                            {subject.count === 1 ? '' : 's'}
+                                        </Badge>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                reviewSubject(subject)
+                                            }
+                                        >
+                                            <Eye /> Review
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={approving}
+                                            onClick={() =>
+                                                setReturning(subject)
+                                            }
+                                        >
+                                            <Undo2 /> Return
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            disabled={approving}
+                                            onClick={() =>
+                                                setConfirmingApproval(subject)
+                                            }
+                                        >
+                                            <Check /> Approve subject
+                                        </Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
+
+                {!canApprove && pendingCount > 0 && (
                     <Alert>
                         <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
                             <span>{pendingMessage}</span>
@@ -424,62 +537,10 @@ export default function GradesIndex({
                     )}
                 </div>
 
-                {canApprove && pendingOnPage.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                            size="sm"
-                            disabled={approving || selected.length === 0}
-                            onClick={() => approve({ ids: selected })}
-                        >
-                            <Check /> Approve selected ({selected.length})
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={approving || selected.length === 0}
-                            onClick={() => setReturning(selected)}
-                        >
-                            <Undo2 /> Return selected
-                        </Button>
-                        {filters.status === 'pending' &&
-                            grades.total > pendingOnPage.length && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={approving}
-                                    onClick={approveAllMatching}
-                                >
-                                    <Check /> Approve all {grades.total} pending
-                                </Button>
-                            )}
-                        <span className="text-xs text-muted-foreground">
-                            Approved grades are posted to students right away.
-                        </span>
-                    </div>
-                )}
-
                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead className="border-b border-sidebar-border/70 bg-muted/50 text-left dark:border-sidebar-border">
                             <tr>
-                                {canApprove && (
-                                    <th className="w-10 px-4 py-2">
-                                        <Checkbox
-                                            aria-label="Select all pending grades on this page"
-                                            disabled={
-                                                pendingOnPage.length === 0
-                                            }
-                                            checked={allPendingSelected}
-                                            onCheckedChange={(checked) =>
-                                                setSelected(
-                                                    checked
-                                                        ? pendingOnPage
-                                                        : [],
-                                                )
-                                            }
-                                        />
-                                    </th>
-                                )}
                                 <th className="px-4 py-2 font-medium">
                                     Student
                                 </th>
@@ -510,7 +571,7 @@ export default function GradesIndex({
                             {grades.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={canApprove ? 9 : 8}
+                                        colSpan={8}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         No grades yet. Use &ldquo;Import
@@ -524,36 +585,6 @@ export default function GradesIndex({
                                     key={grade.id}
                                     className="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border"
                                 >
-                                    {canApprove && (
-                                        <td className="px-4 py-2">
-                                            {pendingOnPage.includes(
-                                                grade.id,
-                                            ) && (
-                                                <Checkbox
-                                                    aria-label={`Select ${grade.student.name} in ${grade.subject}`}
-                                                    checked={selected.includes(
-                                                        grade.id,
-                                                    )}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        setSelected((ids) =>
-                                                            checked
-                                                                ? [
-                                                                      ...ids,
-                                                                      grade.id,
-                                                                  ]
-                                                                : ids.filter(
-                                                                      (id) =>
-                                                                          id !==
-                                                                          grade.id,
-                                                                  ),
-                                                        )
-                                                    }
-                                                />
-                                            )}
-                                        </td>
-                                    )}
                                     <td className="px-4 py-2">
                                         <div className="font-medium">
                                             {grade.student.name}
@@ -635,48 +666,6 @@ export default function GradesIndex({
                                     </td>
                                     <td className="px-4 py-2">
                                         <div className="flex justify-end">
-                                            {canApprove &&
-                                                pendingOnPage.includes(
-                                                    grade.id,
-                                                ) && (
-                                                    <>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            disabled={approving}
-                                                            title="Approve"
-                                                            onClick={() =>
-                                                                approve({
-                                                                    ids: [
-                                                                        grade.id,
-                                                                    ],
-                                                                })
-                                                            }
-                                                        >
-                                                            <Check />
-                                                            <span className="sr-only">
-                                                                Approve
-                                                            </span>
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            disabled={approving}
-                                                            title="Return to teacher"
-                                                            onClick={() =>
-                                                                setReturning([
-                                                                    grade.id,
-                                                                ])
-                                                            }
-                                                        >
-                                                            <Undo2 />
-                                                            <span className="sr-only">
-                                                                Return to
-                                                                teacher
-                                                            </span>
-                                                        </Button>
-                                                    </>
-                                                )}
                                             {canDelete(grade) && (
                                                 <Button
                                                     variant="ghost"
@@ -741,11 +730,8 @@ export default function GradesIndex({
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            Return{' '}
-                            {returning?.length === 1
-                                ? 'this grade'
-                                : `${returning?.length ?? 0} grades`}{' '}
-                            to the teacher?
+                            Return {returning ? subjectLabel(returning) : ''} to
+                            the teacher?
                         </DialogTitle>
                     </DialogHeader>
                     <form
@@ -756,9 +742,12 @@ export default function GradesIndex({
                         }}
                     >
                         <p className="text-sm text-muted-foreground">
-                            The grades stay hidden from students. The teacher is
-                            emailed the reason and can upload a correction,
-                            which comes back to you for approval.
+                            All {returning?.count ?? 0} grade
+                            {returning?.count === 1 ? '' : 's'} in this subject
+                            stay hidden from students.{' '}
+                            {returning?.teacher ?? 'The teacher'} is emailed the
+                            reason and can upload a correction, which comes back
+                            to you for approval.
                         </p>
                         <div className="grid gap-2">
                             <Label htmlFor="return_reason">
@@ -786,6 +775,46 @@ export default function GradesIndex({
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={confirmingApproval !== null}
+                onOpenChange={(open) => !open && setConfirmingApproval(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            Approve{' '}
+                            {confirmingApproval
+                                ? subjectLabel(confirmingApproval)
+                                : ''}
+                            ?
+                        </DialogTitle>
+                    </DialogHeader>
+                    {confirmingApproval && (
+                        <p className="text-sm text-muted-foreground">
+                            All {confirmingApproval.count} grade
+                            {confirmingApproval.count === 1 ? '' : 's'} for{' '}
+                            {[
+                                confirmingApproval.term,
+                                `S.Y. ${confirmingApproval.school_year}`,
+                            ]
+                                .filter(Boolean)
+                                .join(', ')}
+                            {confirmingApproval.teacher &&
+                                `, uploaded by ${confirmingApproval.teacher},`}{' '}
+                            are posted to students right away.
+                        </p>
+                    )}
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cancel</Button>
+                        </DialogClose>
+                        <Button disabled={approving} onClick={submitApproval}>
+                            <Check /> Approve subject
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

@@ -66,6 +66,7 @@ class GradeController extends Controller
             'pendingCount' => (clone $visible)->pendingApproval()->count(),
             'returnedCount' => (clone $visible)->returned()->count(),
             'canApprove' => $user->canManageAllGrades(),
+            'pendingSubjects' => $user->canManageAllGrades() ? $this->pendingSubjects() : [],
             'options' => [
                 'schoolYears' => (clone $visible)->distinct()->pluck('school_year')->merge(SchoolYear::names())->unique()->sortDesc()->values(),
                 'subjects' => (clone $visible)->distinct()->orderBy('subject')->pluck('subject'),
@@ -105,91 +106,122 @@ class GradeController extends Controller
     }
 
     /**
-     * Post pending college grades for students to see: the chosen ones, or
-     * every pending grade matching the list's filters.
+     * Post a subject's pending college grades for students to see, all at
+     * once: one approval per subject, never student by student.
      */
     public function approve(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'ids' => ['required_without:all', 'array', 'max:500'],
-            'ids.*' => ['integer'],
-            'all' => ['sometimes', 'boolean'],
-            'search' => ['nullable', 'string', 'max:255'],
-            'school_year' => ['nullable', 'string', 'max:9'],
-            'section' => ['nullable', 'string', 'max:255'],
-            'subject' => ['nullable', 'string', 'max:255'],
-        ]);
+        $grades = $this->pendingSubject($request, $this->subjectRules());
 
-        $query = Grade::query()->pendingApproval();
+        DB::transaction(fn () => $grades->each(fn (Grade $grade) => $grade->approve($request->user('web'))));
 
-        if ($request->boolean('all')) {
-            $query = $this->filtered($query, [
-                'search' => trim((string) ($data['search'] ?? '')),
-                'school_year' => trim((string) ($data['school_year'] ?? '')),
-                'section' => trim((string) ($data['section'] ?? '')),
-                'subject' => trim((string) ($data['subject'] ?? '')),
-                'status' => '',
-            ]);
-        } else {
-            $query->whereKey($data['ids']);
-        }
-
-        $count = 0;
-
-        DB::transaction(function () use ($query, $request, &$count): void {
-            $query->get()->each(function (Grade $grade) use ($request, &$count): void {
-                $grade->approve($request->user('web'));
-                $count++;
-            });
-        });
-
-        Inertia::flash('toast', $count > 0
-            ? ['type' => 'success', 'message' => trans_choice(':count grade posted to students.|:count grades posted to students.', $count)]
+        Inertia::flash('toast', $grades->isNotEmpty()
+            ? ['type' => 'success', 'message' => trans_choice(':subject approved: :count grade posted to students.|:subject approved: :count grades posted to students.', $grades->count(), ['subject' => $grades->first()->subject])]
             : ['type' => 'info', 'message' => __('No grades were waiting for approval.')]);
 
         return back();
     }
 
     /**
-     * Send pending college grades back to the teachers who uploaded them,
-     * with the reason, instead of posting them. Each teacher is emailed.
+     * Send a subject's pending college grades back to the teacher who
+     * uploaded them, with the reason, instead of posting them. The teacher
+     * is emailed.
      */
     public function returnToTeacher(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'ids' => ['required', 'array', 'min:1', 'max:500'],
-            'ids.*' => ['integer'],
-            'reason' => ['required', 'string', 'max:255'],
-        ], [
-            'reason.required' => __('Tell the teacher what to correct.'),
-        ]);
-
         $registrar = $request->user('web');
-        $reason = trim($data['reason']);
+        $grades = $this->pendingSubject($request, [
+            ...$this->subjectRules(),
+            'reason' => ['required', 'string', 'max:255'],
+        ], ['reason.required' => __('Tell the teacher what to correct.')]);
+        $reason = trim($request->string('reason')->toString());
 
-        $grades = DB::transaction(function () use ($data, $registrar, $reason) {
-            $grades = Grade::pendingApproval()->whereKey($data['ids'])->get();
-            $grades->each(fn (Grade $grade) => $grade->returnToTeacher($registrar, $reason));
+        DB::transaction(fn () => $grades->each(fn (Grade $grade) => $grade->returnToTeacher($registrar, $reason)));
 
-            return $grades;
-        });
-
-        $grades->groupBy('encoded_by')->each(function (Collection $teacherGrades, int|string $teacherId) use ($registrar, $reason): void {
-            $teacher = $teacherId === '' ? null : User::find($teacherId);
-
-            $teacher?->notify(new GradesReturned(
-                $teacherGrades->count(),
-                array_values($teacherGrades->map(fn (Grade $grade): string => $grade->subject)->unique()->sort()->all()),
-                $reason,
-                $registrar->name,
-            ));
-        });
+        $teacher = $grades->first()?->encoded_by ? User::find($grades->first()->encoded_by) : null;
+        $teacher?->notify(new GradesReturned($grades->count(), [$grades->first()->subject], $reason, $registrar->name));
 
         Inertia::flash('toast', $grades->isNotEmpty()
-            ? ['type' => 'success', 'message' => trans_choice(':count grade returned to the teacher.|:count grades returned to the teachers.', $grades->count())]
+            ? ['type' => 'success', 'message' => trans_choice(':subject returned to the teacher (:count grade).|:subject returned to the teacher (:count grades).', $grades->count(), ['subject' => $grades->first()->subject])]
             : ['type' => 'info', 'message' => __('No grades were waiting for approval.')]);
 
         return back();
+    }
+
+    /**
+     * What identifies one subject's batch of pending grades: the class a
+     * teacher uploaded for a term.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function subjectRules(): array
+    {
+        return [
+            'school_year' => ['required', 'string', 'max:9'],
+            'term' => ['nullable', 'string', 'max:255'],
+            'subject' => ['required', 'string', 'max:255'],
+            'encoded_by' => ['nullable', 'integer'],
+        ];
+    }
+
+    /**
+     * Every pending grade in the subject the request names.
+     *
+     * @param  array<string, array<int, string>>  $rules
+     * @param  array<string, string>  $messages
+     * @return Collection<int, Grade>
+     */
+    private function pendingSubject(Request $request, array $rules, array $messages = []): Collection
+    {
+        $data = $request->validate($rules, $messages);
+
+        // where() with null matches NULL, for grades saved without a term or uploader.
+        return Grade::pendingApproval()
+            ->where('school_year', $data['school_year'])
+            ->where('term', $data['term'] ?? null)
+            ->where('subject', $data['subject'])
+            ->where('encoded_by', $data['encoded_by'] ?? null)
+            ->get();
+    }
+
+    /**
+     * The registrar's approval queue: pending college grades grouped by
+     * subject, each approved or returned as one.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function pendingSubjects(): array
+    {
+        $grades = Grade::pendingApproval()
+            ->with(['student:id,section', 'encoder:id,name'])
+            ->get(['id', 'student_id', 'school_year', 'term', 'subject_code', 'subject', 'encoded_by']);
+
+        // The section each student was in that year, not their current one.
+        $sections = Enrollment::whereIn('student_id', $grades->pluck('student_id')->unique())
+            ->get(['student_id', 'school_year', 'section'])
+            ->keyBy(fn (Enrollment $enrollment) => $enrollment->student_id.'|'.$enrollment->school_year);
+
+        return $grades
+            ->groupBy(fn (Grade $grade) => implode('|', [$grade->school_year, $grade->term, $grade->subject, $grade->encoded_by]))
+            ->map(function (Collection $subjectGrades) use ($sections): array {
+                $grade = $subjectGrades->first();
+
+                return [
+                    'school_year' => $grade->school_year,
+                    'term' => $grade->term,
+                    'subject' => $grade->subject,
+                    'subject_code' => $subjectGrades->pluck('subject_code')->filter()->first(),
+                    'encoded_by' => $grade->encoded_by,
+                    'teacher' => $grade->encoder?->name,
+                    'count' => $subjectGrades->count(),
+                    'sections' => $subjectGrades
+                        ->map(fn (Grade $grade) => $sections->get($grade->student_id.'|'.$grade->school_year)?->section ?? $grade->student?->section)
+                        ->filter()->unique()->sort()->values()->all(),
+                ];
+            })
+            ->sortBy([['school_year', 'desc'], ['subject', 'asc'], ['term', 'asc']])
+            ->values()
+            ->all();
     }
 
     /**
