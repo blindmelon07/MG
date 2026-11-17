@@ -3,6 +3,7 @@
 use App\Http\Controllers\Student\AuthController;
 use App\Http\Controllers\Student\GradeController;
 use App\Http\Controllers\Student\PasswordController;
+use App\Http\Controllers\Student\SubjectController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('student')->name('student.')->group(function () {
@@ -25,5 +26,10 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('grades', [GradeController::class, 'index'])
             ->middleware('student.password_changed')
             ->name('grades');
+
+        Route::middleware('student.password_changed')->group(function () {
+            Route::get('subjects', [SubjectController::class, 'index'])->name('subjects.index');
+            Route::put('subjects', [SubjectController::class, 'update'])->name('subjects.update');
+        });
     });
 });

@@ -1,9 +1,13 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { KeyRound, LogOut } from 'lucide-react';
+import { BookOpen, GraduationCap, KeyRound, LogOut } from 'lucide-react';
 import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
-import { logout } from '@/routes/student';
+import { grades, logout } from '@/routes/student';
 import { edit as passwordEdit } from '@/routes/student/password';
+import { index as subjectsIndex } from '@/routes/student/subjects';
+
+// College and graduate students choose the subjects they take.
+const CHOOSES_SUBJECTS = ['college', 'graduate'];
 
 export default function StudentLayout({
     children,
@@ -35,10 +39,26 @@ export default function StudentLayout({
                     </div>
 
                     {student && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <span className="hidden text-sm text-muted-foreground sm:inline">
                                 {student.name}
                             </span>
+                            {CHOOSES_SUBJECTS.includes(
+                                student.education_level ?? '',
+                            ) && (
+                                <>
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <Link href={grades()}>
+                                            <GraduationCap /> Grades
+                                        </Link>
+                                    </Button>
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <Link href={subjectsIndex()}>
+                                            <BookOpen /> Subjects
+                                        </Link>
+                                    </Button>
+                                </>
+                            )}
                             <Button variant="ghost" size="sm" asChild>
                                 <Link href={passwordEdit()}>
                                     <KeyRound /> Password

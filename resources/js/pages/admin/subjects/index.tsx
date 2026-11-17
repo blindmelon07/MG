@@ -34,32 +34,43 @@ type Subject = {
     name: string;
     education_level: string;
     course_id: number | null;
+    year_level: string | null;
+    semester: string | null;
     units: string | null;
 };
 
 const NO_COURSE = '__none__';
+const ANY_SEMESTER = '__any__';
+const ANY_YEAR = '__any__';
 
-// "General education" is sent as an empty course.
+// "General education", "Any year level" and "Every semester" are sent as empty values.
 const withoutPlaceholder = (data: Record<string, FormDataConvertible>) => ({
     ...data,
     course_id: data.course_id === NO_COURSE ? null : data.course_id,
+    year_level: data.year_level === ANY_YEAR ? null : data.year_level,
+    semester: data.semester === ANY_SEMESTER ? null : data.semester,
 });
 
 function SubjectFields({
     subject,
     educationLevels,
     courses,
+    semesters,
     errors,
 }: {
     subject?: Subject;
     educationLevels: EducationLevelOption[];
     courses: CourseOption[];
+    semesters: string[];
     errors: Partial<Record<string, string>>;
 }) {
     const [level, setLevel] = useState(subject?.education_level ?? '');
     const levelCourses = courses.filter(
         (course) => course.education_level === level,
     );
+    const yearLevels =
+        educationLevels.find((option) => option.value === level)
+            ?.grade_levels ?? [];
 
     return (
         <>
@@ -130,6 +141,61 @@ function SubjectFields({
                 </div>
             )}
 
+            {COURSE_LEVELS.includes(level) && (
+                <div className="grid gap-2">
+                    <Label htmlFor="year_level">Year level</Label>
+                    <Select
+                        key={level}
+                        name="year_level"
+                        defaultValue={subject?.year_level ?? ANY_YEAR}
+                    >
+                        <SelectTrigger id="year_level" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ANY_YEAR}>
+                                Any year level
+                            </SelectItem>
+                            {yearLevels.map((yearLevel) => (
+                                <SelectItem key={yearLevel} value={yearLevel}>
+                                    {yearLevel}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors.year_level} />
+                </div>
+            )}
+
+            {COURSE_LEVELS.includes(level) && (
+                <div className="grid gap-2">
+                    <Label htmlFor="semester">Semester offered</Label>
+                    <Select
+                        name="semester"
+                        defaultValue={subject?.semester ?? ANY_SEMESTER}
+                    >
+                        <SelectTrigger id="semester" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ANY_SEMESTER}>
+                                Every semester
+                            </SelectItem>
+                            {semesters.map((semester) => (
+                                <SelectItem key={semester} value={semester}>
+                                    {semester}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                        Students can only choose this subject in the semester
+                        it&apos;s offered.
+                    </p>
+                    <InputError message={errors.semester} />
+                </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="code">Code (optional)</Label>
@@ -161,10 +227,12 @@ function SubjectFields({
 
 function SubjectTable({
     rows,
+    showSemester = false,
     onEdit,
     onDelete,
 }: {
     rows: Subject[];
+    showSemester?: boolean;
     onEdit: (subject: Subject) => void;
     onDelete: (subject: Subject) => void;
 }) {
@@ -175,6 +243,16 @@ function SubjectTable({
                     <tr>
                         <th className="w-32 px-4 py-2 font-medium">Code</th>
                         <th className="px-4 py-2 font-medium">Subject</th>
+                        {showSemester && (
+                            <>
+                                <th className="w-28 px-4 py-2 font-medium">
+                                    Year level
+                                </th>
+                                <th className="w-36 px-4 py-2 font-medium">
+                                    Semester
+                                </th>
+                            </>
+                        )}
                         <th className="w-24 px-4 py-2 font-medium">Units</th>
                         <th className="w-28 px-4 py-2 font-medium">
                             <span className="sr-only">Actions</span>
@@ -185,7 +263,7 @@ function SubjectTable({
                     {rows.length === 0 && (
                         <tr>
                             <td
-                                colSpan={4}
+                                colSpan={showSemester ? 6 : 4}
                                 className="px-4 py-4 text-center text-muted-foreground"
                             >
                                 No subjects yet.
@@ -203,6 +281,16 @@ function SubjectTable({
                             <td className="px-4 py-2 font-medium">
                                 {subject.name}
                             </td>
+                            {showSemester && (
+                                <>
+                                    <td className="px-4 py-2 text-muted-foreground">
+                                        {subject.year_level ?? 'Any'}
+                                    </td>
+                                    <td className="px-4 py-2 text-muted-foreground">
+                                        {subject.semester ?? 'Every semester'}
+                                    </td>
+                                </>
+                            )}
                             <td className="px-4 py-2">
                                 {subject.units ? Number(subject.units) : '—'}
                             </td>
@@ -238,10 +326,12 @@ export default function SubjectsIndex({
     subjects,
     educationLevels,
     courses,
+    semesters,
 }: {
     subjects: Subject[];
     educationLevels: EducationLevelOption[];
     courses: CourseOption[];
+    semesters: string[];
 }) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editing, setEditing] = useState<Subject | null>(null);
@@ -318,6 +408,7 @@ export default function SubjectsIndex({
                                             </h3>
                                             <SubjectTable
                                                 rows={group.rows}
+                                                showSemester
                                                 onEdit={setEditing}
                                                 onDelete={setDeleting}
                                             />
@@ -347,6 +438,7 @@ export default function SubjectsIndex({
                                 <SubjectFields
                                     educationLevels={educationLevels}
                                     courses={courses}
+                                    semesters={semesters}
                                     errors={errors}
                                 />
                                 <DialogFooter>
@@ -386,6 +478,7 @@ export default function SubjectsIndex({
                                         subject={editing}
                                         educationLevels={educationLevels}
                                         courses={courses}
+                                        semesters={semesters}
                                         errors={errors}
                                     />
                                     <DialogFooter>

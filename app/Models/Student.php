@@ -341,6 +341,26 @@ class Student extends Authenticatable
     }
 
     /**
+     * Subjects the student chose to take, with the school year and semester.
+     *
+     * @return BelongsToMany<Subject, $this>
+     */
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'student_subjects')
+            ->withPivot(['school_year', 'semester'])
+            ->withTimestamps();
+    }
+
+    /**
+     * College and graduate students choose the subjects they take.
+     */
+    public function choosesSubjects(): bool
+    {
+        return Course::requiredFor($this->education_level);
+    }
+
+    /**
      * @return HasMany<Guardian, $this>
      */
     public function guardians(): HasMany

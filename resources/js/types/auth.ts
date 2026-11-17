@@ -24,6 +24,7 @@ export type StudentAccount = {
     id: number;
     name: string;
     student_number: string;
+    education_level: string | null;
     grade_level: string | null;
     section: string | null;
     grading_system: GradingSystem;

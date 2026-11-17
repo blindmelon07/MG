@@ -120,3 +120,52 @@ test('teaching assignments suggest subjects from the list', function () {
     $this->actingAs($registrar)->get(route('admin.teaching-assignments.index'))
         ->assertInertia(fn ($page) => $page->where('subjects.0.name', 'Filipino')->where('subjects.0.education_level', 'jhs'));
 });
+
+test('college subjects record the semester they are offered in', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Programming 1',
+        'education_level' => 'college',
+        'semester' => '1st Semester',
+    ])->assertSessionHasNoErrors();
+
+    expect(Subject::firstOrFail()->semester)->toBe('1st Semester');
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Programming 2',
+        'education_level' => 'college',
+        'semester' => '3rd Semester',
+    ])->assertSessionHasErrors('semester');
+});
+
+test('subjects below college have no semester', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Mathematics',
+        'education_level' => 'jhs',
+        'semester' => '1st Semester',
+    ])->assertSessionHasNoErrors();
+
+    expect(Subject::firstOrFail()->semester)->toBeNull();
+});
+
+test('college subjects record their year level', function () {
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Programming 1',
+        'education_level' => 'college',
+        'year_level' => '1st Year',
+    ])->assertSessionHasNoErrors();
+
+    expect(Subject::firstOrFail()->year_level)->toBe('1st Year');
+
+    // Graduate school only goes up to 3rd year.
+    $this->actingAs($registrar)->post(route('admin.subjects.store'), [
+        'name' => 'Dissertation',
+        'education_level' => 'graduate',
+        'year_level' => '5th Year',
+    ])->assertSessionHasErrors('year_level');
+});

@@ -42,7 +42,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
-                'student' => $request->user('student')?->only(['id', 'name', 'student_number', 'grade_level', 'section', 'grading_system']),
+                'student' => $request->user('student')?->only(['id', 'name', 'student_number', 'education_level', 'grade_level', 'section', 'grading_system']),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // Null until an admin changes the kiosk colors.

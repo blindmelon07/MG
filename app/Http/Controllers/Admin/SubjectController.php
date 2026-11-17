@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Grade;
 use App\Models\Student;
 use App\Models\Subject;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ class SubjectController extends Controller
             'subjects' => Subject::orderBy('education_level')->orderBy('name')->get(),
             'educationLevels' => Student::educationLevelOptions(),
             'courses' => Course::orderBy('code')->get(['id', 'code', 'name', 'education_level']),
+            'semesters' => Grade::TERMS,
         ]);
     }
 
@@ -75,15 +77,29 @@ class SubjectController extends Controller
                 'integer',
                 Rule::exists('courses', 'id')->where('education_level', $educationLevel),
             ],
+            // Only college and graduate subjects have a year level and semester.
+            'year_level' => [
+                Rule::excludeIf(! Course::requiredFor($educationLevel)),
+                'nullable',
+                Rule::in(Student::EDUCATION_LEVELS[$educationLevel]['grade_levels'] ?? []),
+            ],
+            'semester' => [
+                Rule::excludeIf(! Course::requiredFor($educationLevel)),
+                'nullable',
+                Rule::in(Grade::TERMS),
+            ],
             'units' => ['nullable', 'numeric', 'min:0', 'max:99'],
         ], [
             'name.unique' => $courseId === null
                 ? __('This subject already exists for that education level.')
                 : __('This course already has a subject with that name.'),
             'course_id.exists' => __('Choose a course from this education level.'),
+            'year_level.in' => __('Choose a year level from this education level.'),
         ]);
 
         $data['course_id'] ??= null;
+        $data['year_level'] ??= null;
+        $data['semester'] ??= null;
 
         return array_map(fn ($value) => is_string($value) ? trim($value) : $value, $data);
     }
