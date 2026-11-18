@@ -3,7 +3,9 @@
 use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
+use App\Notifications\StudentLoginCredentials;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\View;
 
 test('registrar can issue a temporary password that is shown once', function () {
@@ -21,19 +23,48 @@ test('registrar can issue a temporary password that is shown once', function () 
         ->and(password_verify('LRN-0001', (string) $student->password))->toBeFalse();
 });
 
-test('the temporary password can be texted to the first guardian', function () {
+test('a reissued temporary password is texted to the student and every guardian', function () {
     Http::fake(['*' => Http::response(['ok' => true])]);
 
     $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
-    $student = Student::factory()->create(['student_number' => 'LRN-0001']);
+    $student = Student::factory()->create(['student_number' => 'LRN-0001', 'name' => 'José Peña', 'phone_number' => '09170000001']);
     Guardian::factory()->for($student)->create(['phone_number' => '09171234567']);
+    Guardian::factory()->for($student)->create(['phone_number' => '09181234567']);
 
     $this->actingAs($registrar)
         ->post(route('admin.students.credentials.store', $student), ['send_sms' => '1'])
-        ->assertInertiaFlash('credentials.sms_sent', true);
+        ->assertInertiaFlash('credentials.sms_recipients', 3);
 
+    Http::assertSentCount(3);
     Http::assertSent(fn ($request) => str_contains($request['content'], 'LRN-0001')
-        && $request['recipient'] === '+639171234567');
+        && str_contains($request['content'], 'Jose Peña')
+        && $request['recipient'] === '+639181234567');
+});
+
+test('a reissued temporary password can be emailed to the student', function () {
+    Notification::fake();
+
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    $student = Student::factory()->create(['student_number' => 'LRN-0001', 'email' => 'student@example.com']);
+
+    $this->actingAs($registrar)
+        ->post(route('admin.students.credentials.store', $student), ['send_email' => '1'])
+        ->assertInertiaFlash('credentials.emailed_to', 'student@example.com');
+
+    Notification::assertSentTo($student, StudentLoginCredentials::class);
+});
+
+test('nothing is texted or emailed unless asked', function () {
+    Http::fake();
+    Notification::fake();
+
+    $registrar = User::factory()->withTwoFactor()->create(['role' => 'registrar']);
+    $student = Student::factory()->create(['student_number' => 'LRN-0001', 'email' => 'student@example.com', 'phone_number' => '09170000001']);
+
+    $this->actingAs($registrar)->post(route('admin.students.credentials.store', $student))->assertRedirect();
+
+    Http::assertNothingSent();
+    Notification::assertNothingSent();
 });
 
 /**

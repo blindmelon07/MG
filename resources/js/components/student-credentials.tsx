@@ -29,6 +29,8 @@ export type CredentialTarget = {
     name: string;
     student_number: string | null;
     has_password: boolean;
+    phone_number?: string | null;
+    email?: string | null;
     guardians: { name: string; phone_number: string }[];
 };
 
@@ -60,7 +62,15 @@ export function IssueCredentialsDialog({
     student: CredentialTarget | null;
     onClose: () => void;
 }) {
-    const guardian = student?.guardians[0];
+    const phoneCount = new Set(
+        [
+            student?.phone_number,
+            ...(student?.guardians ?? []).map((g) => g.phone_number),
+        ]
+            .filter((phone): phone is string => Boolean(phone))
+            .map((phone) => phone.replace(/\D/g, '').replace(/^0/, '63')),
+    ).size;
+    const email = student?.email;
 
     return (
         <Dialog
@@ -78,7 +88,7 @@ export function IssueCredentialsDialog({
                 <p className="text-sm text-muted-foreground">
                     A new random temporary password will be created for{' '}
                     {student?.name}. It is shown once, so give it to the student
-                    in person or text it to their guardian.
+                    in person, or text or email it below.
                     {student?.has_password &&
                         ' Their current password stops working and any signed-in sessions end.'}
                 </p>
@@ -91,22 +101,38 @@ export function IssueCredentialsDialog({
                     >
                         {({ processing }) => (
                             <>
-                                {guardian ? (
+                                {phoneCount > 0 && (
                                     <div className="flex items-center gap-3">
                                         <Checkbox
                                             id="send_sms"
                                             name="send_sms"
                                             value="1"
+                                            defaultChecked
                                         />
                                         <Label htmlFor="send_sms">
-                                            Also text it to {guardian.name} (
-                                            {guardian.phone_number})
+                                            Text it to the student and guardians
+                                            ({phoneCount} number
+                                            {phoneCount === 1 ? '' : 's'})
                                         </Label>
                                     </div>
-                                ) : (
+                                )}
+                                {email && (
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id="send_email"
+                                            name="send_email"
+                                            value="1"
+                                            defaultChecked
+                                        />
+                                        <Label htmlFor="send_email">
+                                            Email it to {email}
+                                        </Label>
+                                    </div>
+                                )}
+                                {phoneCount === 0 && !email && (
                                     <p className="text-sm text-muted-foreground">
-                                        No guardian phone on file, so it can
-                                        only be shown on screen.
+                                        No phone number or email on file, so it
+                                        can only be shown on screen.
                                     </p>
                                 )}
                                 <DialogFooter>

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
-use App\Services\SmsService;
 use App\Services\StudentCredentials;
 use App\Support\LoginSlips;
 use Illuminate\Http\RedirectResponse;
@@ -19,11 +18,15 @@ class StudentCredentialController extends Controller
 {
     /**
      * Issue a new temporary password for one student. It is shown to the
-     * registrar once and can optionally be texted to the first guardian.
+     * registrar once and can optionally be texted to the student and their
+     * guardians, and emailed to the student.
      */
-    public function store(Request $request, Student $student, SmsService $sms, StudentCredentials $credentials): RedirectResponse
+    public function store(Request $request, Student $student, StudentCredentials $credentials): RedirectResponse
     {
-        $request->validate(['send_sms' => ['sometimes', 'boolean']]);
+        $request->validate([
+            'send_sms' => ['sometimes', 'boolean'],
+            'send_email' => ['sometimes', 'boolean'],
+        ]);
 
         if ($student->student_number === null) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Add a student number first; it is the student\'s login.')]);
@@ -34,15 +37,13 @@ class StudentCredentialController extends Controller
         $password = $student->issueTemporaryPassword();
         $this->log($request, 'issued', [$student->id]);
 
-        $smsSent = null;
+        $texted = $request->boolean('send_sms') ? $credentials->text($student, $password) : null;
+        $emailed = $request->boolean('send_email') && $credentials->email($student, $password);
 
-        if ($request->boolean('send_sms')) {
-            $guardian = $student->guardians()->oldest('id')->first();
-
-            $smsSent = $guardian !== null && $sms->send($guardian->phone_number, $credentials->message($student, $password));
-        }
-
-        $credentials->flash($request, $student, $password, ['sms_sent' => $smsSent]);
+        $credentials->flash($request, $student, $password, [
+            'sms_recipients' => $texted,
+            'emailed_to' => $emailed ? $student->email : null,
+        ]);
 
         return back();
     }

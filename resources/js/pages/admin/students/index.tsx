@@ -69,6 +69,8 @@ type Student = {
     grading_system: 'k12' | 'college';
     must_change_password: boolean;
     has_password: boolean;
+    phone_number: string | null;
+    email: string | null;
     last_login_at: string | null;
     guardians: Guardian[];
 };

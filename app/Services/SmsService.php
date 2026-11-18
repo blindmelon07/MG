@@ -28,7 +28,7 @@ class SmsService
             ->retry(2, 1000, throw: false)
             ->post(config('services.unisms.url'), [
                 'recipient' => '+'.$this->normalize($recipient),
-                'content' => $message,
+                'content' => $this->sanitize($message),
                 'sender_id' => config('services.unisms.sender_id'),
             ]);
 
@@ -41,6 +41,30 @@ class SmsService
         }
 
         return $response->successful();
+    }
+
+    /**
+     * UniSMS rejects the whole message ("Emojis or non-standard characters
+     * not allowed") if it holds anything beyond plain text: smart quotes,
+     * dashes, ellipses, accented letters, the peso sign, non-breaking spaces
+     * and emojis, all common in text pasted from Word or Facebook. Swap
+     * those for plain look-alikes; ñ and Ñ are allowed, so keep them.
+     */
+    public function sanitize(string $message): string
+    {
+        $message = strtr(html_entity_decode($message, ENT_QUOTES | ENT_HTML5, 'UTF-8'), [
+            '₱' => 'P',
+            '•' => '-',
+            '°' => ' deg',
+        ]);
+
+        $message = preg_replace_callback(
+            '/[^\x00-\x7F]/u',
+            fn (array $match) => in_array($match[0], ['ñ', 'Ñ'], true) ? $match[0] : Str::ascii($match[0]),
+            $message,
+        ) ?? Str::ascii($message);
+
+        return trim((string) preg_replace(['/[ \t]+/', '/ *\n */'], [' ', "\n"], $message));
     }
 
     public function normalize(string $phone): string
@@ -153,7 +177,9 @@ class SmsService
      */
     public function announcementMessage(Announcement $announcement): string
     {
-        $excerpt = Str::limit(strip_tags($announcement->content), 120);
+        // Space out block tags so "<p>a</p><p>b</p>" doesn't read "ab".
+        $text = html_entity_decode(strip_tags(str_replace('<', ' <', $announcement->content)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $excerpt = Str::limit(Str::squish($text), 120);
         $isEvent = $announcement->type === 'event';
         $where = $isEvent ? $announcement->campusLocation?->name : null;
         $when = $isEvent ? $announcement->event_start_at?->format('M j, Y g:i A') : null;

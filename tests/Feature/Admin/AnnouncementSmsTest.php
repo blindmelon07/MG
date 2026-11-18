@@ -6,6 +6,7 @@ use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
+use App\Services\SmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -128,4 +129,30 @@ test('editing an already-published announcement does not resend sms', function (
     ]);
 
     Queue::assertNotPushed(SendSmsJob::class);
+});
+
+test('event texts are stripped of characters the sms gateway rejects', function () {
+    Http::fake(['unismsapi.com/*' => Http::response(['message' => ['status' => 'pending']], 201)]);
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    Student::factory()->create(['phone_number' => '09171234567']);
+
+    $this->actingAs($admin)->post(route('admin.announcements.store'), [
+        'title' => 'Intramurals – Day 1',
+        'content' => '<p>It’s our “Sports Fest”&nbsp;at the gym…</p><p>Entry fee ₱50 • bring water 😀</p>',
+        'type' => 'event',
+        'event_start_at' => '2026-12-01T08:00',
+        'status' => 'published',
+        'audience' => 'all',
+    ])->assertRedirect(route('admin.announcements.index'));
+
+    Http::assertSent(function ($request) {
+        expect($request['content'])->toBe("Intramurals - Day 1: It's our \"Sports Fest\" at the gym... Entry fee P50 - bring water\nWhen: Dec 1, 2026 8:00 AM");
+
+        return true;
+    });
+});
+
+test('sms sanitizing keeps ñ, which the gateway allows', function () {
+    expect(app(SmsService::class)->sanitize('Señor José Ñ'))->toBe('Señor Jose Ñ');
 });
