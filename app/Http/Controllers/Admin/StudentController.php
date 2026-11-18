@@ -34,13 +34,35 @@ class StudentController extends Controller
         $enrollment = $request->string('enrollment')->toString() === 'none' ? 'none' : 'enrolled';
         $inYear = fn (Builder|HasMany $query) => $query->where('school_year', $year);
 
+        // Placement filters only make sense for students enrolled in the year being viewed.
+        $filters = [
+            'education_level' => $enrollment === 'enrolled' ? $request->string('education_level')->trim()->toString() : '',
+            'grade_level' => $enrollment === 'enrolled' ? $request->string('grade_level')->trim()->toString() : '',
+            'section' => $enrollment === 'enrolled' ? $request->string('section')->trim()->toString() : '',
+            'status' => in_array($request->string('status')->toString(), ['active', 'inactive'], true)
+                ? $request->string('status')->toString()
+                : '',
+        ];
+        $placement = array_filter(array_intersect_key($filters, array_flip(['education_level', 'grade_level', 'section'])));
+        $inYearAndPlacement = fn (Builder $query) => $inYear($query)->where($placement);
+
+        $yearEnrollments = Enrollment::where('school_year', $year);
+        $distinct = fn (string $column) => (clone $yearEnrollments)
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->distinct()
+            ->pluck($column)
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
         return Inertia::render('admin/students/index', [
             'students' => Student::with(['guardians', 'enrollments' => fn ($query) => $inYear($query)->with('course:id,code,name')])
                 ->when(
                     $enrollment === 'enrolled',
-                    fn (Builder $query) => $query->whereHas('enrollments', $inYear),
+                    fn (Builder $query) => $query->whereHas('enrollments', $inYearAndPlacement),
                     fn (Builder $query) => $query->whereDoesntHave('enrollments', $inYear),
                 )
+                ->when($filters['status'] !== '', fn (Builder $query) => $query->where('status', $filters['status']))
                 ->when($search !== '', function (Builder $query) use ($search): void {
                     $query->where(fn (Builder $query) => $query->where('name', 'like', "%{$search}%")
                         ->orWhere('student_number', 'like', "%{$search}%"));
@@ -55,6 +77,12 @@ class StudentController extends Controller
                 ]),
             'search' => $search,
             'enrollment' => $enrollment,
+            'filters' => $filters,
+            'filterOptions' => [
+                'educationLevels' => $distinct('education_level'),
+                'gradeLevels' => $distinct('grade_level'),
+                'sections' => $distinct('section'),
+            ],
             'counts' => [
                 'enrolled' => Student::whereHas('enrollments', $inYear)->count(),
                 'none' => Student::whereDoesntHave('enrollments', $inYear)->count(),

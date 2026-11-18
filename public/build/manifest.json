@@ -875,7 +875,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BRXJhw0U.css",
+    "file": "assets/app-DmTHVpDZ.css",
     "name": "app",
     "names": [
       "app.css"
@@ -884,7 +884,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-BIEdonvr.js",
+    "file": "assets/app-DoesdC1b.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1407,7 +1407,7 @@
     ]
   },
   "resources/js/pages/admin/students/index.tsx": {
-    "file": "assets/students-B67pHWDD.js",
+    "file": "assets/students-BhpxrRKk.js",
     "name": "students",
     "src": "resources/js/pages/admin/students/index.tsx",
     "isDynamicEntry": true,

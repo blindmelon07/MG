@@ -68,6 +68,37 @@ test('the student list shows the school year being viewed', function () {
         ->assertInertia(fn ($page) => $page->has('students.data', 1));
 });
 
+test('the student list can be filtered by level, section and status', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $thomas = Student::factory()->create(['name' => 'Ana Thomas']);
+    $thomas->enroll('2026-2027', ['education_level' => 'jhs', 'grade_level' => 'Grade 8', 'section' => 'St. Thomas']);
+    $peter = Student::factory()->create(['name' => 'Ben Peter']);
+    $peter->enroll('2026-2027', ['education_level' => 'jhs', 'grade_level' => 'Grade 7', 'section' => 'St. Peter']);
+    $inactive = Student::factory()->create(['name' => 'Cy Peter', 'status' => 'inactive']);
+    $inactive->enroll('2026-2027', ['education_level' => 'jhs', 'grade_level' => 'Grade 7', 'section' => 'St. Peter']);
+
+    $this->actingAs($admin);
+
+    $this->get(route('admin.students.index', ['grade_level' => 'Grade 7']))
+        ->assertInertia(fn ($page) => $page
+            ->has('students.data', 2)
+            ->where('filters.grade_level', 'Grade 7')
+            ->has('filterOptions.sections')
+        );
+
+    $this->get(route('admin.students.index', ['section' => 'St. Thomas']))
+        ->assertInertia(fn ($page) => $page
+            ->has('students.data', 1)
+            ->where('students.data.0.name', 'Ana Thomas')
+        );
+
+    $this->get(route('admin.students.index', ['section' => 'St. Peter', 'status' => 'inactive']))
+        ->assertInertia(fn ($page) => $page
+            ->has('students.data', 1)
+            ->where('students.data.0.name', 'Cy Peter')
+        );
+});
+
 test('admin can create a student with guardians', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 

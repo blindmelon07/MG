@@ -32,6 +32,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { create, edit, index as studentsIndex } from '@/routes/admin/students';
 import { template as importTemplate } from '@/routes/admin/students/import';
@@ -86,11 +93,22 @@ function accountStatus(student: Student): string {
 
 type EnrollmentFilter = 'enrolled' | 'none';
 
+type Filters = {
+    education_level: string;
+    grade_level: string;
+    section: string;
+    status: '' | 'active' | 'inactive';
+};
+
+const ALL = '__all__';
+
 export default function StudentsIndex({
     students,
     search,
     enrollment,
     counts,
+    filters,
+    filterOptions,
     sections,
     awaitingCredentials,
     educationLevels,
@@ -98,6 +116,12 @@ export default function StudentsIndex({
     students: Paginated<Student>;
     search: string;
     enrollment: EnrollmentFilter;
+    filters: Filters;
+    filterOptions: {
+        educationLevels: string[];
+        gradeLevels: string[];
+        sections: string[];
+    };
     counts: Record<EnrollmentFilter, number>;
     sections: string[];
     awaitingCredentials: Record<string, number>;
@@ -110,6 +134,30 @@ export default function StudentsIndex({
     const [printing, setPrinting] = useState(false);
     const { schoolYear } = usePage().props;
     const year = schoolYear?.selected ?? '';
+
+    const hasFilters =
+        search !== '' ||
+        Object.values(filters).some((value) => value !== '');
+
+    const applyFilters = (changes: Partial<Filters>) => {
+        const next: Record<string, string> = {
+            ...filters,
+            search: searchTerm,
+            ...changes,
+        };
+
+        if (enrollment === 'none') {
+            next.enrollment = 'none';
+        }
+
+        router.get(
+            studentsIndex().url,
+            Object.fromEntries(
+                Object.entries(next).filter(([, value]) => value !== ''),
+            ),
+            { preserveState: true, replace: true },
+        );
+    };
 
     const tabs: { value: EnrollmentFilter; label: string }[] = [
         { value: 'enrolled', label: `Enrolled in S.Y. ${year}` },
@@ -159,6 +207,7 @@ export default function StudentsIndex({
                                             ? 'none'
                                             : undefined,
                                     search: search || undefined,
+                                    status: filters.status || undefined,
                                 },
                             })}
                             preserveState
@@ -185,27 +234,153 @@ export default function StudentsIndex({
                     </p>
                 )}
 
-                <form
-                    className="max-w-sm"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        router.get(
-                            studentsIndex().url,
-                            {
-                                search: searchTerm,
-                                enrollment:
-                                    enrollment === 'none' ? 'none' : undefined,
-                            },
-                            { preserveState: true, replace: true },
-                        );
-                    }}
-                >
-                    <Input
-                        placeholder="Search by name or student #"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </form>
+                <div className="flex flex-wrap items-end gap-3">
+                    <form
+                        className="w-full max-w-xs"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            applyFilters({});
+                        }}
+                    >
+                        <Input
+                            placeholder="Search by name or student #"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </form>
+
+                    {enrollment === 'enrolled' && (
+                        <>
+                            <Select
+                                value={filters.education_level || ALL}
+                                onValueChange={(value) =>
+                                    applyFilters({
+                                        education_level:
+                                            value === ALL ? '' : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    className="w-48"
+                                    aria-label="Education level"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        All levels
+                                    </SelectItem>
+                                    {filterOptions.educationLevels.map(
+                                        (level) => (
+                                            <SelectItem
+                                                key={level}
+                                                value={level}
+                                            >
+                                                {educationLevels.find(
+                                                    (option) =>
+                                                        option.value === level,
+                                                )?.label ?? level}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filters.grade_level || ALL}
+                                onValueChange={(value) =>
+                                    applyFilters({
+                                        grade_level: value === ALL ? '' : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    className="w-44"
+                                    aria-label="Grade or year level"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        All grades &amp; years
+                                    </SelectItem>
+                                    {filterOptions.gradeLevels.map((grade) => (
+                                        <SelectItem key={grade} value={grade}>
+                                            {grade}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filters.section || ALL}
+                                onValueChange={(value) =>
+                                    applyFilters({
+                                        section: value === ALL ? '' : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    className="w-44"
+                                    aria-label="Section"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        All sections
+                                    </SelectItem>
+                                    {filterOptions.sections.map((section) => (
+                                        <SelectItem
+                                            key={section}
+                                            value={section}
+                                        >
+                                            {section}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </>
+                    )}
+
+                    <Select
+                        value={filters.status || ALL}
+                        onValueChange={(value) =>
+                            applyFilters({
+                                status:
+                                    value === ALL
+                                        ? ''
+                                        : (value as Filters['status']),
+                            })
+                        }
+                    >
+                        <SelectTrigger className="w-40" aria-label="Status">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL}>All statuses</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {hasFilters && (
+                        <Button variant="ghost" asChild>
+                            <Link
+                                href={studentsIndex({
+                                    query: {
+                                        enrollment:
+                                            enrollment === 'none'
+                                                ? 'none'
+                                                : undefined,
+                                    },
+                                })}
+                            >
+                                Clear filters
+                            </Link>
+                        </Button>
+                    )}
+                </div>
 
                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
