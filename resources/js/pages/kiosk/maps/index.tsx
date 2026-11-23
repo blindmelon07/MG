@@ -51,6 +51,10 @@ const ARRIVED_METERS = 10;
 // Further than this from every 360° photo spot, say how far rather than
 // presenting the photo as where you are.
 const PHOTO_NEAR_METERS = 60;
+// Only a fix this precise (phone GPS) can pick the 360° photo. Laptops and
+// desktops guess their location from Wi-Fi or the internet connection,
+// often hundreds of metres off, so they'd show the wrong spot.
+const PHOTO_FIX_ACCURACY_METERS = 30;
 
 function nearestLocation(
     locations: CampusMapPoint[],
@@ -274,14 +278,21 @@ export default function KioskMapsIndex({
     const [shownPanoramaId, setShownPanoramaId] = useState<number | null>(null);
     // A brief GPS dropout keeps the last known fix, so the view stays on
     // the photo where the visitor was rather than jumping elsewhere.
-    const nearestPhoto = geo.fix
-        ? nearestPanorama(panoramas, geo.fix, shownPanoramaId)
+    const preciseFix =
+        geo.fix && geo.fix.accuracy <= PHOTO_FIX_ACCURACY_METERS
+            ? geo.fix
+            : null;
+    // A location too rough to trust, e.g. a laptop's Wi-Fi guess.
+    const roughFix = geo.fix && !preciseFix ? geo.fix : null;
+    const nearestPhoto = preciseFix
+        ? nearestPanorama(panoramas, preciseFix, shownPanoramaId)
         : null;
+    // A spot picked by hand always wins over the GPS guess.
+    const pickedPanorama =
+        panoramas.find((p) => p.id === pickedPanoramaId) ?? null;
     const shownPanorama =
-        nearestPhoto?.panorama ??
-        panoramas.find((p) => p.id === pickedPanoramaId) ??
-        panoramas[0] ??
-        null;
+        pickedPanorama ?? nearestPhoto?.panorama ?? panoramas[0] ?? null;
+    const followingGps = pickedPanorama === null && nearestPhoto !== null;
 
     // Remember which photo is up, so GPS jitter doesn't flick between two.
     if ((shownPanorama?.id ?? null) !== shownPanoramaId) {
@@ -584,18 +595,22 @@ export default function KioskMapsIndex({
                                     >
                                         <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
                                         <span>
-                                            {nearestPhoto
-                                                ? nearestPhoto.meters <=
-                                                  PHOTO_NEAR_METERS
-                                                    ? geo.stale
-                                                        ? `${panoramaTitle(shownPanorama)} · GPS signal weak, showing your last known spot`
-                                                        : `${panoramaTitle(shownPanorama)} · photo taken about ${formatDistance(nearestPhoto.meters)} from you`
-                                                    : `You're ${formatDistance(nearestPhoto.meters)} from the nearest 360° photo spot (${panoramaTitle(shownPanorama)}).`
-                                                : `${panoramaTitle(shownPanorama)} · ${
-                                                      tracking
-                                                          ? 'waiting for your GPS…'
-                                                          : 'tap Locate me to follow where you are'
-                                                  }`}
+                                            {pickedPanorama
+                                                ? `${panoramaTitle(shownPanorama)} · picked by hand`
+                                                : roughFix && !nearestPhoto
+                                                  ? `${panoramaTitle(shownPanorama)} · this device's location is only accurate to about ${formatDistance(roughFix.accuracy)} (laptops guess it from Wi-Fi), so pick a spot below`
+                                                  : followingGps && nearestPhoto
+                                                    ? nearestPhoto.meters <=
+                                                      PHOTO_NEAR_METERS
+                                                        ? geo.stale
+                                                            ? `${panoramaTitle(shownPanorama)} · GPS signal weak, showing your last known spot`
+                                                            : `${panoramaTitle(shownPanorama)} · photo taken about ${formatDistance(nearestPhoto.meters)} from you`
+                                                        : `You're ${formatDistance(nearestPhoto.meters)} from the nearest 360° photo spot (${panoramaTitle(shownPanorama)}).`
+                                                    : `${panoramaTitle(shownPanorama)} · ${
+                                                          tracking
+                                                              ? 'waiting for your GPS…'
+                                                              : 'tap Locate me to follow where you are'
+                                                      }`}
                                         </span>
                                     </div>
 
@@ -626,8 +641,8 @@ export default function KioskMapsIndex({
                                         </Button>
                                     )}
 
-                                    {/* No GPS fix: pick a spot by hand. */}
-                                    {!nearestPhoto && panoramas.length > 1 && (
+                                    {/* Pick a spot by hand; needed wherever GPS is rough or missing. */}
+                                    {panoramas.length > 1 && (
                                         <div className="pointer-events-auto -mx-2 flex max-w-[calc(100%+1rem)] [scrollbar-width:none] gap-1.5 overflow-x-auto px-2">
                                             {panoramas.map((p) => (
                                                 <Button
@@ -649,6 +664,21 @@ export default function KioskMapsIndex({
                                                     {panoramaTitle(p)}
                                                 </Button>
                                             ))}
+                                            {pickedPanorama && preciseFix && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    className="shrink-0 shadow-md"
+                                                    onClick={() =>
+                                                        setPickedPanoramaId(
+                                                            null,
+                                                        )
+                                                    }
+                                                >
+                                                    <LocateFixed /> Follow my
+                                                    GPS
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </div>

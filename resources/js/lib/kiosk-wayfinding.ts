@@ -50,10 +50,9 @@ export function describeWalk(
     guide: RouteGuide,
     destination: string,
     withDistances: boolean,
+    start = 'Start at this kiosk (You are here).',
 ): WalkStep[] {
-    const steps: WalkStep[] = [
-        { text: 'Start at this kiosk (You are here).', turn: null },
-    ];
+    const steps: WalkStep[] = [{ text: start, turn: null }];
     let from = 0;
 
     for (const maneuver of guide.maneuvers) {

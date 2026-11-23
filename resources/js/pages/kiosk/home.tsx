@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     ArrowUp,
@@ -19,6 +19,8 @@ import {
     House,
     Info,
     Landmark,
+    LocateFixed,
+    LocateOff,
     Map as MapIcon,
     MapPin,
     Megaphone,
@@ -39,6 +41,8 @@ import type { CampusMapPoint } from '@/components/campus-map';
 import { FloorPlanView } from '@/components/floor-plan-view';
 import { PanoramaViewer } from '@/components/panorama-viewer';
 import { Button } from '@/components/ui/button';
+import { useGeolocation } from '@/hooks/use-geolocation';
+import type { GeolocationStatus } from '@/hooks/use-geolocation';
 import { createGeoProjector, formatDistance } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { createRouter } from '@/lib/campus-route';
@@ -103,6 +107,22 @@ type Announcement = {
 type Destination =
     | { kind: 'building'; location: Location }
     | { kind: 'office'; office: Office; location: Location };
+
+// Only a location this precise (phone GPS) starts routes. Laptops guess
+// theirs from Wi-Fi, often hundreds of metres off.
+const PRECISE_FIX_METERS = 30;
+// How far outside the map plot (percent) still counts as on campus.
+const CAMPUS_MARGIN = 5;
+
+const LOCATION_STATUS: Partial<Record<GeolocationStatus, string>> = {
+    locating: 'Finding your location…',
+    unsupported: "This device can't share its location.",
+    insecure:
+        'Location only works when this page is opened over a secure (https) link.',
+    denied: 'Location is blocked for this site. Allow it in your browser’s site settings, then try again.',
+    unavailable:
+        "Couldn't get a GPS signal. Try moving outdoors, away from buildings.",
+};
 
 // A shared screen: after this long untouched, go back to the start.
 const IDLE_RESET_MS = 90_000;
@@ -309,8 +329,63 @@ export default function KioskHome({
         [locations],
     );
 
-    // Phones get GPS navigation on the Campus Map instead of kiosk routes.
-    const showKiosk = !handheld;
+    // The visitor's own device location, when they ask for it. Never on the
+    // kiosk PC itself: it doesn't move, and its location guess is rough.
+    const { kioskMode } = usePage().props;
+    const [useMyLocation, setUseMyLocation] = useState(false);
+    const geo = useGeolocation(useMyLocation && !kioskMode);
+    const devicePoint =
+        projector && geo.fix
+            ? projector.project(geo.fix.latitude, geo.fix.longitude)
+            : null;
+    const precise =
+        geo.fix !== null &&
+        geo.fix.accuracy <= PRECISE_FIX_METERS &&
+        !geo.stale;
+    const onCampus =
+        devicePoint !== null &&
+        devicePoint.x >= -CAMPUS_MARGIN &&
+        devicePoint.x <= 100 + CAMPUS_MARGIN &&
+        devicePoint.y >= -CAMPUS_MARGIN &&
+        devicePoint.y <= 100 + CAMPUS_MARGIN;
+    const fromDevice = useMyLocation && precise && onCampus;
+    // Rounded to about 2 m, so GPS jitter doesn't re-plan the walk constantly.
+    const deviceX = fromDevice ? Math.round(devicePoint.x) : null;
+    const deviceY = fromDevice ? Math.round(devicePoint.y) : null;
+    const origin = useMemo(
+        () =>
+            deviceX !== null && deviceY !== null
+                ? { x: deviceX, y: deviceY }
+                : kioskPosition,
+        [deviceX, deviceY, kioskPosition],
+    );
+
+    const locationNote = (() => {
+        if (!useMyLocation) {
+            return null;
+        }
+
+        if (!projector) {
+            return "This campus map isn't set up for GPS yet, so routes start from the kiosk.";
+        }
+
+        if (geo.status !== 'active' || !geo.fix) {
+            return LOCATION_STATUS[geo.status] ?? null;
+        }
+
+        if (!precise) {
+            return `Your location is only accurate to about ${formatDistance(geo.fix.accuracy)}${handheld ? '' : ' (laptops guess it from Wi-Fi)'}, so routes start from the kiosk for now.`;
+        }
+
+        if (!onCampus) {
+            return "You're not on campus yet, so routes start from the kiosk.";
+        }
+
+        return null;
+    })();
+
+    // Kiosks always have a starting point; phones need their own location.
+    const showKiosk = !handheld || fromDevice;
 
     const walk = useMemo(() => {
         if (!destination || !showKiosk) {
@@ -328,7 +403,7 @@ export default function KioskHome({
                 ? planIndoorWalk(
                       plan,
                       destination.office.floor_room ?? '',
-                      kioskPosition,
+                      origin,
                       destination.office.name,
                   )
                 : null;
@@ -338,7 +413,7 @@ export default function KioskHome({
                     from,
                     to,
                 ),
-            kioskPosition,
+            origin,
             indoor
                 ? entranceApproach(indoor.plan, indoor.entrance)
                 : destination.location,
@@ -356,10 +431,19 @@ export default function KioskHome({
                 guide,
                 destination.location.name,
                 projector !== null,
+                fromDevice ? 'Start from where you are now.' : undefined,
             ),
             photos: photosAlongRoute(guide, panoramas, projector, toMeters),
         };
-    }, [destination, showKiosk, kioskPosition, toMeters, projector, panoramas]);
+    }, [
+        destination,
+        showKiosk,
+        origin,
+        fromDevice,
+        toMeters,
+        projector,
+        panoramas,
+    ]);
 
     const pick = (next: Destination) => {
         setPhotoIndex(null);
@@ -511,14 +595,69 @@ export default function KioskHome({
                                 onPointClick={pickLocation}
                                 route={walk?.guide.points ?? null}
                                 userLocation={
-                                    showKiosk
-                                        ? {
-                                              ...kioskPosition,
-                                              label: 'You are here',
-                                          }
-                                        : null
+                                    fromDevice
+                                        ? { ...origin, label: 'You' }
+                                        : !handheld
+                                          ? {
+                                                ...kioskPosition,
+                                                label: 'You are here',
+                                            }
+                                          : null
                                 }
                             />
+
+                            {!kioskMode && photoIndex === null && !inside && (
+                                <div className="absolute top-3 right-3 z-[5] flex max-w-[18rem] flex-col items-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (
+                                                !useMyLocation &&
+                                                window.isSecureContext &&
+                                                'geolocation' in navigator
+                                            ) {
+                                                // Ask straight from the tap; some phones only prompt then.
+                                                navigator.geolocation.getCurrentPosition(
+                                                    () => {},
+                                                    () => {},
+                                                    {
+                                                        enableHighAccuracy: true,
+                                                    },
+                                                );
+                                            }
+
+                                            if (useMyLocation) {
+                                                geo.reset();
+                                            }
+
+                                            setUseMyLocation(!useMyLocation);
+                                        }}
+                                        className={cn(
+                                            'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur transition-colors',
+                                            fromDevice
+                                                ? 'border-sky-300 bg-sky-500 text-white'
+                                                : 'border-gold-400/60 bg-brand-950/85 text-white hover:bg-brand-900',
+                                        )}
+                                    >
+                                        {useMyLocation ? (
+                                            <LocateOff className="size-4" />
+                                        ) : (
+                                            <LocateFixed className="size-4 text-gold-300" />
+                                        )}
+                                        {useMyLocation
+                                            ? 'Stop using my location'
+                                            : 'Use my location'}
+                                    </button>
+                                    {locationNote && (
+                                        <p
+                                            role="status"
+                                            className="rounded-xl bg-brand-950/90 px-3 py-2 text-right text-xs leading-snug text-white/90 shadow-lg backdrop-blur"
+                                        >
+                                            {locationNote}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             {!destination && (
                                 <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-gold-400/60 bg-brand-950/85 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur">
@@ -792,9 +931,11 @@ export default function KioskHome({
                                             Welcome!
                                         </h3>
                                         <p className="mt-1 text-[15px] leading-snug text-brand-950/80">
-                                            {showKiosk
-                                                ? 'Touch a building or office and we’ll show you the way from this kiosk.'
-                                                : 'Pick a building or office to see it on the map.'}
+                                            {fromDevice
+                                                ? 'Touch a building or office and we’ll show you the way from where you are.'
+                                                : showKiosk
+                                                  ? 'Touch a building or office and we’ll show you the way from this kiosk.'
+                                                  : 'Tap “Use my location”, then pick a building or office to get directions.'}
                                         </p>
                                     </div>
                                 </div>
