@@ -2,7 +2,6 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     ArrowUp,
-    BookOpen,
     Building2,
     Car,
     ChevronLeft,
@@ -15,7 +14,6 @@ import {
     DoorOpen,
     Dumbbell,
     Footprints,
-    GraduationCap,
     House,
     Info,
     Landmark,
@@ -68,9 +66,7 @@ import {
     show as announcementShow,
 } from '@/routes/announcements';
 import { index as directoryIndex } from '@/routes/directory';
-import { index as manualsIndex } from '@/routes/manuals';
 import { index as mapsIndex } from '@/routes/maps';
-import { login as studentLogin } from '@/routes/student';
 
 type Location = CampusMapPoint & { photo_url: string | null };
 
@@ -191,36 +187,6 @@ function iconFor(name: string): LucideIcon {
 
     return icons.find(([pattern]) => pattern.test(n))?.[1] ?? Building2;
 }
-
-const DOCK = [
-    {
-        title: 'School Manual',
-        hint: 'Policies, Guidelines & Forms',
-        icon: BookOpen,
-        href: manualsIndex(),
-    },
-    {
-        title: 'Announcements & Events',
-        hint: 'Latest Updates & Activities',
-        icon: Megaphone,
-        href: announcementsIndex(),
-    },
-    {
-        title: 'Campus Map',
-        hint: '3D Navigation & Directory',
-        icon: MapIcon,
-        href: mapsIndex(),
-    },
-    {
-        title: 'My Acads',
-        hint: 'Student Portal',
-        icon: GraduationCap,
-        href: studentLogin({ query: { kiosk: 1 } }),
-    },
-];
-
-const dockTile =
-    'group flex items-center gap-3 rounded-2xl border-2 border-gold-400/70 bg-gradient-to-b from-brand-800 to-brand-950 px-4 py-3 text-left text-white shadow-lg transition-transform active:scale-[0.98]';
 
 /** Panel chrome shared by the map and location list. */
 const panel =
@@ -1205,41 +1171,6 @@ export default function KioskHome({
                 </div>
 
                 <KioskMarquee items={ticker} />
-
-                {/* Dock: the big buttons along the bottom. */}
-                <nav
-                    aria-label="Kiosk sections"
-                    className="hidden gap-3 md:grid md:grid-cols-5"
-                >
-                    <button type="button" onClick={reset} className={dockTile}>
-                        <House className="size-10 shrink-0 fill-gold-400/20 text-gold-400" />
-                        <span className="min-w-0 leading-tight">
-                            <span className="block truncate text-xl font-bold">
-                                Home
-                            </span>
-                            <span className="block truncate text-xs text-white/75">
-                                Start Over
-                            </span>
-                        </span>
-                    </button>
-                    {DOCK.map((item) => (
-                        <Link
-                            key={item.title}
-                            href={item.href}
-                            className={dockTile}
-                        >
-                            <item.icon className="size-10 shrink-0 fill-gold-400/20 text-gold-400" />
-                            <span className="min-w-0 leading-tight">
-                                <span className="block truncate text-xl font-bold">
-                                    {item.title}
-                                </span>
-                                <span className="block truncate text-xs text-white/75">
-                                    {item.hint}
-                                </span>
-                            </span>
-                        </Link>
-                    ))}
-                </nav>
             </div>
         </>
     );

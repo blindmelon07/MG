@@ -100,6 +100,13 @@
       "_dist-DtWHkctD.js"
     ]
   },
+  "_book-open-B_VN8vg4.js": {
+    "file": "assets/book-open-B_VN8vg4.js",
+    "name": "book-open",
+    "imports": [
+      "_createLucideIcon-CL8Q_N-z.js"
+    ]
+  },
   "_building-2-CfKtEhki.js": {
     "file": "assets/building-2-CfKtEhki.js",
     "name": "building-2",
@@ -542,8 +549,8 @@
       "_label-G6RNAPU-.js"
     ]
   },
-  "_megaphone-ChyymaFy.js": {
-    "file": "assets/megaphone-ChyymaFy.js",
+  "_megaphone-CJ6vcvov.js": {
+    "file": "assets/megaphone-CJ6vcvov.js",
     "name": "megaphone",
     "imports": [
       "_createLucideIcon-CL8Q_N-z.js"
@@ -1262,7 +1269,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-Cdx5DFM4.js",
+    "file": "assets/app-BaRP8KqW.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1276,7 +1283,7 @@
       "_es2015-CK5EMJKf.js",
       "_select-C8powc6R.js",
       "_createLucideIcon-CL8Q_N-z.js",
-      "_megaphone-ChyymaFy.js",
+      "_book-open-B_VN8vg4.js",
       "_tags-BQQSPLkt.js",
       "_building-2-CfKtEhki.js",
       "_calendar-days-BaUQasNM.js",
@@ -1288,6 +1295,7 @@
       "_log-out-BMH9Nx_D.js",
       "_map-pin-CevKVmlW.js",
       "_map-loJ8b4q4.js",
+      "_megaphone-CJ6vcvov.js",
       "_sun-g5qRAv8C.js",
       "_send-B42rnYIM.js",
       "_users-DrB0EuMB.js",
@@ -1618,7 +1626,7 @@
     ]
   },
   "resources/js/pages/admin/kiosk-theme/edit.tsx": {
-    "file": "assets/edit-DKhNKl8C.js",
+    "file": "assets/edit-r_xUOBlq.js",
     "name": "edit",
     "src": "resources/js/pages/admin/kiosk-theme/edit.tsx",
     "isDynamicEntry": true,
@@ -1629,10 +1637,11 @@
       "_dist-DtWHkctD.js",
       "_dist-CTMtPcRW.js",
       "_createLucideIcon-CL8Q_N-z.js",
-      "_megaphone-ChyymaFy.js",
+      "_book-open-B_VN8vg4.js",
       "_check-C_euNqdO.js",
       "_house-CW7-nKg8.js",
       "_map-loJ8b4q4.js",
+      "_megaphone-CJ6vcvov.js",
       "_sun-g5qRAv8C.js",
       "_button-BgGnKiEl.js",
       "_input-BEcHyxBL.js",
@@ -2072,16 +2081,17 @@
     ]
   },
   "resources/js/pages/dashboard.tsx": {
-    "file": "assets/dashboard-TC3iYe0A.js",
+    "file": "assets/dashboard-C1U-1JBR.js",
     "name": "dashboard",
     "src": "resources/js/pages/dashboard.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-Bh1tDfsg.js",
       "_utils-BatuX27z.js",
-      "_megaphone-ChyymaFy.js",
+      "_book-open-B_VN8vg4.js",
       "_tags-BQQSPLkt.js",
       "_campus-map-Df3AxyVh.js",
+      "_megaphone-CJ6vcvov.js",
       "_users-DrB0EuMB.js",
       "_routes-IvQT6kKJ.js",
       "_announcements-BbMwyDKe.js",
@@ -2144,7 +2154,7 @@
     ]
   },
   "resources/js/pages/kiosk/home.tsx": {
-    "file": "assets/home-CdUe7hP3.js",
+    "file": "assets/home-BVLeme15.js",
     "name": "home",
     "src": "resources/js/pages/kiosk/home.tsx",
     "isDynamicEntry": true,
@@ -2153,18 +2163,17 @@
       "_utils-BatuX27z.js",
       "_createLucideIcon-CL8Q_N-z.js",
       "_arrow-up-C6iTIelE.js",
-      "_megaphone-ChyymaFy.js",
       "_building-2-CfKtEhki.js",
       "_calendar-days-BaUQasNM.js",
       "_chevron-left-5ogNT6tz.js",
       "_chevron-right-CHxyUC_r.js",
       "_phone-BdWZ8Rn7.js",
       "_locate-off-DgQdL3j5.js",
-      "_graduation-cap-SwfUrMcx.js",
       "_house-CW7-nKg8.js",
       "_campus-map-Df3AxyVh.js",
       "_map-pin-CevKVmlW.js",
       "_map-loJ8b4q4.js",
+      "_megaphone-CJ6vcvov.js",
       "_navigation-C6qejU6k.js",
       "_panorama-BIrCamIe.js",
       "_search-BIADhwQ-.js",
@@ -2172,9 +2181,7 @@
       "_button-BgGnKiEl.js",
       "_announcements-BfrOaf77.js",
       "_directory-rFpUiyJJ.js",
-      "_manuals-CwgxMTVt.js",
       "_maps-DRxFTBC8.js",
-      "_student-DP9t7GGC.js",
       "_campus-route-BAtVPZAG.js",
       "_floor-plans-Bge7ufQw.js"
     ]
