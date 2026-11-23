@@ -18,6 +18,13 @@ return [
     'mode' => (bool) env('KIOSK_MODE', false),
 
     /*
+    | The kiosk's own on-screen keyboard for its search boxes, chatbot and
+    | student sign-in. On by default on a kiosk PC; set KIOSK_KEYBOARD=true
+    | to try it on another machine. Phones and tablets keep their own.
+    */
+    'keyboard' => (bool) env('KIOSK_KEYBOARD', env('KIOSK_MODE', false)),
+
+    /*
     | Route names the kiosk may open. A trailing ".*" covers a whole group.
     */
     'routes' => [

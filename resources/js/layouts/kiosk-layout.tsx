@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import ChatbotWidget from '@/components/chatbot-widget';
 import { KioskBrandHeader } from '@/components/kiosk-brand-header';
+import { KioskKeyboard } from '@/components/kiosk-keyboard';
 import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -265,6 +266,8 @@ export default function KioskLayout({
             </nav>
 
             <ChatbotWidget />
+
+            {props.kioskKeyboard && <KioskKeyboard />}
         </div>
     );
 }

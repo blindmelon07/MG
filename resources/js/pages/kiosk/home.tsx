@@ -39,6 +39,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CAMPUS_WALKING, CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
 import { FloorPlanView } from '@/components/floor-plan-view';
+import { KioskMarquee } from '@/components/kiosk-marquee';
+import type { MarqueeItem } from '@/components/kiosk-marquee';
 import { PanoramaViewer } from '@/components/panorama-viewer';
 import { Button } from '@/components/ui/button';
 import { useGeolocation } from '@/hooks/use-geolocation';
@@ -273,6 +275,7 @@ export default function KioskHome({
     panoramas,
     featuredEvents,
     latestAnnouncements,
+    ticker,
     focus,
     handheld,
 }: {
@@ -283,6 +286,7 @@ export default function KioskHome({
     panoramas: CampusPanorama[];
     featuredEvents: FeaturedEvent[];
     latestAnnouncements: Announcement[];
+    ticker: MarqueeItem[];
     focus: { office: number | null; location: number | null };
     handheld: boolean;
 }) {
@@ -904,7 +908,14 @@ export default function KioskHome({
 
                     {/* Location details and news */}
                     <div className="flex min-h-0 flex-col gap-3">
-                        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-gold-400 bg-gradient-to-b from-white to-gold-200/60 text-brand-950 shadow-xl lg:flex-1">
+                        {/* Keeps its own height; the news below gives way
+                            (and scrolls) when the screen is short. */}
+                        <section
+                            className={cn(
+                                'flex min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-gold-400 bg-gradient-to-b from-white to-gold-200/60 text-brand-950 shadow-xl',
+                                destination ? 'lg:flex-1' : 'shrink-0',
+                            )}
+                        >
                             <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-gold-300 to-gold-500 px-4 py-2.5">
                                 <h2 className="flex items-center gap-2 text-lg font-bold">
                                     <Info className="size-5 rounded-full bg-brand-900 p-0.5 text-white" />
@@ -1134,7 +1145,7 @@ export default function KioskHome({
                         {/* News: hidden while directions take the space. */}
                         <section
                             className={cn(
-                                'flex flex-col overflow-hidden rounded-2xl border-2 border-gold-400 bg-white text-brand-950 shadow-xl',
+                                'flex min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-gold-400 bg-white text-brand-950 shadow-xl lg:flex-1',
                                 destination && 'lg:hidden',
                             )}
                         >
@@ -1144,7 +1155,7 @@ export default function KioskHome({
                                     Announcements & Events
                                 </h2>
                             </div>
-                            <div className="divide-y divide-brand-900/10 px-4">
+                            <div className="min-h-0 flex-1 divide-y divide-brand-900/10 overflow-y-auto px-4">
                                 {news.length === 0 && (
                                     <p className="py-4 text-sm text-brand-950/60">
                                         No announcements right now.
@@ -1192,6 +1203,8 @@ export default function KioskHome({
                         </section>
                     </div>
                 </div>
+
+                <KioskMarquee items={ticker} />
 
                 {/* Dock: the big buttons along the bottom. */}
                 <nav

@@ -52,6 +52,19 @@ class HomeController extends Controller
                 ->latest('published_at')
                 ->take(5)
                 ->get(['id', 'title', 'slug', 'type', 'published_at', 'event_start_at', 'location']),
+            // The marquee along the bottom: upcoming events first, then the
+            // newest announcements. Only notices meant for everyone, since
+            // the screen is public.
+            'ticker' => Announcement::published()
+                ->where('audience', 'all')
+                ->where(fn ($query) => $query->where('type', '!=', 'event')
+                    ->orWhere('event_start_at', '>=', today())
+                    ->orWhere('event_end_at', '>=', today()))
+                ->orderByRaw("case when type = 'event' then 0 else 1 end")
+                ->orderByRaw('case when type = \'event\' then event_start_at end')
+                ->latest('published_at')
+                ->take(10)
+                ->get(['id', 'title', 'slug', 'type', 'event_start_at', 'location']),
             // Phones carry their own GPS, so they get walking navigation on the
             // Campus Map instead of routes from the kiosk's spot.
             // "Show me the way" from the Directory opens with the route drawn.

@@ -1191,7 +1191,7 @@
     "src": "node_modules/@fontsource/montserrat/files/montserrat-vietnamese-800-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-DbFhFZoN.css",
+    "file": "assets/app-BFFikWn-.css",
     "name": "app",
     "names": [
       "app.css"
@@ -1262,7 +1262,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-CWhm9-g_.js",
+    "file": "assets/app-Cdx5DFM4.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -2144,7 +2144,7 @@
     ]
   },
   "resources/js/pages/kiosk/home.tsx": {
-    "file": "assets/home-DehltBPp.js",
+    "file": "assets/home-CdUe7hP3.js",
     "name": "home",
     "src": "resources/js/pages/kiosk/home.tsx",
     "isDynamicEntry": true,
@@ -2155,6 +2155,7 @@
       "_arrow-up-C6iTIelE.js",
       "_megaphone-ChyymaFy.js",
       "_building-2-CfKtEhki.js",
+      "_calendar-days-BaUQasNM.js",
       "_chevron-left-5ogNT6tz.js",
       "_chevron-right-CHxyUC_r.js",
       "_phone-BdWZ8Rn7.js",

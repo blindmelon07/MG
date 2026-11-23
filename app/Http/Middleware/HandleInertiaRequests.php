@@ -47,6 +47,8 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // Running on a kiosk PC: the pages keep visitors inside the kiosk.
             'kioskMode' => (bool) config('kiosk.mode'),
+            // Show the kiosk's on-screen keyboard instead of the system one.
+            'kioskKeyboard' => (bool) config('kiosk.keyboard'),
             // Null until an admin changes the kiosk colors.
             'kioskTheme' => fn () => KioskTheme::saved(),
             // The year staff are viewing; enrollment and grade pages follow it.
