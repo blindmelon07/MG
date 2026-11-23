@@ -44,3 +44,7 @@ test('the on-screen keyboard follows the kiosk keyboard setting', function () {
     $this->get(route('home'))->assertInertia(fn (Assert $page) => $page
         ->where('kioskKeyboard', false));
 });
+
+test('the built-in keyboard is on by default', function () {
+    expect(config('kiosk.keyboard'))->toBeTrue();
+});

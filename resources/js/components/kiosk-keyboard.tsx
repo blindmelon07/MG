@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { ArrowBigUp, CornerDownLeft, Delete, KeyboardOff } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { isHandheld } from '@/lib/device';
 import { cn } from '@/lib/utils';
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
@@ -98,10 +99,11 @@ const SYMBOL_ROWS = ['1234567890', '!@#$%&*()', '-_=+/:;\'"', '?,.<>[]'];
 const KEYBOARD_HEIGHT = 320;
 
 /**
- * The kiosk's own touch keyboard. Windows' touch keyboard is unreliable in
- * Edge's kiosk mode (it may not appear, or covers the page), so on a kiosk
- * PC this one opens whenever a text box is tapped: the search boxes, the
- * chatbot and the student sign-in. It docks at the bottom, or at the top
+ * The kiosk's own built-in keyboard, so typing never relies on the Windows
+ * on-screen keyboard (unreliable in Edge's kiosk mode: it may not appear, or
+ * covers the page). It opens whenever a text box is tapped: the search
+ * boxes, the chatbot and the student sign-in. Phones and tablets keep their
+ * own keyboard. It docks at the bottom, or at the top
  * when the box it types into is low on the screen.
  */
 export function KioskKeyboard() {
@@ -113,6 +115,11 @@ export function KioskKeyboard() {
 
     // Follow focus: open for text boxes, close when focus leaves them.
     useEffect(() => {
+        // Phones and tablets have their own keyboard.
+        if (isHandheld()) {
+            return;
+        }
+
         const open = (target: Field) => {
             // Keep Windows' own touch keyboard from opening as well.
             target.inputMode = 'none';
