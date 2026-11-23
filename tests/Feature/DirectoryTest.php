@@ -5,6 +5,8 @@ use App\Models\DirectoryEntry;
 use App\Models\User;
 use App\Support\KioskPosition;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -147,4 +149,33 @@ test('an office can point at a room on its building floor plan', function () {
             'floor_room' => 'Not A Key!',
         ])
         ->assertSessionHasErrors('floor_room');
+});
+
+test('campus locations can have a photo for the kiosk details card', function () {
+    Storage::fake('public');
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->post(route('admin.campus-locations.store'), [
+        'name' => 'Main Gate',
+        'x' => 50,
+        'y' => 90,
+        'photo' => UploadedFile::fake()->image('gate.jpg'),
+    ])->assertRedirect();
+
+    $location = CampusLocation::sole();
+    $path = $location->photo_path;
+    Storage::disk('public')->assertExists($path);
+
+    $this->get(route('home'))
+        ->assertInertia(fn (Assert $page) => $page->where('locations.0.photo_url', $location->photo_url));
+
+    $this->actingAs($admin)->put(route('admin.campus-locations.update', $location), [
+        'name' => 'Main Gate',
+        'x' => 50,
+        'y' => 90,
+        'remove_photo' => '1',
+    ])->assertRedirect();
+
+    expect($location->fresh()->photo_path)->toBeNull();
+    Storage::disk('public')->assertMissing($path);
 });

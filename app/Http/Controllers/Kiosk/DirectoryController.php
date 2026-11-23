@@ -20,7 +20,7 @@ class DirectoryController extends Controller
             // Major buildings are the campus map's own pins.
             'buildings' => CampusLocation::orderBy('sort_order')
                 ->orderBy('name')
-                ->get(['id', 'name', 'description']),
+                ->get(['id', 'name', 'description', 'photo_path']),
         ]);
     }
 }

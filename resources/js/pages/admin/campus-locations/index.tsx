@@ -26,7 +26,10 @@ import { Textarea } from '@/components/ui/textarea';
 import type { CampusPanorama } from '@/lib/panorama';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 
-type CampusLocation = CampusMapPoint & { sort_order: number };
+type CampusLocation = CampusMapPoint & {
+    sort_order: number;
+    photo_url: string | null;
+};
 
 export default function CampusLocationsIndex({
     locations,
@@ -151,6 +154,21 @@ export default function CampusLocationsIndex({
                                                 />
                                                 <InputError
                                                     message={errors.sort_order}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="photo">
+                                                    Photo (shown on the kiosk)
+                                                </Label>
+                                                <Input
+                                                    id="photo"
+                                                    name="photo"
+                                                    type="file"
+                                                    accept="image/*"
+                                                />
+                                                <InputError
+                                                    message={errors.photo}
                                                 />
                                             </div>
 
@@ -382,6 +400,38 @@ export default function CampusLocationsIndex({
                                             />
                                             <InputError
                                                 message={errors.sort_order}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="edit_photo">
+                                                Photo (shown on the kiosk)
+                                            </Label>
+                                            {editing.photo_url && (
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={editing.photo_url}
+                                                        alt=""
+                                                        className="h-16 w-24 rounded-md object-cover"
+                                                    />
+                                                    <label className="flex items-center gap-2 text-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="remove_photo"
+                                                            value="1"
+                                                        />
+                                                        Remove photo
+                                                    </label>
+                                                </div>
+                                            )}
+                                            <Input
+                                                id="edit_photo"
+                                                name="photo"
+                                                type="file"
+                                                accept="image/*"
+                                            />
+                                            <InputError
+                                                message={errors.photo}
                                             />
                                         </div>
 

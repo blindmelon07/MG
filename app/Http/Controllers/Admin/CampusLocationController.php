@@ -10,6 +10,7 @@ use App\Models\CampusPanorama;
 use App\Models\MapReferencePoint;
 use App\Support\KioskPosition;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,7 +31,11 @@ class CampusLocationController extends Controller
 
     public function store(StoreCampusLocationRequest $request): RedirectResponse
     {
-        CampusLocation::create($request->validated());
+        $location = CampusLocation::create($request->safe()->except(['photo', 'remove_photo']));
+
+        if ($request->hasFile('photo')) {
+            $location->forceFill(['photo_path' => $request->file('photo')->store('campus-locations', 'public')])->save();
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Location added to the map.')]);
 
@@ -39,7 +44,20 @@ class CampusLocationController extends Controller
 
     public function update(UpdateCampusLocationRequest $request, CampusLocation $campusLocation): RedirectResponse
     {
-        $campusLocation->update($request->validated());
+        $campusLocation->fill($request->safe()->except(['photo', 'remove_photo']));
+        $old = $campusLocation->photo_path;
+
+        if ($request->hasFile('photo')) {
+            $campusLocation->photo_path = $request->file('photo')->store('campus-locations', 'public');
+        } elseif ($request->boolean('remove_photo')) {
+            $campusLocation->photo_path = null;
+        }
+
+        $campusLocation->save();
+
+        if ($old && $old !== $campusLocation->photo_path) {
+            Storage::disk('public')->delete($old);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Location updated.')]);
 
@@ -49,6 +67,10 @@ class CampusLocationController extends Controller
     public function destroy(CampusLocation $campusLocation): RedirectResponse
     {
         $campusLocation->delete();
+
+        if ($campusLocation->photo_path) {
+            Storage::disk('public')->delete($campusLocation->photo_path);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Location removed.')]);
 

@@ -1739,6 +1739,7 @@ export function CampusMap({
     follow,
     route,
     onLookDrag,
+    labeledPins = false,
     className,
 }: {
     points: CampusMapPoint[];
@@ -1767,6 +1768,8 @@ export function CampusMap({
     route?: { x: number; y: number }[] | null;
     /** First person only: the viewer dragged to look around (degrees, + = right). */
     onLookDrag?: (deltaDegrees: number) => void;
+    /** Pins as name tags (kiosk home) instead of plain red markers. */
+    labeledPins?: boolean;
     className?: string;
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -2315,13 +2318,36 @@ export function CampusMap({
                         onPointClick?.(point);
                     }}
                 >
-                    <MapPin
-                        className={cn(
-                            'size-7 fill-red-500 text-red-700 drop-shadow-sm transition-transform hover:scale-110',
-                            activeId === point.id && 'scale-125',
-                        )}
-                    />
-                    <span className="sr-only">{point.name}</span>
+                    {labeledPins ? (
+                        <span
+                            className={cn(
+                                'flex items-center gap-1 rounded-full border py-0.5 pr-2.5 pl-1 text-xs font-semibold whitespace-nowrap shadow-lg transition-transform hover:scale-105',
+                                activeId === point.id
+                                    ? 'scale-110 border-gold-300 bg-gold-400 text-brand-950'
+                                    : 'border-white/30 bg-brand-900/90 text-white',
+                            )}
+                        >
+                            <MapPin
+                                className={cn(
+                                    'size-4',
+                                    activeId === point.id
+                                        ? 'fill-brand-900 text-gold-200'
+                                        : 'fill-gold-400 text-brand-900',
+                                )}
+                            />
+                            {point.name}
+                        </span>
+                    ) : (
+                        <>
+                            <MapPin
+                                className={cn(
+                                    'size-7 fill-red-500 text-red-700 drop-shadow-sm transition-transform hover:scale-110',
+                                    activeId === point.id && 'scale-125',
+                                )}
+                            />
+                            <span className="sr-only">{point.name}</span>
+                        </>
+                    )}
                 </button>
             ))}
 

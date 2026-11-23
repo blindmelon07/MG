@@ -37,11 +37,14 @@ export function FloorPlanView({
     plan,
     target,
     route,
+    names,
     className,
 }: {
     plan: FloorPlan;
     target: Room | null;
     route: MapPoint[] | null;
+    /** Room key → what's in it (e.g. "Electronics Laboratory"), from the Directory. */
+    names?: Record<string, string>;
     className?: string;
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -52,7 +55,7 @@ export function FloorPlanView({
             .filter((r) => r.kind !== 'stairs' || r === target)
             .map((r) => ({
                 key: r.key,
-                text: r.name,
+                text: names?.[r.key] ?? r.name,
                 x: r.x + r.w / 2,
                 y: r.y + r.d / 2,
                 target: r === target,

@@ -1,34 +1,44 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowLeft,
+    ArrowRight,
     ArrowUp,
     BookOpen,
     Building2,
+    Car,
     ChevronLeft,
     ChevronRight,
+    Church,
     Clock,
     CornerUpLeft,
     CornerUpRight,
+    Cpu,
     DoorOpen,
+    Dumbbell,
     Footprints,
     GraduationCap,
+    House,
+    Info,
+    Landmark,
+    Map as MapIcon,
     MapPin,
     Megaphone,
+    MousePointerClick,
     Navigation,
     Orbit,
-    Map as MapIcon,
     Phone,
+    Scale,
     Search,
-    Sparkles,
+    Trees,
+    Utensils,
     X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CAMPUS_WALKING, CampusMap } from '@/components/campus-map';
 import type { CampusMapPoint } from '@/components/campus-map';
 import { FloorPlanView } from '@/components/floor-plan-view';
 import { PanoramaViewer } from '@/components/panorama-viewer';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { createGeoProjector, formatDistance } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { createRouter } from '@/lib/campus-route';
@@ -47,12 +57,16 @@ import {
 import { panoramaTitle } from '@/lib/panorama';
 import type { CampusPanorama } from '@/lib/panorama';
 import { cn } from '@/lib/utils';
-import { show as announcementShow } from '@/routes/announcements';
-import { index as announcementsIndex } from '@/routes/announcements';
+import {
+    index as announcementsIndex,
+    show as announcementShow,
+} from '@/routes/announcements';
 import { index as directoryIndex } from '@/routes/directory';
 import { index as manualsIndex } from '@/routes/manuals';
 import { index as mapsIndex } from '@/routes/maps';
 import { login as studentLogin } from '@/routes/student';
+
+type Location = CampusMapPoint & { photo_url: string | null };
 
 type Office = {
     id: number;
@@ -71,6 +85,7 @@ type FeaturedEvent = {
     slug: string;
     summary: string;
     event_start_at: string;
+    event_end_at: string | null;
     location: string | null;
 };
 
@@ -79,12 +94,15 @@ type Announcement = {
     title: string;
     slug: string;
     type: 'announcement' | 'event';
+    published_at: string | null;
+    event_start_at: string | null;
+    location: string | null;
 };
 
 /** What the visitor picked: a building, or an office inside one. */
 type Destination =
-    | { kind: 'building'; location: CampusMapPoint }
-    | { kind: 'office'; office: Office; location: CampusMapPoint };
+    | { kind: 'building'; location: Location }
+    | { kind: 'office'; office: Office; location: Location };
 
 // A shared screen: after this long untouched, go back to the start.
 const IDLE_RESET_MS = 90_000;
@@ -133,32 +151,99 @@ function TurnIcon({ turn }: { turn: number | null }) {
     );
 }
 
-const QUICK_LINKS = [
-    {
-        title: 'Directory',
-        hint: 'Offices & hotlines',
-        icon: Building2,
-        href: directoryIndex(),
-    },
+/** A fitting icon for a campus place, from its name. */
+function iconFor(name: string): LucideIcon {
+    const n = name.toLowerCase();
+    const icons: [RegExp, LucideIcon][] = [
+        [/gate|entrance/, Landmark],
+        [/ait|computer|laborator/, Cpu],
+        [/automotive|garage|parking/, Car],
+        [/gym/, Dumbbell],
+        [/chapel|church/, Church],
+        [/convent/, House],
+        [/quadrangle|field|court|lawn/, Trees],
+        [/canteen/, Utensils],
+        [/law/, Scale],
+        [/sign/, MapPin],
+    ];
+
+    return icons.find(([pattern]) => pattern.test(n))?.[1] ?? Building2;
+}
+
+const DOCK = [
     {
         title: 'School Manual',
-        hint: 'Policies & guides',
+        hint: 'Policies, Guidelines & Forms',
         icon: BookOpen,
         href: manualsIndex(),
     },
     {
-        title: 'News & Events',
-        hint: "What's happening",
+        title: 'Announcements & Events',
+        hint: 'Latest Updates & Activities',
         icon: Megaphone,
         href: announcementsIndex(),
     },
     {
+        title: 'Campus Map',
+        hint: '3D Navigation & Directory',
+        icon: MapIcon,
+        href: mapsIndex(),
+    },
+    {
         title: 'My Acads',
-        hint: 'Grades & subjects',
+        hint: 'Student Portal',
         icon: GraduationCap,
         href: studentLogin({ query: { kiosk: 1 } }),
     },
 ];
+
+const dockTile =
+    'group flex items-center gap-3 rounded-2xl border-2 border-gold-400/70 bg-gradient-to-b from-brand-800 to-brand-950 px-4 py-3 text-left text-white shadow-lg transition-transform active:scale-[0.98]';
+
+/** Panel chrome shared by the map and location list. */
+const panel =
+    'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-950/50 shadow-xl';
+
+function PanelTitle({
+    icon: Icon,
+    children,
+    aside,
+}: {
+    icon: LucideIcon;
+    children: React.ReactNode;
+    aside?: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-brand-900/70 px-4 py-2.5">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+                <Icon className="size-5 text-gold-300" />
+                {children}
+            </h2>
+            {aside}
+        </div>
+    );
+}
+
+function DateBadge({ value }: { value: string }) {
+    const date = new Date(value);
+
+    return (
+        <div className="w-12 shrink-0 overflow-hidden rounded-lg border border-red-200 bg-white text-center shadow-sm">
+            <div className="bg-red-600 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">
+                {date.toLocaleDateString(undefined, { month: 'short' })}
+            </div>
+            <div className="py-0.5 text-xl leading-tight font-extrabold text-brand-950">
+                {date.getDate()}
+            </div>
+        </div>
+    );
+}
+
+const timeOf = (value: string) =>
+    new Date(value).toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
 
 export default function KioskHome({
     locations,
@@ -171,7 +256,7 @@ export default function KioskHome({
     focus,
     handheld,
 }: {
-    locations: CampusMapPoint[];
+    locations: Location[];
     offices: Office[];
     kioskPosition: { x: number; y: number };
     referencePoints: GeoReferencePoint[];
@@ -195,8 +280,8 @@ export default function KioskHome({
 
         return location ? { kind: 'building', location } : null;
     });
-    const [tab, setTab] = useState<'offices' | 'buildings'>(
-        offices.length > 0 ? 'offices' : 'buildings',
+    const [tab, setTab] = useState<'buildings' | 'offices'>(
+        focus.office ? 'offices' : 'buildings',
     );
     const [query, setQuery] = useState('');
     const [photoIndex, setPhotoIndex] = useState<number | null>(null);
@@ -244,6 +329,7 @@ export default function KioskHome({
                       plan,
                       destination.office.floor_room ?? '',
                       kioskPosition,
+                      destination.office.name,
                   )
                 : null;
         const guide = planWalk(
@@ -275,31 +361,35 @@ export default function KioskHome({
         };
     }, [destination, showKiosk, kioskPosition, toMeters, projector, panoramas]);
 
-    const pickLocation = (location: CampusMapPoint) => {
+    const pick = (next: Destination) => {
         setPhotoIndex(null);
         setInside(false);
-        setDestination({ kind: 'building', location });
+        setDestination(next);
     };
+    const pickLocation = (point: CampusMapPoint) => {
+        const location = locationById.get(point.id);
 
+        if (location) {
+            pick({ kind: 'building', location });
+        }
+    };
     const pickOffice = (office: Office) => {
         const location = locationById.get(office.campus_location_id);
 
         if (location) {
-            setPhotoIndex(null);
-            setInside(false);
-            setDestination({ kind: 'office', office, location });
+            pick({ kind: 'office', office, location });
         }
     };
 
     const q = query.trim().toLowerCase();
-    const matches = (...fields: (string | null)[]) =>
+    const matches = (...fields: (string | null | undefined)[]) =>
         q === '' || fields.some((f) => f?.toLowerCase().includes(q));
     const shownOffices = offices.filter((o) =>
         matches(
             o.name,
             o.description,
             o.room,
-            locationById.get(o.campus_location_id)?.name ?? null,
+            locationById.get(o.campus_location_id)?.name,
         ),
     );
     const shownBuildings = locations.filter((l) =>
@@ -308,314 +398,485 @@ export default function KioskHome({
 
     const photo =
         photoIndex !== null && walk ? walk.photos[photoIndex] : undefined;
-    const tickerItems = [
+    const floorNames = walk?.indoor
+        ? Object.fromEntries(
+              offices
+                  .filter(
+                      (o) =>
+                          o.floor_room &&
+                          locationById.get(o.campus_location_id)?.name ===
+                              walk.indoor!.plan.building,
+                  )
+                  .map((o) => [o.floor_room, o.name]),
+          )
+        : undefined;
+
+    const news = [
         ...featuredEvents.map((e) => ({
             key: `e${e.id}`,
             slug: e.slug,
-            text: `${e.title} · ${new Date(e.event_start_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}${e.location ? ` · ${e.location}` : ''}`,
-            event: true,
+            title: e.title,
+            date: e.event_start_at,
+            venue: e.location,
+            time: `${timeOf(e.event_start_at)}${e.event_end_at ? ` – ${timeOf(e.event_end_at)}` : ''}`,
         })),
         ...latestAnnouncements
             .filter((a) => !featuredEvents.some((e) => e.slug === a.slug))
             .map((a) => ({
                 key: `a${a.id}`,
                 slug: a.slug,
-                text: a.title,
-                event: a.type === 'event',
+                title: a.title,
+                date: a.event_start_at ?? a.published_at,
+                venue: a.location,
+                time: a.event_start_at ? timeOf(a.event_start_at) : null,
             })),
-    ];
+    ].slice(0, 4);
+
+    const name =
+        destination?.kind === 'office'
+            ? destination.office.name
+            : destination?.location.name;
 
     return (
         <>
             <Head title="Welcome" />
 
-            <div className="flex flex-col md:h-full md:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_26rem]">
-                {/* The map is the home screen. */}
-                <div className="relative flex min-h-0 flex-1 flex-col">
-                    <div className="relative min-h-0 flex-1">
-                        <CampusMap
-                            className="h-[58vh] rounded-none border-0 md:absolute md:inset-0 md:h-auto"
-                            points={
-                                destination ? [destination.location] : locations
-                            }
-                            activeId={destination?.location.id ?? null}
-                            onPointClick={pickLocation}
-                            route={walk?.guide.points ?? null}
-                            userLocation={
-                                showKiosk
-                                    ? {
-                                          ...kioskPosition,
-                                          label: 'You are here',
-                                      }
-                                    : null
-                            }
-                        />
-
-                        {/* Welcome card, until a place is picked. */}
-                        {!destination && (
-                            <div className="pointer-events-none absolute top-3 left-3 max-w-sm rounded-2xl bg-background/90 p-4 shadow-lg backdrop-blur md:top-5 md:left-5 md:p-5">
-                                <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-                                    Welcome to Aemilianum College
-                                </p>
-                                <h1 className="mt-1 text-xl leading-tight font-bold md:text-2xl">
-                                    Where do you want to go?
-                                </h1>
-                                <p className="mt-1.5 text-sm text-muted-foreground md:text-base">
-                                    {showKiosk
-                                        ? 'Touch a building on the map or pick an office, and we’ll show you the way from here.'
-                                        : 'Pick an office or building to see it on the map.'}
-                                </p>
-                            </div>
-                        )}
-
-                        {destination && walk && (
-                            <div className="pointer-events-none absolute top-3 left-3 flex items-center gap-3 rounded-2xl bg-background/90 px-4 py-3 shadow-lg backdrop-blur md:top-5 md:left-5">
-                                <Navigation className="size-6 text-primary" />
-                                <div className="leading-tight">
-                                    <div className="font-bold">
-                                        To {destination.location.name}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                        {projector
-                                            ? `${formatDistance(walk.guide.length)} · about ${walkingMinutes(walk.guide.length)} min walk`
-                                            : 'Follow the blue line'}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Inside the building: the floor, with the walk to the door. */}
-                        {inside && walk?.indoor && (
-                            <FloorPlanView
-                                className="absolute inset-0 z-10"
-                                plan={walk.indoor.plan}
-                                target={walk.indoor.room}
-                                route={walk.indoor.points}
-                            />
-                        )}
-
-                        {walk?.indoor && photoIndex === null && (
-                            <div
-                                role="group"
-                                aria-label="Map view"
-                                className="absolute top-3 right-3 z-20 flex gap-1 rounded-xl bg-background/95 p-1 shadow-lg backdrop-blur md:top-5 md:right-5"
-                            >
-                                <Button
-                                    size="lg"
-                                    variant={inside ? 'ghost' : 'default'}
-                                    aria-pressed={!inside}
-                                    onClick={() => setInside(false)}
-                                >
-                                    <MapIcon /> Campus
-                                </Button>
-                                <Button
-                                    size="lg"
-                                    variant={inside ? 'default' : 'ghost'}
-                                    aria-pressed={inside}
-                                    onClick={() => setInside(true)}
-                                >
-                                    <DoorOpen /> Inside{' '}
-                                    {walk.indoor.plan.building}
-                                </Button>
-                            </div>
-                        )}
-
-                        {/* 360° preview of the walk, facing the way to go. */}
-                        {photo && walk && (
-                            <PanoramaViewer
-                                className="absolute inset-0 z-10"
-                                panorama={photo.panorama}
-                                heading={photo.heading}
-                            >
-                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                    <div className="flex flex-col items-center gap-1 rounded-full bg-primary/85 px-5 py-3 text-primary-foreground shadow-xl">
-                                        <ArrowUp className="size-8" />
-                                        <span className="text-sm font-bold">
-                                            Walk this way
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-                                    <Button
-                                        size="lg"
-                                        variant="secondary"
-                                        className="shadow-lg"
-                                        disabled={photoIndex === 0}
-                                        onClick={() =>
-                                            setPhotoIndex((i) =>
-                                                Math.max(0, (i ?? 0) - 1),
-                                            )
-                                        }
+            <div className="flex flex-col gap-3 bg-gradient-to-b from-brand-900 to-brand-950 p-3 text-white lg:h-full lg:min-h-0 xl:p-4">
+                <div className="flex flex-col gap-3 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_15rem_23rem] xl:grid-cols-[minmax(0,1fr)_17rem_26rem]">
+                    {/* Interactive campus map */}
+                    <section className={panel}>
+                        <PanelTitle
+                            icon={MapIcon}
+                            aside={
+                                walk?.indoor && photoIndex === null ? (
+                                    <div
+                                        role="group"
+                                        aria-label="Map view"
+                                        className="flex gap-1 rounded-full bg-brand-950/70 p-1"
                                     >
-                                        <ChevronLeft /> Back
-                                    </Button>
-                                    <div className="rounded-lg bg-background/90 px-3 py-2 text-center text-sm font-medium shadow-lg backdrop-blur">
-                                        {panoramaTitle(photo.panorama)}
-                                        <span className="block text-xs text-muted-foreground">
-                                            Stop {(photoIndex ?? 0) + 1} of{' '}
-                                            {walk.photos.length} · drag to look
-                                            around
-                                        </span>
+                                        {(
+                                            [
+                                                {
+                                                    value: false,
+                                                    Icon: MapIcon,
+                                                    label: 'Campus',
+                                                },
+                                                {
+                                                    value: true,
+                                                    Icon: DoorOpen,
+                                                    label: `Inside ${walk.indoor.plan.building}`,
+                                                },
+                                            ] satisfies {
+                                                value: boolean;
+                                                Icon: LucideIcon;
+                                                label: string;
+                                            }[]
+                                        ).map(({ value, Icon, label }) => (
+                                            <button
+                                                key={String(value)}
+                                                type="button"
+                                                aria-pressed={inside === value}
+                                                onClick={() => setInside(value)}
+                                                className={cn(
+                                                    'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold',
+                                                    inside === value
+                                                        ? 'bg-gradient-to-b from-gold-300 to-gold-500 text-brand-950'
+                                                        : 'text-white/85',
+                                                )}
+                                            >
+                                                <Icon className="size-4" />
+                                                {label}
+                                            </button>
+                                        ))}
                                     </div>
-                                    {photoIndex !== null &&
-                                    photoIndex < walk.photos.length - 1 ? (
+                                ) : null
+                            }
+                        >
+                            Interactive Campus Map{' '}
+                            <span className="text-sm font-medium text-white/70">
+                                (3D Navigation)
+                            </span>
+                        </PanelTitle>
+
+                        <div className="relative h-[58vh] min-h-0 lg:h-auto lg:flex-1">
+                            <CampusMap
+                                className="absolute inset-0 aspect-auto rounded-none border-0"
+                                labeledPins
+                                points={
+                                    destination
+                                        ? [destination.location]
+                                        : locations
+                                }
+                                activeId={destination?.location.id ?? null}
+                                onPointClick={pickLocation}
+                                route={walk?.guide.points ?? null}
+                                userLocation={
+                                    showKiosk
+                                        ? {
+                                              ...kioskPosition,
+                                              label: 'You are here',
+                                          }
+                                        : null
+                                }
+                            />
+
+                            {!destination && (
+                                <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-gold-400/60 bg-brand-950/85 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur">
+                                    <MousePointerClick className="size-4 text-gold-300" />
+                                    Touch a place to see how to get there
+                                </div>
+                            )}
+
+                            {destination && walk && (
+                                <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-3 rounded-2xl border border-gold-400/60 bg-brand-950/85 px-4 py-2.5 shadow-lg backdrop-blur">
+                                    <Navigation className="size-5 text-gold-300" />
+                                    <div className="leading-tight">
+                                        <div className="font-bold">
+                                            To {name}
+                                        </div>
+                                        <div className="text-sm text-white/75">
+                                            {projector
+                                                ? `${formatDistance(walk.guide.length)} · about ${walkingMinutes(walk.guide.length)} min walk`
+                                                : 'Follow the blue line'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {inside && walk?.indoor && (
+                                <FloorPlanView
+                                    className="absolute inset-0 z-10"
+                                    plan={walk.indoor.plan}
+                                    target={walk.indoor.room}
+                                    route={walk.indoor.points}
+                                    names={floorNames}
+                                />
+                            )}
+
+                            {/* 360° preview of the walk, facing the way to go. */}
+                            {photo && walk && (
+                                <PanoramaViewer
+                                    className="absolute inset-0 z-10"
+                                    panorama={photo.panorama}
+                                    heading={photo.heading}
+                                >
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                        <div className="flex flex-col items-center gap-1 rounded-full bg-brand-800/85 px-5 py-3 text-white shadow-xl">
+                                            <ArrowUp className="size-8 text-gold-300" />
+                                            <span className="text-sm font-bold">
+                                                Walk this way
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
                                         <Button
                                             size="lg"
+                                            variant="secondary"
                                             className="shadow-lg"
+                                            disabled={photoIndex === 0}
                                             onClick={() =>
-                                                setPhotoIndex(
-                                                    (i) => (i ?? 0) + 1,
+                                                setPhotoIndex((i) =>
+                                                    Math.max(0, (i ?? 0) - 1),
                                                 )
                                             }
                                         >
-                                            Next <ChevronRight />
+                                            <ChevronLeft /> Back
                                         </Button>
-                                    ) : (
-                                        <Button
-                                            size="lg"
-                                            className="shadow-lg"
-                                            onClick={() => setPhotoIndex(null)}
-                                        >
-                                            Done
-                                        </Button>
-                                    )}
-                                </div>
-                                <Button
-                                    size="icon"
-                                    variant="secondary"
-                                    className="absolute top-3 right-3 shadow-lg"
-                                    onClick={() => setPhotoIndex(null)}
-                                    aria-label="Close the 360° preview"
-                                >
-                                    <X />
-                                </Button>
-                            </PanoramaViewer>
-                        )}
-                    </div>
-
-                    {/* Big touch targets for everything else on the kiosk. */}
-                    <div className="hidden gap-3 border-t border-sidebar-border/70 bg-background p-3 md:grid md:grid-cols-4 dark:border-sidebar-border">
-                        {QUICK_LINKS.map((link) => (
-                            <Link
-                                key={link.title}
-                                href={link.href}
-                                className="group flex items-center gap-3 rounded-2xl border-2 border-sidebar-border/70 p-3 transition-colors hover:border-primary active:scale-[0.98] dark:border-sidebar-border"
-                            >
-                                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                                    <link.icon className="size-6" />
-                                </span>
-                                <span className="min-w-0 leading-tight">
-                                    <span className="block truncate text-lg font-bold">
-                                        {link.title}
-                                    </span>
-                                    <span className="block truncate text-sm text-muted-foreground">
-                                        {link.hint}
-                                    </span>
-                                </span>
-                            </Link>
-                        ))}
-                    </div>
-
-                    {tickerItems.length > 0 && (
-                        <div className="hidden items-center gap-3 overflow-hidden border-t border-sidebar-border/70 bg-primary px-4 py-2 text-primary-foreground md:flex dark:border-sidebar-border">
-                            <span className="flex shrink-0 items-center gap-1.5 text-sm font-bold uppercase">
-                                <Sparkles className="size-4" /> Latest
-                            </span>
-                            <div className="relative min-w-0 flex-1 overflow-hidden">
-                                <div className="kiosk-ticker flex w-max gap-10 whitespace-nowrap">
-                                    {[...tickerItems, ...tickerItems].map(
-                                        (item, i) => (
-                                            <Link
-                                                key={`${item.key}-${i}`}
-                                                href={announcementShow(
-                                                    item.slug,
-                                                )}
-                                                className="text-sm font-medium hover:underline"
+                                        <div className="rounded-lg bg-background/90 px-3 py-2 text-center text-sm font-medium text-foreground shadow-lg backdrop-blur">
+                                            {panoramaTitle(photo.panorama)}
+                                            <span className="block text-xs text-muted-foreground">
+                                                Stop {(photoIndex ?? 0) + 1} of{' '}
+                                                {walk.photos.length} · drag to
+                                                look around
+                                            </span>
+                                        </div>
+                                        {photoIndex !== null &&
+                                        photoIndex < walk.photos.length - 1 ? (
+                                            <Button
+                                                size="lg"
+                                                className="shadow-lg"
+                                                onClick={() =>
+                                                    setPhotoIndex(
+                                                        (i) => (i ?? 0) + 1,
+                                                    )
+                                                }
                                             >
-                                                {item.event ? '📅 ' : '📢 '}
-                                                {item.text}
-                                            </Link>
-                                        ),
-                                    )}
-                                </div>
+                                                Next <ChevronRight />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                size="lg"
+                                                className="shadow-lg"
+                                                onClick={() =>
+                                                    setPhotoIndex(null)
+                                                }
+                                            >
+                                                Done
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <Button
+                                        size="icon"
+                                        variant="secondary"
+                                        className="absolute top-3 right-3 shadow-lg"
+                                        onClick={() => setPhotoIndex(null)}
+                                        aria-label="Close the 360° preview"
+                                    >
+                                        <X />
+                                    </Button>
+                                </PanoramaViewer>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Select a location */}
+                    <section
+                        className={cn(panel, 'max-h-[70vh] lg:max-h-none')}
+                    >
+                        <PanelTitle icon={MousePointerClick}>
+                            Select a Location
+                        </PanelTitle>
+                        <div className="space-y-2 border-b border-white/10 p-3">
+                            <div className="grid grid-cols-2 gap-1 rounded-full bg-brand-950/70 p-1">
+                                {(
+                                    [
+                                        ['buildings', 'Buildings'],
+                                        ['offices', 'Offices'],
+                                    ] as const
+                                ).map(([value, label]) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        aria-pressed={tab === value}
+                                        onClick={() => setTab(value)}
+                                        className={cn(
+                                            'rounded-full py-1.5 text-sm font-semibold transition-colors',
+                                            tab === value
+                                                ? 'bg-white text-brand-900'
+                                                : 'text-white/80',
+                                        )}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/60" />
+                                <input
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="Search"
+                                    className="h-10 w-full rounded-full border border-white/20 bg-brand-950/60 pr-3 pl-9 text-sm text-white placeholder:text-white/50 focus:border-gold-400 focus:outline-none"
+                                />
                             </div>
                         </div>
-                    )}
-                </div>
 
-                {/* Destination panel: pick a place, then read the way there. */}
-                <aside className="flex min-h-0 flex-col border-sidebar-border/70 bg-muted/30 md:h-[42%] md:shrink-0 md:border-t lg:h-auto lg:border-t-0 lg:border-l dark:border-sidebar-border">
-                    {destination ? (
-                        <div className="flex min-h-0 flex-1 flex-col">
-                            <div className="border-b border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                                <Button
-                                    variant="ghost"
-                                    className="mb-2 -ml-2"
-                                    onClick={reset}
-                                >
-                                    <ArrowLeft /> All places
-                                </Button>
-                                <h2 className="text-2xl leading-tight font-bold">
-                                    {destination.kind === 'office'
-                                        ? destination.office.name
-                                        : destination.location.name}
+                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+                            {tab === 'buildings' &&
+                                shownBuildings.map((location) => {
+                                    const Icon = iconFor(location.name);
+                                    const active =
+                                        destination?.kind === 'building' &&
+                                        destination.location.id === location.id;
+
+                                    return (
+                                        <button
+                                            key={location.id}
+                                            type="button"
+                                            onClick={() =>
+                                                pick({
+                                                    kind: 'building',
+                                                    location,
+                                                })
+                                            }
+                                            className={cn(
+                                                'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[15px] leading-tight font-semibold transition-colors',
+                                                active
+                                                    ? 'border-gold-300 bg-gradient-to-b from-gold-300 to-gold-500 text-brand-950 shadow-md'
+                                                    : 'border-white/20 bg-brand-900/60 hover:bg-brand-800',
+                                            )}
+                                        >
+                                            <Icon className="size-5 shrink-0" />
+                                            {location.name}
+                                        </button>
+                                    );
+                                })}
+                            {tab === 'offices' &&
+                                shownOffices.map((office) => {
+                                    const active =
+                                        destination?.kind === 'office' &&
+                                        destination.office.id === office.id;
+
+                                    return (
+                                        <button
+                                            key={office.id}
+                                            type="button"
+                                            onClick={() => pickOffice(office)}
+                                            className={cn(
+                                                'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left leading-tight transition-colors',
+                                                active
+                                                    ? 'border-gold-300 bg-gradient-to-b from-gold-300 to-gold-500 text-brand-950 shadow-md'
+                                                    : 'border-white/20 bg-brand-900/60 hover:bg-brand-800',
+                                            )}
+                                        >
+                                            <DoorOpen className="size-5 shrink-0" />
+                                            <span className="min-w-0">
+                                                <span className="block text-[15px] font-semibold">
+                                                    {office.name}
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        'block truncate text-xs',
+                                                        active
+                                                            ? 'text-brand-900/80'
+                                                            : 'text-white/60',
+                                                    )}
+                                                >
+                                                    {
+                                                        locationById.get(
+                                                            office.campus_location_id,
+                                                        )?.name
+                                                    }
+                                                </span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            {((tab === 'buildings' &&
+                                shownBuildings.length === 0) ||
+                                (tab === 'offices' &&
+                                    shownOffices.length === 0)) && (
+                                <p className="py-6 text-center text-sm text-white/60">
+                                    {q
+                                        ? `Nothing matches “${query.trim()}”.`
+                                        : 'Nothing here yet.'}
+                                </p>
+                            )}
+                        </div>
+
+                        <Link
+                            href={directoryIndex()}
+                            className="flex items-center justify-center gap-1.5 border-t border-white/10 py-2.5 text-sm font-semibold text-gold-300 hover:text-gold-200"
+                        >
+                            Offices & hotlines directory
+                            <ArrowRight className="size-4" />
+                        </Link>
+                    </section>
+
+                    {/* Location details and news */}
+                    <div className="flex min-h-0 flex-col gap-3">
+                        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-gold-400 bg-gradient-to-b from-white to-gold-200/60 text-brand-950 shadow-xl lg:flex-1">
+                            <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-gold-300 to-gold-500 px-4 py-2.5">
+                                <h2 className="flex items-center gap-2 text-lg font-bold">
+                                    <Info className="size-5 rounded-full bg-brand-900 p-0.5 text-white" />
+                                    Location Details
                                 </h2>
-                                {destination.kind === 'office' && (
-                                    <p className="mt-1 flex items-center gap-1.5 text-base font-medium text-primary">
-                                        <MapPin className="size-4 shrink-0" />
-                                        {destination.location.name}
-                                        {destination.office.room &&
-                                            ` · ${destination.office.room}`}
-                                    </p>
+                                {destination && (
+                                    <button
+                                        type="button"
+                                        onClick={reset}
+                                        className="flex items-center gap-1 rounded-full bg-brand-900/10 px-2.5 py-1 text-sm font-semibold hover:bg-brand-900/20"
+                                    >
+                                        <X className="size-4" /> Clear
+                                    </button>
                                 )}
-                                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                    {destination.kind === 'office' ? (
-                                        <>
-                                            {destination.office.description && (
-                                                <p>
-                                                    {
-                                                        destination.office
-                                                            .description
-                                                    }
-                                                </p>
-                                            )}
-                                            {destination.office
-                                                .office_hours && (
-                                                <p className="flex items-center gap-1.5">
-                                                    <Clock className="size-4" />
-                                                    {
-                                                        destination.office
-                                                            .office_hours
-                                                    }
-                                                </p>
-                                            )}
-                                            {destination.office.phone && (
-                                                <p className="flex items-center gap-1.5">
-                                                    <Phone className="size-4" />
-                                                    {destination.office.phone}
-                                                </p>
-                                            )}
-                                        </>
-                                    ) : (
-                                        destination.location.description && (
-                                            <p>
-                                                {
-                                                    destination.location
-                                                        .description
-                                                }
-                                            </p>
-                                        )
-                                    )}
-                                </div>
                             </div>
 
-                            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-                                {!showKiosk ? (
-                                    <Button
-                                        size="lg"
-                                        className="w-full"
-                                        asChild
-                                    >
+                            {!destination ? (
+                                <div className="flex gap-3 p-4">
+                                    <div className="flex size-24 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-800 to-brand-950 text-gold-300 shadow-inner">
+                                        <MapPin className="size-10 fill-gold-400 text-brand-950" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-extrabold text-brand-800">
+                                            Welcome!
+                                        </h3>
+                                        <p className="mt-1 text-[15px] leading-snug text-brand-950/80">
+                                            {showKiosk
+                                                ? 'Touch a building or office and we’ll show you the way from this kiosk.'
+                                                : 'Pick a building or office to see it on the map.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                                    <div className="flex gap-3">
+                                        {destination.location.photo_url ? (
+                                            <img
+                                                src={
+                                                    destination.location
+                                                        .photo_url
+                                                }
+                                                alt=""
+                                                className="aspect-[4/3] w-32 shrink-0 rounded-xl object-cover shadow-md xl:w-36"
+                                            />
+                                        ) : (
+                                            <div className="flex aspect-[4/3] w-32 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-950 text-gold-300 shadow-md xl:w-36">
+                                                {(() => {
+                                                    const Icon =
+                                                        destination.kind ===
+                                                        'office'
+                                                            ? DoorOpen
+                                                            : iconFor(
+                                                                  destination
+                                                                      .location
+                                                                      .name,
+                                                              );
+
+                                                    return (
+                                                        <Icon className="size-10" />
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                        <div className="min-w-0">
+                                            <h3 className="text-2xl leading-tight font-extrabold text-brand-800">
+                                                {name}
+                                            </h3>
+                                            {destination.kind === 'office' && (
+                                                <p className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-brand-700">
+                                                    <MapPin className="size-4 shrink-0" />
+                                                    {destination.location.name}
+                                                </p>
+                                            )}
+                                            <p className="mt-1 text-[15px] leading-snug text-brand-950/80">
+                                                {destination.kind === 'office'
+                                                    ? (destination.office
+                                                          .description ??
+                                                      destination.office.room)
+                                                    : destination.location
+                                                          .description}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {destination.kind === 'office' &&
+                                        (destination.office.office_hours ||
+                                            destination.office.phone) && (
+                                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-950/80">
+                                                {destination.office
+                                                    .office_hours && (
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Clock className="size-4" />
+                                                        {
+                                                            destination.office
+                                                                .office_hours
+                                                        }
+                                                    </span>
+                                                )}
+                                                {destination.office.phone && (
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Phone className="size-4" />
+                                                        {
+                                                            destination.office
+                                                                .phone
+                                                        }
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                    {!showKiosk ? (
                                         <Link
                                             href={mapsIndex({
                                                 query: {
@@ -623,268 +884,208 @@ export default function KioskHome({
                                                         destination.location.id,
                                                 },
                                             })}
+                                            className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-brand-800 px-4 py-3 font-semibold text-white"
                                         >
-                                            <Navigation /> Navigate with my
-                                            phone
+                                            <Navigation className="size-5" />
+                                            Navigate with my phone
                                         </Link>
-                                    </Button>
-                                ) : walk ? (
-                                    <>
-                                        {walk.photos.length > 0 && (
-                                            <Button
-                                                size="lg"
-                                                className="mb-4 h-14 w-full text-base"
-                                                onClick={() => setPhotoIndex(0)}
-                                            >
-                                                <Orbit className="size-5" />
-                                                Preview the walk in 360°
-                                            </Button>
-                                        )}
-                                        <h3 className="mb-2 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-                                            How to get there
-                                        </h3>
-                                        <ol className="space-y-2">
-                                            {walk.steps.map((step, i) => (
-                                                <li
-                                                    key={i}
-                                                    className="flex items-start gap-3 rounded-xl bg-background p-3 shadow-sm"
-                                                >
-                                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                                        {i ===
-                                                        walk.steps.length -
-                                                            1 ? (
-                                                            <DoorOpen className="size-5" />
-                                                        ) : (
-                                                            <TurnIcon
-                                                                turn={step.turn}
-                                                            />
-                                                        )}
-                                                    </span>
-                                                    <span className="pt-1.5 text-base">
-                                                        {step.text}
-                                                    </span>
-                                                </li>
-                                            ))}
+                                    ) : walk ? (
+                                        <>
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {walk.photos.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setPhotoIndex(0)
+                                                        }
+                                                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-800 px-3 py-2.5 font-semibold text-white shadow-md active:scale-[0.98]"
+                                                    >
+                                                        <Orbit className="size-5 text-gold-300" />
+                                                        360° walk preview
+                                                    </button>
+                                                )}
+                                                {walk.indoor && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setInside(!inside)
+                                                        }
+                                                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-800 px-3 py-2.5 font-semibold text-white shadow-md active:scale-[0.98]"
+                                                    >
+                                                        <DoorOpen className="size-5 text-gold-300" />
+                                                        {inside
+                                                            ? 'Campus route'
+                                                            : 'Floor map'}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <h4 className="mt-4 mb-2 text-xs font-bold tracking-wider text-brand-700 uppercase">
+                                                How to get there
+                                            </h4>
+                                            <ol className="space-y-1.5">
+                                                {[
+                                                    ...walk.steps.map((s) => ({
+                                                        ...s,
+                                                        indoor: false,
+                                                    })),
+                                                    ...(
+                                                        walk.indoor?.steps ?? []
+                                                    ).map((s) => ({
+                                                        ...s,
+                                                        indoor: true,
+                                                    })),
+                                                ].map((step, i, all) => (
+                                                    <li
+                                                        key={i}
+                                                        className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 shadow-sm"
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'flex size-8 shrink-0 items-center justify-center rounded-full',
+                                                                step.indoor
+                                                                    ? 'bg-red-600/10 text-red-600'
+                                                                    : 'bg-brand-800/10 text-brand-800',
+                                                            )}
+                                                        >
+                                                            {i ===
+                                                            all.length - 1 ? (
+                                                                <MapPin className="size-5" />
+                                                            ) : (
+                                                                <TurnIcon
+                                                                    turn={
+                                                                        step.turn
+                                                                    }
+                                                                />
+                                                            )}
+                                                        </span>
+                                                        <span className="pt-1 text-[15px] leading-snug">
+                                                            {step.text}
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ol>
                                             {!walk.indoor &&
                                                 destination.kind === 'office' &&
                                                 destination.office.room && (
-                                                    <li className="flex items-start gap-3 rounded-xl border-2 border-dashed border-primary/40 p-3">
-                                                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                                            <MapPin className="size-5" />
-                                                        </span>
-                                                        <span className="pt-1.5 text-base">
-                                                            Inside, find{' '}
-                                                            <strong>
-                                                                {
-                                                                    destination
-                                                                        .office
-                                                                        .name
-                                                                }
-                                                            </strong>
-                                                            :{' '}
-                                                            {
-                                                                destination
-                                                                    .office.room
-                                                            }
-                                                            .
-                                                        </span>
-                                                    </li>
-                                                )}
-                                        </ol>
-                                        {walk.indoor && (
-                                            <>
-                                                <div className="mt-5 mb-2 flex items-center justify-between gap-2">
-                                                    <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-                                                        Inside the{' '}
+                                                    <p className="mt-2 rounded-xl border-2 border-dashed border-brand-700/40 p-2.5 text-[15px]">
+                                                        Inside, find{' '}
+                                                        <strong>{name}</strong>:{' '}
                                                         {
-                                                            walk.indoor.plan
-                                                                .building
-                                                        }{' '}
-                                                        ·{' '}
-                                                        {walk.indoor.plan.floor.toLowerCase()}
-                                                    </h3>
-                                                    {!inside && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() =>
-                                                                setInside(true)
-                                                            }
-                                                        >
-                                                            <MapIcon /> Floor
-                                                            map
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                                <ol className="space-y-2">
-                                                    {walk.indoor.steps.map(
-                                                        (step, i) => (
-                                                            <li
-                                                                key={i}
-                                                                className="flex items-start gap-3 rounded-xl bg-background p-3 shadow-sm"
-                                                            >
-                                                                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-red-600/10 text-red-600 dark:text-red-400">
-                                                                    {i ===
-                                                                    walk.indoor!
-                                                                        .steps
-                                                                        .length -
-                                                                        1 ? (
-                                                                        <MapPin className="size-5" />
-                                                                    ) : (
-                                                                        <TurnIcon
-                                                                            turn={
-                                                                                step.turn
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                                </span>
-                                                                <span className="pt-1.5 text-base">
-                                                                    {step.text}
-                                                                </span>
-                                                            </li>
-                                                        ),
-                                                    )}
-                                                </ol>
-                                            </>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-muted-foreground">
-                                        Couldn’t work out a walking route to
-                                        this place. Please ask the guard or a
-                                        staff member for directions.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex min-h-0 flex-1 flex-col">
-                            <div className="space-y-3 border-b border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        value={query}
-                                        onChange={(e) =>
-                                            setQuery(e.target.value)
-                                        }
-                                        placeholder="Search offices and buildings"
-                                        className="h-12 pl-10 text-base"
-                                    />
-                                </div>
-                                <div
-                                    role="tablist"
-                                    className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
-                                >
-                                    {(
-                                        [
-                                            ['offices', 'Offices'],
-                                            ['buildings', 'Buildings'],
-                                        ] as const
-                                    ).map(([value, label]) => (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            role="tab"
-                                            aria-selected={tab === value}
-                                            onClick={() => setTab(value)}
-                                            className={cn(
-                                                'rounded-lg py-2.5 text-base font-semibold transition-colors',
-                                                tab === value
-                                                    ? 'bg-background shadow-sm'
-                                                    : 'text-muted-foreground',
-                                            )}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
-                                {tab === 'offices' &&
-                                    shownOffices.map((office) => (
-                                        <button
-                                            key={office.id}
-                                            type="button"
-                                            onClick={() => pickOffice(office)}
-                                            className="flex w-full items-center gap-3 rounded-xl bg-background p-3 text-left shadow-sm transition-colors hover:bg-accent active:scale-[0.99]"
-                                        >
-                                            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                                <DoorOpen className="size-5" />
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block text-base font-semibold">
-                                                    {office.name}
-                                                </span>
-                                                <span className="block truncate text-sm text-muted-foreground">
-                                                    {
-                                                        locationById.get(
-                                                            office.campus_location_id,
-                                                        )?.name
-                                                    }
-                                                    {office.room &&
-                                                        ` · ${office.room}`}
-                                                </span>
-                                            </span>
-                                            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-                                        </button>
-                                    ))}
-                                {tab === 'buildings' &&
-                                    shownBuildings.map((location) => (
-                                        <button
-                                            key={location.id}
-                                            type="button"
-                                            onClick={() =>
-                                                pickLocation(location)
-                                            }
-                                            className="flex w-full items-center gap-3 rounded-xl bg-background p-3 text-left shadow-sm transition-colors hover:bg-accent active:scale-[0.99]"
-                                        >
-                                            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                                <Building2 className="size-5" />
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block text-base font-semibold">
-                                                    {location.name}
-                                                </span>
-                                                {location.description && (
-                                                    <span className="line-clamp-1 block text-sm text-muted-foreground">
-                                                        {location.description}
-                                                    </span>
+                                                            destination.office
+                                                                .room
+                                                        }
+                                                        .
+                                                    </p>
                                                 )}
-                                            </span>
-                                            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-                                        </button>
-                                    ))}
-                                {((tab === 'offices' &&
-                                    shownOffices.length === 0) ||
-                                    (tab === 'buildings' &&
-                                        shownBuildings.length === 0)) && (
-                                    <p className="py-6 text-center text-muted-foreground">
-                                        {q
-                                            ? `Nothing matches “${query.trim()}”.`
-                                            : tab === 'offices'
-                                              ? 'No offices have been added yet.'
-                                              : 'No buildings have been added yet.'}
+                                        </>
+                                    ) : (
+                                        <p className="mt-4 text-sm text-brand-950/70">
+                                            Couldn’t work out a walking route to
+                                            this place. Please ask the guard or
+                                            a staff member for directions.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </section>
+
+                        {/* News: hidden while directions take the space. */}
+                        <section
+                            className={cn(
+                                'flex flex-col overflow-hidden rounded-2xl border-2 border-gold-400 bg-white text-brand-950 shadow-xl',
+                                destination && 'lg:hidden',
+                            )}
+                        >
+                            <div className="flex items-center gap-2 bg-gradient-to-r from-gold-300 to-gold-500 px-4 py-2.5">
+                                <Megaphone className="size-5" />
+                                <h2 className="text-lg font-bold">
+                                    Announcements & Events
+                                </h2>
+                            </div>
+                            <div className="divide-y divide-brand-900/10 px-4">
+                                {news.length === 0 && (
+                                    <p className="py-4 text-sm text-brand-950/60">
+                                        No announcements right now.
                                     </p>
                                 )}
+                                {news.map((item) => (
+                                    <Link
+                                        key={item.key}
+                                        href={announcementShow(item.slug)}
+                                        className="flex items-center gap-3 py-2.5"
+                                    >
+                                        {item.date ? (
+                                            <DateBadge value={item.date} />
+                                        ) : (
+                                            <Megaphone className="size-6 shrink-0 text-red-600" />
+                                        )}
+                                        <span className="min-w-0 flex-1 text-sm leading-snug">
+                                            <span className="line-clamp-1 font-bold">
+                                                {item.title}
+                                            </span>
+                                            {item.venue && (
+                                                <span className="block truncate text-brand-950/75">
+                                                    Venue: {item.venue}
+                                                </span>
+                                            )}
+                                            {item.time && (
+                                                <span className="block text-brand-950/75">
+                                                    Time: {item.time}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <ChevronRight className="size-6 shrink-0 rounded-full bg-gold-400 p-1 text-brand-950" />
+                                    </Link>
+                                ))}
                             </div>
-                        </div>
-                    )}
-                </aside>
+                            <div className="p-3 pt-1">
+                                <Link
+                                    href={announcementsIndex()}
+                                    className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-gold-300 to-gold-500 py-2.5 font-bold shadow-md"
+                                >
+                                    View All Announcements & Events
+                                    <ArrowRight className="size-4" />
+                                </Link>
+                            </div>
+                        </section>
+                    </div>
+                </div>
 
-                {/* Phones: the quick links, under the list. */}
-                <div className="grid grid-cols-2 gap-3 p-4 md:hidden">
-                    {QUICK_LINKS.map((link) => (
+                {/* Dock: the big buttons along the bottom. */}
+                <nav
+                    aria-label="Kiosk sections"
+                    className="hidden gap-3 md:grid md:grid-cols-5"
+                >
+                    <button type="button" onClick={reset} className={dockTile}>
+                        <House className="size-10 shrink-0 fill-gold-400/20 text-gold-400" />
+                        <span className="min-w-0 leading-tight">
+                            <span className="block truncate text-xl font-bold">
+                                Home
+                            </span>
+                            <span className="block truncate text-xs text-white/75">
+                                Start Over
+                            </span>
+                        </span>
+                    </button>
+                    {DOCK.map((item) => (
                         <Link
-                            key={link.title}
-                            href={link.href}
-                            className="flex items-center gap-2 rounded-xl border border-sidebar-border/70 p-3 font-semibold dark:border-sidebar-border"
+                            key={item.title}
+                            href={item.href}
+                            className={dockTile}
                         >
-                            <link.icon className="size-5 text-primary" />
-                            {link.title}
+                            <item.icon className="size-10 shrink-0 fill-gold-400/20 text-gold-400" />
+                            <span className="min-w-0 leading-tight">
+                                <span className="block truncate text-xl font-bold">
+                                    {item.title}
+                                </span>
+                                <span className="block truncate text-xs text-white/75">
+                                    {item.hint}
+                                </span>
+                            </span>
                         </Link>
                     ))}
-                </div>
+                </nav>
             </div>
         </>
     );

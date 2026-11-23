@@ -23,6 +23,9 @@ class StoreCampusLocationRequest extends FormRequest
             'x' => ['required', 'numeric', 'between:0,100'],
             'y' => ['required', 'numeric', 'between:0,100'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            // Shown on the kiosk's Location Details card.
+            'photo' => ['nullable', 'image', 'max:8192'],
+            'remove_photo' => ['nullable', 'boolean'],
         ];
     }
 }

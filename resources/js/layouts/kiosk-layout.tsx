@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import ChatbotWidget from '@/components/chatbot-widget';
+import { KioskBrandHeader } from '@/components/kiosk-brand-header';
 import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -142,7 +143,7 @@ export default function KioskLayout({
         <div
             className={cn(
                 'kiosk-root flex min-h-screen flex-col bg-background text-foreground',
-                immersive && 'md:h-dvh md:min-h-0 md:overflow-hidden',
+                immersive && 'lg:h-dvh lg:min-h-0 lg:overflow-hidden',
             )}
         >
             <KioskThemeStyle />
@@ -187,92 +188,30 @@ export default function KioskLayout({
                 </div>
             </header>
 
-            {/* Tablets and kiosks: full header with the nav and clock. */}
-            <header className="hidden border-b border-sidebar-border/70 md:block dark:border-sidebar-border">
-                <div
-                    className={cn(
-                        'mx-auto flex items-center justify-between gap-4 px-6',
-                        immersive ? 'max-w-none py-2.5' : 'max-w-6xl py-4',
-                    )}
-                >
-                    <Link href={home()} className="flex items-center gap-3">
-                        <img
-                            src="/logo.png"
-                            alt="Aemilianum College Inc."
-                            className="size-14"
-                        />
-                        <div className="flex flex-col">
-                            <span className="text-xl font-bold tracking-tight">
-                                Aemilianum College Inc.
-                            </span>
-                            <span className="text-base text-muted-foreground">
-                                Smart Information Kiosk
-                            </span>
-                        </div>
-                    </Link>
-
-                    <div className="flex items-center gap-4">
-                        <div className="text-right tabular-nums">
-                            <div
-                                className="text-2xl font-bold tracking-tight"
-                                suppressHydrationWarning
-                            >
-                                {now.toLocaleTimeString(undefined, {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                })}
-                            </div>
-                            <div
-                                className="text-sm text-muted-foreground"
-                                suppressHydrationWarning
-                            >
-                                {now.toLocaleDateString(undefined, {
-                                    weekday: 'long',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                })}
-                            </div>
-                        </div>
-                        <div className="h-10 w-px bg-sidebar-border/70 dark:bg-sidebar-border" />
-                        {!kioskMode && <InstallButton />}
-                        <ThemeToggle />
-                    </div>
-                </div>
-
-                <nav
-                    className={cn(
-                        'border-t border-sidebar-border/70 dark:border-sidebar-border',
-                        immersive && 'hidden',
-                    )}
-                >
-                    <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-6 py-2">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.title}
-                                href={item.href}
-                                className={cn(
-                                    'flex shrink-0 items-center gap-2 rounded-lg px-4 py-3 text-lg font-semibold transition-colors',
-                                    isActive(url, item.href.url)
-                                        ? 'bg-primary text-primary-foreground shadow-sm'
-                                        : 'text-foreground hover:bg-accent hover:text-accent-foreground',
-                                )}
-                            >
-                                <item.icon className="size-6" />
-                                {item.title}
-                            </Link>
-                        ))}
-                    </div>
-                </nav>
-            </header>
+            {/* Tablets and kiosks: the branded header with the nav and clock. */}
+            <KioskBrandHeader
+                navItems={navItems.map((item) => ({
+                    title: item.title,
+                    icon: item.icon,
+                    href: item.href,
+                    active: isActive(url, item.href.url),
+                }))}
+                actions={
+                    <>
+                        {!kioskMode && (
+                            <InstallButton className="rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white" />
+                        )}
+                        <ThemeToggle className="rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white" />
+                    </>
+                }
+            />
 
             {/* Bottom padding on phones keeps content clear of the tab bar. */}
             <main
                 className={cn(
                     'mx-auto w-full flex-1',
                     immersive
-                        ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:min-h-0 md:pb-0'
+                        ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0 lg:min-h-0'
                         : 'max-w-6xl px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-6 md:py-8',
                 )}
             >

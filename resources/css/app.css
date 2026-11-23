@@ -2,6 +2,15 @@
 
 @import 'tw-animate-css';
 
+/* Kiosk branding fonts, bundled so they work on an offline kiosk. */
+@import '@fontsource/cinzel/600.css';
+@import '@fontsource/cinzel/700.css';
+@import '@fontsource/great-vibes/400.css';
+@import '@fontsource/montserrat/500.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/700.css';
+@import '@fontsource/montserrat/800.css';
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -12,6 +21,22 @@
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    /* Kiosk branding: ACI navy and gold. */
+    --font-brand: 'Cinzel', ui-serif, Georgia, serif;
+    --font-script: 'Great Vibes', cursive;
+    --font-display: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+    --color-brand-950: #051231;
+    --color-brand-900: #0a1d4f;
+    --color-brand-800: #0e2a6c;
+    --color-brand-700: #153a90;
+    --color-brand-600: #1f4fba;
+    --color-brand-500: #3b6fe0;
+    --color-gold-200: #fff0bf;
+    --color-gold-300: #ffe08a;
+    --color-gold-400: #f9cf4d;
+    --color-gold-500: #f0b62a;
+    --color-gold-600: #d39713;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);

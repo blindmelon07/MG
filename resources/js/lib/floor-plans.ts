@@ -278,7 +278,142 @@ const MAIN_BUILDING_GROUND: FloorPlan = {
     ],
 };
 
-export const FLOOR_PLANS: FloorPlan[] = [MAIN_BUILDING_GROUND];
+/*
+ * AIT Building, one floor — from the campus site plan, marked up by the
+ * school: one room at each end of the top and middle wings, three rooms on
+ * each side of the annex, a hallway down the central spine, and the way in
+ * at the south end where the covered walk arrives. One plan unit is 10 px
+ * on the marked-up photo. Which lab is in which room is set by admins in
+ * the School Directory, so rooms here are named by position.
+ */
+const AIT_BUILDING: FloorPlan = {
+    building: 'AIT Building',
+    floor: 'Ground floor',
+    width: 54.5,
+    depth: 45.7,
+    metersPerUnit: 0.86,
+    site: { x0: 53.8, y0: 0.39, x1: 78.1, y1: 25.6 },
+    rooms: [
+        // Top wing
+        {
+            key: 'ait-top-west',
+            name: 'Top wing – west room',
+            kind: 'lab',
+            x: 8.9,
+            y: 0,
+            w: 11.8,
+            d: 8,
+            door: 'east',
+        },
+        {
+            key: 'ait-top-east',
+            name: 'Top wing – east room',
+            kind: 'lab',
+            x: 29.2,
+            y: 0,
+            w: 25,
+            d: 8,
+            door: 'west',
+        },
+        // Middle wing
+        {
+            key: 'ait-middle-west',
+            name: 'Middle wing – west room',
+            kind: 'lab',
+            x: 0,
+            y: 14.8,
+            w: 20.7,
+            d: 8.4,
+            door: 'east',
+        },
+        {
+            key: 'ait-middle-east',
+            name: 'Middle wing – east room',
+            kind: 'lab',
+            x: 29.2,
+            y: 14.8,
+            w: 25.3,
+            d: 8.4,
+            door: 'west',
+        },
+        // Annex, west side (north to south)
+        {
+            key: 'ait-annex-west-1',
+            name: 'Annex – west room 1',
+            kind: 'lab',
+            x: 15.7,
+            y: 30,
+            w: 7,
+            d: 5.2,
+            door: 'east',
+        },
+        {
+            key: 'ait-annex-west-2',
+            name: 'Annex – west room 2',
+            kind: 'lab',
+            x: 15.7,
+            y: 35.2,
+            w: 7,
+            d: 5.2,
+            door: 'east',
+        },
+        {
+            key: 'ait-annex-west-3',
+            name: 'Annex – west room 3',
+            kind: 'lab',
+            x: 15.7,
+            y: 40.4,
+            w: 7,
+            d: 5.3,
+            door: 'east',
+        },
+        // Annex, east side (north to south)
+        {
+            key: 'ait-annex-east-1',
+            name: 'Annex – east room 1',
+            kind: 'lab',
+            x: 28.7,
+            y: 30,
+            w: 13.2,
+            d: 5.2,
+            door: 'west',
+        },
+        {
+            key: 'ait-annex-east-2',
+            name: 'Annex – east room 2',
+            kind: 'lab',
+            x: 28.7,
+            y: 35.2,
+            w: 13.2,
+            d: 5.2,
+            door: 'west',
+        },
+        {
+            key: 'ait-annex-east-3',
+            name: 'Annex – east room 3',
+            kind: 'lab',
+            x: 28.7,
+            y: 40.4,
+            w: 13.2,
+            d: 5.3,
+            door: 'west',
+        },
+    ],
+    halls: [
+        { x: 20.7, y: 0, w: 8.5, d: 30 }, // central spine through both wings
+        { x: 22.7, y: 30, w: 6, d: 15.7 }, // annex hallway
+    ],
+    entrances: [
+        {
+            key: 'south',
+            name: 'the entrance at the end of the covered walk',
+            at: { x: 25.7, y: 45.6 },
+            inward: 'north',
+        },
+    ],
+};
+
+export const FLOOR_PLANS: FloorPlan[] = [MAIN_BUILDING_GROUND, AIT_BUILDING];
 
 export function floorPlanFor(buildingName: string | null | undefined) {
     if (!buildingName) {
@@ -364,7 +499,8 @@ function inRect(x: number, y: number, r: Rect) {
 
 /**
  * Shortest walk through the hallways from an entrance to a room's door
- * (breadth-first search on a fine grid, then straightened).
+ * (a search on a fine grid that keeps to the middle of hallways and avoids
+ * needless turns, then straightened).
  */
 export function indoorRoute(
     plan: FloorPlan,
@@ -390,53 +526,170 @@ export function indoorRoute(
 
     const start = toCell(entrance.at);
     const goal = toCell(door);
-    const index = (c: number, r: number) => r * cols + c;
-    const previous = new Int32Array(cols * rows).fill(-2);
-    const queue = [index(start.c, start.r)];
-    previous[queue[0]] = -1;
+    const goalIndex = goal.r * cols + goal.c;
+    const cellCount = cols * rows;
 
-    for (let head = 0; head < queue.length; head++) {
-        const current = queue[head];
+    // Extra cost near walls, so the walk keeps to the middle of a hallway
+    // the way people do (and the way the steps should describe it).
+    const stepCost = new Float32Array(cellCount).fill(-1);
 
-        if (current === index(goal.c, goal.r)) {
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (!walkable(c, r)) {
+                continue;
+            }
+
+            const x = c * CELL;
+            const y = r * CELL;
+            let depth = 0;
+
+            for (const h of plan.halls) {
+                if (inRect(x, y, h)) {
+                    depth = Math.max(
+                        depth,
+                        Math.min(
+                            x - h.x,
+                            h.x + h.w - x,
+                            y - h.y,
+                            h.y + h.d - y,
+                        ),
+                    );
+                }
+            }
+
+            stepCost[r * cols + c] = 1 + (depth < 1 ? 2 : depth < 2 ? 0.6 : 0);
+        }
+    }
+
+    // Dijkstra over (cell, heading): turning costs extra, so of the equally
+    // short walks it picks the one with the fewest, cleanest turns.
+    const TURN_COST = 8;
+    const DIRS = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+    ];
+    const best = new Float64Array(cellCount * 4).fill(Infinity);
+    const previous = new Int32Array(cellCount * 4).fill(-1);
+    const heap: [number, number][] = [];
+    const push = (cost: number, state: number) => {
+        heap.push([cost, state]);
+        let i = heap.length - 1;
+
+        while (i > 0) {
+            const parent = (i - 1) >> 1;
+
+            if (heap[parent][0] <= heap[i][0]) {
+                break;
+            }
+
+            [heap[parent], heap[i]] = [heap[i], heap[parent]];
+            i = parent;
+        }
+    };
+    const pop = () => {
+        const top = heap[0];
+        const last = heap.pop()!;
+
+        if (heap.length > 0) {
+            heap[0] = last;
+            let i = 0;
+
+            for (;;) {
+                const l = 2 * i + 1;
+                const r = l + 1;
+                let m = i;
+
+                if (l < heap.length && heap[l][0] < heap[m][0]) {
+                    m = l;
+                }
+
+                if (r < heap.length && heap[r][0] < heap[m][0]) {
+                    m = r;
+                }
+
+                if (m === i) {
+                    break;
+                }
+
+                [heap[m], heap[i]] = [heap[i], heap[m]];
+                i = m;
+            }
+        }
+
+        return top;
+    };
+
+    const startIndex = start.r * cols + start.c;
+
+    for (let d = 0; d < 4; d++) {
+        best[startIndex * 4 + d] = 0;
+        push(0, startIndex * 4 + d);
+    }
+
+    let reached = -1;
+
+    while (heap.length > 0) {
+        const [cost, state] = pop();
+
+        if (cost > best[state]) {
+            continue;
+        }
+
+        const cell = state >> 2;
+        const heading = state & 3;
+
+        if (cell === goalIndex) {
+            reached = state;
             break;
         }
 
-        const c = current % cols;
-        const r = Math.floor(current / cols);
+        const c = cell % cols;
+        const r = Math.floor(cell / cols);
 
-        for (const [dc, dr] of [
-            [1, 0],
-            [-1, 0],
-            [0, 1],
-            [0, -1],
-        ]) {
-            const nc = c + dc;
-            const nr = r + dr;
+        for (let d = 0; d < 4; d++) {
+            const nc = c + DIRS[d][0];
+            const nr = r + DIRS[d][1];
 
             if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) {
                 continue;
             }
 
-            const next = index(nc, nr);
+            const next = nr * cols + nc;
 
-            if (previous[next] !== -2 || !walkable(nc, nr)) {
+            if (stepCost[next] < 0) {
                 continue;
             }
 
-            previous[next] = current;
-            queue.push(next);
+            const nextCost =
+                cost + stepCost[next] + (d === heading ? 0 : TURN_COST);
+            const nextState = next * 4 + d;
+
+            if (nextCost < best[nextState]) {
+                best[nextState] = nextCost;
+                previous[nextState] = state;
+                push(nextCost, nextState);
+            }
         }
     }
 
-    if (previous[index(goal.c, goal.r)] === -2) {
+    if (reached < 0) {
         return null;
     }
 
     const cells: MapPoint[] = [];
 
-    for (let i = index(goal.c, goal.r); i !== -1; i = previous[i]) {
-        cells.push({ x: (i % cols) * CELL, y: Math.floor(i / cols) * CELL });
+    for (let state = reached; state !== -1; state = previous[state]) {
+        const cell = state >> 2;
+        cells.push({
+            x: (cell % cols) * CELL,
+            y: Math.floor(cell / cols) * CELL,
+        });
+
+        if (cell === startIndex && previous[state] === -1) {
+            break;
+        }
     }
 
     cells.reverse();
@@ -501,6 +754,8 @@ export function planIndoorWalk(
     plan: FloorPlan,
     roomKey: string,
     comingFrom: MapPoint,
+    /** What to call the room in the steps, e.g. the office's own name. */
+    label?: string,
 ): IndoorWalk | null {
     const room = roomByKey(plan, roomKey);
 
@@ -553,8 +808,8 @@ export function planIndoorWalk(
     steps.push({
         text:
             last >= 3
-                ? `Continue about ${spokenDistance(last)}. ${room.name} is ${where}.`
-                : `${room.name} is ${where}.`,
+                ? `Continue about ${spokenDistance(last)}. ${label ?? room.name} is ${where}.`
+                : `${label ?? room.name} is ${where}.`,
         turn: null,
     });
 
