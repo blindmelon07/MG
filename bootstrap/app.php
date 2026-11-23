@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LockToKiosk;
 use App\Http\Middleware\SecureStudentSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        // First, so a kiosk PC turns other pages away before any login redirect.
+        $middleware->web(prepend: [
+            LockToKiosk::class,
+        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,

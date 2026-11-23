@@ -1,0 +1,24 @@
+Windows Registry Editor Version 5.00
+
+; Locks Microsoft Edge on the kiosk PC to the kiosk only.
+; Run once as an administrator (double-click, then Yes). See docs/kiosk-setup.md.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge]
+; No developer tools (F12), no downloads, no saving passwords or form data.
+"DeveloperToolsAvailability"=dword:00000002
+"DownloadRestrictions"=dword:00000003
+"PasswordManagerEnabled"=dword:00000000
+"AutofillAddressEnabled"=dword:00000000
+"AutofillCreditCardEnabled"=dword:00000000
+; No first-run screens or sign-in prompts in front of the kiosk.
+"HideFirstRunExperience"=dword:00000001
+"BrowserSignin"=dword:00000000
+
+; Block every website...
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\URLBlocklist]
+"1"="*"
+
+; ...except the kiosk running on this PC.
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\URLAllowlist]
+"1"="http://localhost"
+"2"="http://127.0.0.1"

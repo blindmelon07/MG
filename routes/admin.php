@@ -6,9 +6,11 @@ use App\Http\Controllers\Admin\AnnouncementMediaController;
 use App\Http\Controllers\Admin\CampusLocationController;
 use App\Http\Controllers\Admin\CampusPanoramaController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\DirectoryEntryController;
 use App\Http\Controllers\Admin\GradeAuditController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\GradeImportController;
+use App\Http\Controllers\Admin\KioskPositionController;
 use App\Http\Controllers\Admin\KioskThemeController;
 use App\Http\Controllers\Admin\ManualCategoryController;
 use App\Http\Controllers\Admin\ManualController;
@@ -47,11 +49,17 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
         Route::resource('campus-locations', CampusLocationController::class)
             ->only(['index', 'store', 'update', 'destroy']);
 
+        Route::resource('directory-entries', DirectoryEntryController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+
         Route::resource('map-reference-points', MapReferencePointController::class)
             ->only(['store', 'update', 'destroy']);
 
         Route::resource('campus-panoramas', CampusPanoramaController::class)
             ->only(['store', 'update', 'destroy']);
+
+        Route::put('kiosk-position', [KioskPositionController::class, 'update'])->name('kiosk-position.update');
+        Route::delete('kiosk-position', [KioskPositionController::class, 'destroy'])->name('kiosk-position.destroy');
 
         Route::get('kiosk-theme', [KioskThemeController::class, 'edit'])->name('kiosk-theme.edit');
         Route::put('kiosk-theme', [KioskThemeController::class, 'update'])->name('kiosk-theme.update');

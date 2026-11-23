@@ -45,6 +45,8 @@ class HandleInertiaRequests extends Middleware
                 'student' => $request->user('student')?->only(['id', 'name', 'student_number', 'education_level', 'grade_level', 'section', 'grading_system']),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Running on a kiosk PC: the pages keep visitors inside the kiosk.
+            'kioskMode' => (bool) config('kiosk.mode'),
             // Null until an admin changes the kiosk colors.
             'kioskTheme' => fn () => KioskTheme::saved(),
             // The year staff are viewing; enrollment and grade pages follow it.

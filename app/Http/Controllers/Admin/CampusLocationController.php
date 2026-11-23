@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateCampusLocationRequest;
 use App\Models\CampusLocation;
 use App\Models\CampusPanorama;
 use App\Models\MapReferencePoint;
+use App\Support\KioskPosition;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +23,8 @@ class CampusLocationController extends Controller
                 ->get(),
             'referencePoints' => MapReferencePoint::latest()->get(),
             'panoramas' => CampusPanorama::latest()->get(),
+            'kioskPosition' => KioskPosition::current(),
+            'kioskPositionSaved' => KioskPosition::saved() !== null,
         ]);
     }
 

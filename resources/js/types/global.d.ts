@@ -15,6 +15,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             kioskTheme: KioskTheme | null;
+            /** This copy of the system runs on a kiosk PC (KIOSK_MODE). */
+            kioskMode: boolean;
             /** The school year staff are viewing; null for other visitors. */
             schoolYear: {
                 selected: string;

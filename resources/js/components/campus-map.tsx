@@ -1748,9 +1748,15 @@ export function CampusMap({
     previewPoint?: { x: number; y: number } | null;
     /**
      * The viewer's own position: a pulsing blue dot, or a still grey one
-     * when `stale` (GPS lost; last known position).
+     * when `stale` (GPS lost; last known position). A `label` shows above
+     * it, e.g. "You are here" for the kiosk's own spot.
      */
-    userLocation?: { x: number; y: number; stale?: boolean } | null;
+    userLocation?: {
+        x: number;
+        y: number;
+        stale?: boolean;
+        label?: string;
+    } | null;
     /** Other people to show as small labelled dots. */
     people?: CampusMapPerson[];
     /** When set, the camera stands here at eye level instead of orbiting. */
@@ -2387,11 +2393,17 @@ export function CampusMap({
                             userLocation.stale ? 'bg-slate-400' : 'bg-sky-500',
                         )}
                     />
-                    <span className="sr-only">
-                        {userLocation.stale
-                            ? 'Your last known location'
-                            : 'Your location'}
-                    </span>
+                    {userLocation.label ? (
+                        <span className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded-full bg-sky-600 px-2.5 py-1 text-xs font-bold whitespace-nowrap text-white shadow-lg">
+                            {userLocation.label}
+                        </span>
+                    ) : (
+                        <span className="sr-only">
+                            {userLocation.stale
+                                ? 'Your last known location'
+                                : 'Your location'}
+                        </span>
+                    )}
                 </div>
             )}
         </div>

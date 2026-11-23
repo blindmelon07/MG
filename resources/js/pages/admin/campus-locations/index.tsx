@@ -8,6 +8,7 @@ import { GpsCalibration } from '@/components/gps-calibration';
 import type { MapReferencePoint } from '@/components/gps-calibration';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { KioskPositionPicker } from '@/components/kiosk-position-picker';
 import { PanoramaManager } from '@/components/panorama-manager';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,10 +32,14 @@ export default function CampusLocationsIndex({
     locations,
     referencePoints,
     panoramas,
+    kioskPosition,
+    kioskPositionSaved,
 }: {
     locations: CampusLocation[];
     referencePoints: MapReferencePoint[];
     panoramas: CampusPanorama[];
+    kioskPosition: { x: number; y: number };
+    kioskPositionSaved: boolean;
 }) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editing, setEditing] = useState<CampusLocation | null>(null);
@@ -187,6 +192,12 @@ export default function CampusLocationsIndex({
                             locations.find((l) => l.id === point.id) ?? null,
                         )
                     }
+                />
+
+                <KioskPositionPicker
+                    position={kioskPosition}
+                    saved={kioskPositionSaved}
+                    locations={locations}
                 />
 
                 <GpsCalibration

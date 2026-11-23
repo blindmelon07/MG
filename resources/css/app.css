@@ -187,3 +187,28 @@
 .kiosk-root :is(h1, h2, h3) {
     font-weight: 700;
 }
+
+/* Kiosk home: news ticker scrolling under the map. The list is rendered
+   twice, so shifting by half loops seamlessly. */
+@keyframes kiosk-ticker {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.kiosk-ticker {
+    animation: kiosk-ticker 40s linear infinite;
+}
+
+.kiosk-ticker:hover {
+    animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kiosk-ticker {
+        animation: none;
+    }
+}

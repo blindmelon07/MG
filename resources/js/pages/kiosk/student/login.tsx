@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export default function KioskStudentLogin() {
     return (
         <>
-            <Head title="My Grades" />
+            <Head title="My Acads" />
 
             <div className="mx-auto w-full max-w-md">
                 <Card>
                     <CardHeader className="items-center text-center">
                         <GraduationCap className="size-10 text-primary" />
-                        <CardTitle className="text-2xl">My Grades</CardTitle>
+                        <CardTitle className="text-2xl">My Acads</CardTitle>
                         <p className="text-muted-foreground">
                             Sign in with your student number. You&apos;ll be
                             signed out automatically when you step away.

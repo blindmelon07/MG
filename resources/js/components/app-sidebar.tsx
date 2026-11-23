@@ -3,6 +3,7 @@ import {
     BookMarked,
     BookOpen,
     BookUser,
+    Building2,
     CalendarRange,
     ClipboardList,
     GraduationCap,
@@ -37,6 +38,7 @@ import {
 import { index as announcementsIndex } from '@/routes/admin/announcements';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 import { index as coursesIndex } from '@/routes/admin/courses';
+import { index as directoryIndex } from '@/routes/admin/directory-entries';
 import { index as gradesIndex } from '@/routes/admin/grades';
 import { edit as kioskThemeEdit } from '@/routes/admin/kiosk-theme';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
@@ -140,6 +142,11 @@ export function AppSidebar() {
                       title: 'Campus Map',
                       href: campusLocationsIndex(),
                       icon: MapPin,
+                  },
+                  {
+                      title: 'School Directory',
+                      href: directoryIndex(),
+                      icon: Building2,
                   },
                   {
                       title: 'Kiosk Colors',

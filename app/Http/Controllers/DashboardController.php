@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
+use App\Models\ChatbotLog;
 use App\Models\Manual;
 use App\Models\ManualCategory;
 use App\Models\MapPresence;
@@ -42,6 +43,11 @@ class DashboardController extends Controller
                         ->where('type', 'event')
                         ->where('event_start_at', '>=', now())
                         ->count(),
+                ],
+                'chatbot' => [
+                    'total' => ChatbotLog::count(),
+                    'helpful' => ChatbotLog::where('was_helpful', true)->count(),
+                    'notHelpful' => ChatbotLog::where('was_helpful', false)->count(),
                 ],
             ],
             'recentAnnouncements' => Announcement::with('creator')

@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { BookOpen, GraduationCap, KeyRound, LogOut } from 'lucide-react';
 import { KioskThemeStyle } from '@/components/kiosk-theme-style';
 import { Button } from '@/components/ui/button';
+import { useKioskLockdown } from '@/hooks/use-kiosk-lockdown';
 import { grades, logout } from '@/routes/student';
 import { edit as passwordEdit } from '@/routes/student/password';
 import { index as subjectsIndex } from '@/routes/student/subjects';
@@ -14,8 +15,9 @@ export default function StudentLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { auth } = usePage().props;
+    const { auth, kioskMode } = usePage().props;
     const student = auth.student;
+    useKioskLockdown(kioskMode);
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">

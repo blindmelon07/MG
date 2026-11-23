@@ -24,7 +24,7 @@ export default function KioskStudentGrades({
 
     return (
         <>
-            <Head title="My Grades" />
+            <Head title="My Acads" />
 
             <div className="flex flex-col gap-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-sidebar-border/70 bg-muted/40 px-4 py-3 dark:border-sidebar-border">

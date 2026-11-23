@@ -1,12 +1,16 @@
 <?php
 
 use App\Http\Controllers\Kiosk\AnnouncementController;
+use App\Http\Controllers\Kiosk\ChatbotController;
+use App\Http\Controllers\Kiosk\DirectoryController;
 use App\Http\Controllers\Kiosk\HomeController;
 use App\Http\Controllers\Kiosk\ManualController;
 use App\Http\Controllers\Kiosk\MapController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+Route::get('directory', [DirectoryController::class, 'index'])->name('directory.index');
 
 Route::prefix('manuals')->name('manuals.')->group(function () {
     Route::get('/', [ManualController::class, 'index'])->name('index');
@@ -26,4 +30,13 @@ Route::prefix('maps')->name('maps.')->group(function () {
     Route::delete('presence', [MapController::class, 'leave'])
         ->middleware('throttle:30,1')
         ->name('presence.leave');
+});
+
+Route::prefix('chatbot')->name('chatbot.')->group(function () {
+    Route::post('ask', [ChatbotController::class, 'ask'])
+        ->middleware('throttle:20,1')
+        ->name('ask');
+    Route::patch('logs/{chatbotLog}/feedback', [ChatbotController::class, 'feedback'])
+        ->middleware('throttle:20,1')
+        ->name('feedback');
 });
