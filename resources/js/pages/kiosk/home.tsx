@@ -1121,7 +1121,7 @@ export default function KioskHome({
                                     Announcements & Events
                                 </h2>
                             </div>
-                            <div className="min-h-0 flex-1 divide-y divide-brand-900/10 overflow-y-auto px-4">
+                            <div className="min-h-0 flex-1 [scrollbar-width:none] divide-y divide-brand-900/10 overflow-y-auto px-4 [&::-webkit-scrollbar]:hidden">
                                 {news.length === 0 && (
                                     <p className="py-4 text-sm text-brand-950/60">
                                         No announcements right now.
