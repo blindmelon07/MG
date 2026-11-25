@@ -205,11 +205,15 @@ export default function CampusLocationsIndex({
                 <CampusMap
                     points={locations}
                     className="max-w-3xl"
-                    onPointClick={(point) =>
-                        setEditing(
-                            locations.find((l) => l.id === point.id) ?? null,
-                        )
-                    }
+                    onPointClick={(point) => {
+                        const location =
+                            locations.find((l) => l.id === point.id) ?? null;
+
+                        setEditing(location);
+                        setEditPoint(
+                            location ? { x: location.x, y: location.y } : null,
+                        );
+                    }}
                 />
 
                 <KioskPositionPicker
@@ -331,13 +335,16 @@ export default function CampusLocationsIndex({
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <CampusMap
-                                    points={locations.filter(
-                                        (l) => l.id !== editing.id,
-                                    )}
+                                    points={[
+                                        {
+                                            ...editing,
+                                            ...(editPoint ?? {}),
+                                        },
+                                    ]}
                                     onMapClick={(coords) =>
                                         setEditPoint(coords)
                                     }
-                                    previewPoint={editPoint}
+                                    previewPoint={null}
                                 />
                                 <p className="mt-2 text-xs text-muted-foreground">
                                     Click anywhere on the map to move this pin.
