@@ -290,15 +290,6 @@ const BUILDINGS: Building[] = [
         corridors: true,
         exterior: ['south', 'east'],
     },
-    {
-        col: 7.99,
-        row: 6.12,
-        w: 0.3,
-        d: 2.16,
-        h: 1.6,
-        corridors: true,
-        exterior: ['west'],
-    },
     // Quadrangle stage
     { col: 12.07, row: 7.8, w: 1.47, d: 0.48, h: 0.5 },
     // AIT Building — two wings joined by a spine, annex to the south
