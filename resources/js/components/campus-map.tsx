@@ -293,10 +293,10 @@ const BUILDINGS: Building[] = [
     // Quadrangle stage
     { col: 12.07, row: 7.8, w: 1.47, d: 0.48, h: 0.5 },
     // AIT Building — two wings joined by a spine, annex to the south
-    { col: 9.24, row: 0.05, w: 3.24, d: 0.57, h: 1.6, corridors: true },
-    { col: 8.61, row: 1.08, w: 3.89, d: 0.59, h: 1.6, corridors: true },
-    { col: 10.1, row: 0.62, w: 0.6, d: 1.53, h: 1.6, corridors: true },
-    { col: 9.67, row: 2.15, w: 1.93, d: 1.13, h: 1.6, corridors: true },
+    { col: 9.24, row: 0.05, w: 3.24, d: 0.57, h: 0.8, corridors: true },
+    { col: 8.61, row: 1.08, w: 3.89, d: 0.59, h: 0.8, corridors: true },
+    { col: 10.1, row: 0.62, w: 0.6, d: 1.53, h: 0.8, corridors: true },
+    { col: 9.67, row: 2.15, w: 1.93, d: 1.13, h: 0.8, corridors: true },
     // Automotive Laboratory
     { col: 13.8, row: 3.28, w: 2.12, d: 0.32, h: 0.8, corridors: true },
     { col: 13.97, row: 3.6, w: 1.2, d: 0.6, h: 1 },
