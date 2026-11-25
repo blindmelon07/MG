@@ -780,7 +780,7 @@ export default function KioskHome({
                             </div>
                         </div>
 
-                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             {tab === 'buildings' &&
                                 shownBuildings.map((location) => {
                                     const Icon = iconFor(location.name);

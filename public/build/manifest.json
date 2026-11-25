@@ -1198,7 +1198,7 @@
     "src": "node_modules/@fontsource/montserrat/files/montserrat-vietnamese-800-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BCnpIfSl.css",
+    "file": "assets/app-D29HSwM7.css",
     "name": "app",
     "names": [
       "app.css"
@@ -1269,7 +1269,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-7K5VkUgw.js",
+    "file": "assets/app-CNQoegf8.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -2154,7 +2154,7 @@
     ]
   },
   "resources/js/pages/kiosk/home.tsx": {
-    "file": "assets/home-CEtZCnZU.js",
+    "file": "assets/home-SMa4zoab.js",
     "name": "home",
     "src": "resources/js/pages/kiosk/home.tsx",
     "isDynamicEntry": true,
