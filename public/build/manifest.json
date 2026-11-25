@@ -1269,7 +1269,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-CNQoegf8.js",
+    "file": "assets/app-CNiZZRJ2.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -2154,7 +2154,7 @@
     ]
   },
   "resources/js/pages/kiosk/home.tsx": {
-    "file": "assets/home-SMa4zoab.js",
+    "file": "assets/home-DMvZeE--.js",
     "name": "home",
     "src": "resources/js/pages/kiosk/home.tsx",
     "isDynamicEntry": true,
