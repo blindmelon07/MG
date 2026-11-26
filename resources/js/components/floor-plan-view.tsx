@@ -5,9 +5,9 @@ import type { MapPoint } from '@/lib/campus-route';
 import type { FloorPlan, Room, RoomKind } from '@/lib/floor-plans';
 import { cn } from '@/lib/utils';
 
-// Plan units are large (a room is ~10 wide); shrink them into a scene that
-// suits the camera.
-const SCALE = 0.1;
+// Plans come in any size of unit; fit the longer side into a scene about
+// this wide, which suits the camera.
+const SCENE_SIZE = 6;
 const WALL_HEIGHT = 0.32;
 const ROUTE_COLOR = 0x2563eb;
 
@@ -85,6 +85,7 @@ export function FloorPlanView({
             return;
         }
 
+        const SCALE = SCENE_SIZE / Math.max(plan.width, plan.depth);
         const w = plan.width * SCALE;
         const d = plan.depth * SCALE;
         const toWorld = (p: MapPoint) =>

@@ -46,11 +46,8 @@ import type { GeolocationStatus } from '@/hooks/use-geolocation';
 import { createGeoProjector, formatDistance } from '@/lib/campus-geo';
 import type { GeoReferencePoint } from '@/lib/campus-geo';
 import { createRouter } from '@/lib/campus-route';
-import {
-    entranceApproach,
-    floorPlanFor,
-    planIndoorWalk,
-} from '@/lib/floor-plans';
+import { entranceApproach, planIndoorWalk } from '@/lib/floor-plans';
+import type { FloorPlan } from '@/lib/floor-plans';
 import {
     describeWalk,
     metersConverter,
@@ -236,6 +233,7 @@ const timeOf = (value: string) =>
 export default function KioskHome({
     locations,
     offices,
+    floorPlans,
     kioskPosition,
     referencePoints,
     panoramas,
@@ -247,6 +245,7 @@ export default function KioskHome({
 }: {
     locations: Location[];
     offices: Office[];
+    floorPlans: FloorPlan[];
     kioskPosition: { x: number; y: number };
     referencePoints: GeoReferencePoint[];
     panoramas: CampusPanorama[];
@@ -366,7 +365,9 @@ export default function KioskHome({
         // through the hallways to the door.
         const plan =
             destination.kind === 'office' && destination.office.floor_room
-                ? floorPlanFor(destination.location.name)
+                ? (floorPlans.find(
+                      (p) => p.campusLocationId === destination.location.id,
+                  ) ?? null)
                 : null;
         const indoor =
             plan && destination.kind === 'office'
@@ -407,6 +408,7 @@ export default function KioskHome({
         };
     }, [
         destination,
+        floorPlans,
         showKiosk,
         origin,
         fromDevice,
@@ -458,8 +460,8 @@ export default function KioskHome({
                   .filter(
                       (o) =>
                           o.floor_room &&
-                          locationById.get(o.campus_location_id)?.name ===
-                              walk.indoor!.plan.building,
+                          o.campus_location_id ===
+                              walk.indoor!.plan.campusLocationId,
                   )
                   .map((o) => [o.floor_room, o.name]),
           )

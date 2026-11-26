@@ -66,10 +66,14 @@ class CampusLocationController extends Controller
 
     public function destroy(CampusLocation $campusLocation): RedirectResponse
     {
+        // The building's floor plan goes with it (cascade); keep its picture
+        // path to clean up.
+        $floorPlanImage = $campusLocation->floorPlan?->image_path;
+
         $campusLocation->delete();
 
-        if ($campusLocation->photo_path) {
-            Storage::disk('public')->delete($campusLocation->photo_path);
+        foreach (array_filter([$campusLocation->photo_path, $floorPlanImage]) as $path) {
+            Storage::disk('public')->delete($path);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Location removed.')]);

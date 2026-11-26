@@ -1,0 +1,404 @@
+[
+    {
+        "building": "Main Building",
+        "floor": "Ground floor",
+        "width": 58.4,
+        "depth": 36,
+        "metersPerUnit": 1.15,
+        "site": {
+            "x0": 62.5,
+            "y0": 39.45,
+            "x1": 97.7,
+            "y1": 72.97
+        },
+        "rooms": [
+            {
+                "key": "avr",
+                "name": "Audio Visual Room (AVR)",
+                "kind": "office",
+                "x": 0,
+                "y": 0,
+                "w": 6,
+                "d": 6.6,
+                "door": "south"
+            },
+            {
+                "key": "stairs-north",
+                "name": "Stairs",
+                "kind": "stairs",
+                "x": 11,
+                "y": 0,
+                "w": 4.7,
+                "d": 6.6,
+                "door": "south"
+            },
+            {
+                "key": "quality-assurance",
+                "name": "Quality Assurance Office",
+                "kind": "office",
+                "x": 15.7,
+                "y": 0,
+                "w": 10.7,
+                "d": 6.6,
+                "door": "south"
+            },
+            {
+                "key": "st-joseph",
+                "name": "St. Joseph",
+                "kind": "classroom",
+                "x": 26.4,
+                "y": 0,
+                "w": 10.6,
+                "d": 6.6,
+                "door": "south"
+            },
+            {
+                "key": "st-dominic",
+                "name": "St. Dominic",
+                "kind": "classroom",
+                "x": 37,
+                "y": 0,
+                "w": 10.6,
+                "d": 6.6,
+                "door": "south"
+            },
+            {
+                "key": "hs-faculty",
+                "name": "High School Faculty Room",
+                "kind": "office",
+                "x": 47.6,
+                "y": 0,
+                "w": 10.8,
+                "d": 6.6,
+                "door": "south"
+            },
+            {
+                "key": "clinic",
+                "name": "School Clinic",
+                "kind": "office",
+                "x": 0,
+                "y": 11.2,
+                "w": 5.7,
+                "d": 3.2,
+                "door": "east"
+            },
+            {
+                "key": "cashier",
+                "name": "Cashier",
+                "kind": "office",
+                "x": 0,
+                "y": 14.4,
+                "w": 5.7,
+                "d": 3.2,
+                "door": "east"
+            },
+            {
+                "key": "registrar",
+                "name": "Registrar",
+                "kind": "office",
+                "x": 0,
+                "y": 17.6,
+                "w": 5.7,
+                "d": 3.2,
+                "door": "east"
+            },
+            {
+                "key": "principal",
+                "name": "Principal's Offices",
+                "kind": "office",
+                "x": 0,
+                "y": 20.8,
+                "w": 5.7,
+                "d": 3.2,
+                "door": "east"
+            },
+            {
+                "key": "quadrangle",
+                "name": "ACI Quadrangle",
+                "kind": "open",
+                "x": 10.8,
+                "y": 11.4,
+                "w": 47.6,
+                "d": 12.2,
+                "door": "south"
+            },
+            {
+                "key": "stairs-southwest",
+                "name": "Stairs",
+                "kind": "stairs",
+                "x": 0,
+                "y": 28.7,
+                "w": 4.7,
+                "d": 7.1,
+                "door": "north"
+            },
+            {
+                "key": "room-4",
+                "name": "Room 4",
+                "kind": "classroom",
+                "x": 10,
+                "y": 28.7,
+                "w": 6.5,
+                "d": 7.1,
+                "door": "north"
+            },
+            {
+                "key": "room-3",
+                "name": "Room 3",
+                "kind": "classroom",
+                "x": 16.8,
+                "y": 28.7,
+                "w": 6.6,
+                "d": 7.1,
+                "door": "north"
+            },
+            {
+                "key": "st-luke",
+                "name": "St. Luke",
+                "kind": "classroom",
+                "x": 32,
+                "y": 28.7,
+                "w": 6.4,
+                "d": 7.1,
+                "door": "north"
+            },
+            {
+                "key": "st-mark",
+                "name": "St. Mark",
+                "kind": "classroom",
+                "x": 38.8,
+                "y": 28.7,
+                "w": 6.4,
+                "d": 7.1,
+                "door": "north"
+            },
+            {
+                "key": "stairs-southeast",
+                "name": "Stairs",
+                "kind": "stairs",
+                "x": 45.6,
+                "y": 28.7,
+                "w": 4.6,
+                "d": 7.1,
+                "door": "north"
+            },
+            {
+                "key": "science-lab",
+                "name": "Science Laboratory",
+                "kind": "lab",
+                "x": 50.6,
+                "y": 28.7,
+                "w": 7.8,
+                "d": 7.1,
+                "door": "north"
+            }
+        ],
+        "halls": [
+            {
+                "x": 0,
+                "y": 6.8,
+                "w": 58.4,
+                "d": 4.2
+            },
+            {
+                "x": 5.8,
+                "y": 11,
+                "w": 4.8,
+                "d": 13
+            },
+            {
+                "x": 0,
+                "y": 24,
+                "w": 58.4,
+                "d": 4.4
+            },
+            {
+                "x": 6,
+                "y": 0,
+                "w": 5,
+                "d": 6.8
+            },
+            {
+                "x": 4.9,
+                "y": 28.4,
+                "w": 4.8,
+                "d": 7.6
+            },
+            {
+                "x": 23.8,
+                "y": 28.4,
+                "w": 7.8,
+                "d": 7.6
+            }
+        ],
+        "entrances": [
+            {
+                "key": "gateway",
+                "name": "the main entrance (Gateway to the Soccer Field)",
+                "at": {
+                    "x": 27.7,
+                    "y": 35.9
+                },
+                "inward": "north"
+            },
+            {
+                "key": "southwest",
+                "name": "the south-west entrance beside Room 4",
+                "at": {
+                    "x": 7.3,
+                    "y": 35.9
+                },
+                "inward": "north"
+            },
+            {
+                "key": "north",
+                "name": "the north entrance beside the AVR",
+                "at": {
+                    "x": 8.5,
+                    "y": 0.1
+                },
+                "inward": "south"
+            }
+        ]
+    },
+    {
+        "building": "AIT Building",
+        "floor": "Ground floor",
+        "width": 54.5,
+        "depth": 45.7,
+        "metersPerUnit": 0.86,
+        "site": {
+            "x0": 53.8,
+            "y0": 0.39,
+            "x1": 78.1,
+            "y1": 25.6
+        },
+        "rooms": [
+            {
+                "key": "ait-top-west",
+                "name": "Top wing – west room",
+                "kind": "lab",
+                "x": 8.9,
+                "y": 0,
+                "w": 11.8,
+                "d": 8,
+                "door": "east"
+            },
+            {
+                "key": "ait-top-east",
+                "name": "Top wing – east room",
+                "kind": "lab",
+                "x": 29.2,
+                "y": 0,
+                "w": 25,
+                "d": 8,
+                "door": "west"
+            },
+            {
+                "key": "ait-middle-west",
+                "name": "Middle wing – west room",
+                "kind": "lab",
+                "x": 0,
+                "y": 14.8,
+                "w": 20.7,
+                "d": 8.4,
+                "door": "east"
+            },
+            {
+                "key": "ait-middle-east",
+                "name": "Middle wing – east room",
+                "kind": "lab",
+                "x": 29.2,
+                "y": 14.8,
+                "w": 25.3,
+                "d": 8.4,
+                "door": "west"
+            },
+            {
+                "key": "ait-annex-west-1",
+                "name": "Annex – west room 1",
+                "kind": "lab",
+                "x": 15.7,
+                "y": 30,
+                "w": 7,
+                "d": 5.2,
+                "door": "east"
+            },
+            {
+                "key": "ait-annex-west-2",
+                "name": "Annex – west room 2",
+                "kind": "lab",
+                "x": 15.7,
+                "y": 35.2,
+                "w": 7,
+                "d": 5.2,
+                "door": "east"
+            },
+            {
+                "key": "ait-annex-west-3",
+                "name": "Annex – west room 3",
+                "kind": "lab",
+                "x": 15.7,
+                "y": 40.4,
+                "w": 7,
+                "d": 5.3,
+                "door": "east"
+            },
+            {
+                "key": "ait-annex-east-1",
+                "name": "Annex – east room 1",
+                "kind": "lab",
+                "x": 28.7,
+                "y": 30,
+                "w": 13.2,
+                "d": 5.2,
+                "door": "west"
+            },
+            {
+                "key": "ait-annex-east-2",
+                "name": "Annex – east room 2",
+                "kind": "lab",
+                "x": 28.7,
+                "y": 35.2,
+                "w": 13.2,
+                "d": 5.2,
+                "door": "west"
+            },
+            {
+                "key": "ait-annex-east-3",
+                "name": "Annex – east room 3",
+                "kind": "lab",
+                "x": 28.7,
+                "y": 40.4,
+                "w": 13.2,
+                "d": 5.3,
+                "door": "west"
+            }
+        ],
+        "halls": [
+            {
+                "x": 20.7,
+                "y": 0,
+                "w": 8.5,
+                "d": 30
+            },
+            {
+                "x": 22.7,
+                "y": 30,
+                "w": 6,
+                "d": 15.7
+            }
+        ],
+        "entrances": [
+            {
+                "key": "south",
+                "name": "the entrance at the end of the covered walk",
+                "at": {
+                    "x": 25.7,
+                    "y": 45.6
+                },
+                "inward": "north"
+            }
+        ]
+    }
+]

@@ -6,6 +6,7 @@ import {
     Building2,
     CalendarRange,
     ClipboardList,
+    DoorOpen,
     GraduationCap,
     LayoutGrid,
     LayoutList,
@@ -39,6 +40,7 @@ import { index as announcementsIndex } from '@/routes/admin/announcements';
 import { index as campusLocationsIndex } from '@/routes/admin/campus-locations';
 import { index as coursesIndex } from '@/routes/admin/courses';
 import { index as directoryIndex } from '@/routes/admin/directory-entries';
+import { index as floorPlansIndex } from '@/routes/admin/floor-plans';
 import { index as gradesIndex } from '@/routes/admin/grades';
 import { edit as kioskThemeEdit } from '@/routes/admin/kiosk-theme';
 import { index as manualCategoriesIndex } from '@/routes/admin/manual-categories';
@@ -142,6 +144,11 @@ export function AppSidebar() {
                       title: 'Campus Map',
                       href: campusLocationsIndex(),
                       icon: MapPin,
+                  },
+                  {
+                      title: 'Floor Plans',
+                      href: floorPlansIndex(),
+                      icon: DoorOpen,
                   },
                   {
                       title: 'School Directory',

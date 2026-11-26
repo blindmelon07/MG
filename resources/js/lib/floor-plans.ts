@@ -2,10 +2,11 @@
  * Indoor floor plans, for walking someone from a building's entrance to a
  * room's door once the campus route has brought them to the building.
  *
- * Plans are laid out in "plan units" taken straight off the school's posted
- * floor signs (x to the right/east, y down/south). Each plan also says where
- * it sits on the campus map (map percent), so the outdoor route can end at
- * the right entrance.
+ * Plans are drawn by admins (Admin → Floor Plans) over a picture of the
+ * building's floor sign, in "plan units" (x to the right/east, y down/south),
+ * and stored in the floor_plans table. Each plan also says where it sits on
+ * the campus map (map percent), so the outdoor route can end at the right
+ * entrance.
  *
  * Pure: no React, no Three.js.
  */
@@ -35,7 +36,8 @@ export type Entrance = {
 };
 
 export type FloorPlan = {
-    /** Matches the campus location this plan belongs to, by name. */
+    /** The campus location (building pin) this plan belongs to. */
+    campusLocationId: number;
     building: string;
     floor: string;
     width: number;
@@ -48,382 +50,21 @@ export type FloorPlan = {
     /** Hallways and other walkable floor. */
     halls: Rect[];
     entrances: Entrance[];
+    /** The picture the plan was traced over, if one was uploaded. */
+    imageUrl?: string | null;
 };
 
-/*
- * Main Building, ground floor — from the "Ground Floor · Floor Emergency Exit
- * Plan" sign. The plan covers the wings around the ACI Quadrangle: the
- * high school wing (north), the office block (west) and the college wing
- * (south). One plan unit is 10 px on the photographed sign.
- */
-const MAIN_BUILDING_GROUND: FloorPlan = {
-    building: 'Main Building',
-    floor: 'Ground floor',
-    width: 58.4,
-    depth: 36,
-    metersPerUnit: 1.15,
-    site: { x0: 62.5, y0: 39.45, x1: 97.7, y1: 72.97 },
-    rooms: [
-        // High school wing, north side of the north hallway
-        {
-            key: 'avr',
-            name: 'Audio Visual Room (AVR)',
-            kind: 'office',
-            x: 0,
-            y: 0,
-            w: 6,
-            d: 6.6,
-            door: 'south',
-        },
-        {
-            key: 'stairs-north',
-            name: 'Stairs',
-            kind: 'stairs',
-            x: 11,
-            y: 0,
-            w: 4.7,
-            d: 6.6,
-            door: 'south',
-        },
-        {
-            key: 'quality-assurance',
-            name: 'Quality Assurance Office',
-            kind: 'office',
-            x: 15.7,
-            y: 0,
-            w: 10.7,
-            d: 6.6,
-            door: 'south',
-        },
-        {
-            key: 'st-joseph',
-            name: 'St. Joseph',
-            kind: 'classroom',
-            x: 26.4,
-            y: 0,
-            w: 10.6,
-            d: 6.6,
-            door: 'south',
-        },
-        {
-            key: 'st-dominic',
-            name: 'St. Dominic',
-            kind: 'classroom',
-            x: 37,
-            y: 0,
-            w: 10.6,
-            d: 6.6,
-            door: 'south',
-        },
-        {
-            key: 'hs-faculty',
-            name: 'High School Faculty Room',
-            kind: 'office',
-            x: 47.6,
-            y: 0,
-            w: 10.8,
-            d: 6.6,
-            door: 'south',
-        },
-        // Office block, west of the quadrangle
-        {
-            key: 'clinic',
-            name: 'School Clinic',
-            kind: 'office',
-            x: 0,
-            y: 11.2,
-            w: 5.7,
-            d: 3.2,
-            door: 'east',
-        },
-        {
-            key: 'cashier',
-            name: 'Cashier',
-            kind: 'office',
-            x: 0,
-            y: 14.4,
-            w: 5.7,
-            d: 3.2,
-            door: 'east',
-        },
-        {
-            key: 'registrar',
-            name: 'Registrar',
-            kind: 'office',
-            x: 0,
-            y: 17.6,
-            w: 5.7,
-            d: 3.2,
-            door: 'east',
-        },
-        {
-            key: 'principal',
-            name: "Principal's Offices",
-            kind: 'office',
-            x: 0,
-            y: 20.8,
-            w: 5.7,
-            d: 3.2,
-            door: 'east',
-        },
-        {
-            key: 'quadrangle',
-            name: 'ACI Quadrangle',
-            kind: 'open',
-            x: 10.8,
-            y: 11.4,
-            w: 47.6,
-            d: 12.2,
-            door: 'south',
-        },
-        // College wing, south side of the south hallway
-        {
-            key: 'stairs-southwest',
-            name: 'Stairs',
-            kind: 'stairs',
-            x: 0,
-            y: 28.7,
-            w: 4.7,
-            d: 7.1,
-            door: 'north',
-        },
-        {
-            key: 'room-4',
-            name: 'Room 4',
-            kind: 'classroom',
-            x: 10,
-            y: 28.7,
-            w: 6.5,
-            d: 7.1,
-            door: 'north',
-        },
-        {
-            key: 'room-3',
-            name: 'Room 3',
-            kind: 'classroom',
-            x: 16.8,
-            y: 28.7,
-            w: 6.6,
-            d: 7.1,
-            door: 'north',
-        },
-        {
-            key: 'st-luke',
-            name: 'St. Luke',
-            kind: 'classroom',
-            x: 32,
-            y: 28.7,
-            w: 6.4,
-            d: 7.1,
-            door: 'north',
-        },
-        {
-            key: 'st-mark',
-            name: 'St. Mark',
-            kind: 'classroom',
-            x: 38.8,
-            y: 28.7,
-            w: 6.4,
-            d: 7.1,
-            door: 'north',
-        },
-        {
-            key: 'stairs-southeast',
-            name: 'Stairs',
-            kind: 'stairs',
-            x: 45.6,
-            y: 28.7,
-            w: 4.6,
-            d: 7.1,
-            door: 'north',
-        },
-        {
-            key: 'science-lab',
-            name: 'Science Laboratory',
-            kind: 'lab',
-            x: 50.6,
-            y: 28.7,
-            w: 7.8,
-            d: 7.1,
-            door: 'north',
-        },
-    ],
-    halls: [
-        { x: 0, y: 6.8, w: 58.4, d: 4.2 }, // north hallway
-        { x: 5.8, y: 11, w: 4.8, d: 13 }, // corridor beside the offices
-        { x: 0, y: 24, w: 58.4, d: 4.4 }, // south hallway
-        { x: 6, y: 0, w: 5, d: 6.8 }, // passage north, beside the AVR
-        { x: 4.9, y: 28.4, w: 4.8, d: 7.6 }, // passage south, beside Room 4
-        { x: 23.8, y: 28.4, w: 7.8, d: 7.6 }, // gateway to the soccer field
-    ],
-    entrances: [
-        {
-            key: 'gateway',
-            name: 'the main entrance (Gateway to the Soccer Field)',
-            at: { x: 27.7, y: 35.9 },
-            inward: 'north',
-        },
-        {
-            key: 'southwest',
-            name: 'the south-west entrance beside Room 4',
-            at: { x: 7.3, y: 35.9 },
-            inward: 'north',
-        },
-        {
-            key: 'north',
-            name: 'the north entrance beside the AVR',
-            at: { x: 8.5, y: 0.1 },
-            inward: 'south',
-        },
-    ],
-};
+export const ROOM_KINDS: { value: RoomKind; label: string }[] = [
+    { value: 'office', label: 'Office' },
+    { value: 'classroom', label: 'Classroom' },
+    { value: 'lab', label: 'Laboratory' },
+    { value: 'stairs', label: 'Stairs' },
+    { value: 'open', label: 'Open area (courtyard, lobby)' },
+    { value: 'outside', label: 'Outside' },
+];
 
-/*
- * AIT Building, one floor — from the campus site plan, marked up by the
- * school: one room at each end of the top and middle wings, three rooms on
- * each side of the annex, a hallway down the central spine, and the way in
- * at the south end where the covered walk arrives. One plan unit is 10 px
- * on the marked-up photo. Which lab is in which room is set by admins in
- * the School Directory, so rooms here are named by position.
- */
-const AIT_BUILDING: FloorPlan = {
-    building: 'AIT Building',
-    floor: 'Ground floor',
-    width: 54.5,
-    depth: 45.7,
-    metersPerUnit: 0.86,
-    site: { x0: 53.8, y0: 0.39, x1: 78.1, y1: 25.6 },
-    rooms: [
-        // Top wing
-        {
-            key: 'ait-top-west',
-            name: 'Top wing – west room',
-            kind: 'lab',
-            x: 8.9,
-            y: 0,
-            w: 11.8,
-            d: 8,
-            door: 'east',
-        },
-        {
-            key: 'ait-top-east',
-            name: 'Top wing – east room',
-            kind: 'lab',
-            x: 29.2,
-            y: 0,
-            w: 25,
-            d: 8,
-            door: 'west',
-        },
-        // Middle wing
-        {
-            key: 'ait-middle-west',
-            name: 'Middle wing – west room',
-            kind: 'lab',
-            x: 0,
-            y: 14.8,
-            w: 20.7,
-            d: 8.4,
-            door: 'east',
-        },
-        {
-            key: 'ait-middle-east',
-            name: 'Middle wing – east room',
-            kind: 'lab',
-            x: 29.2,
-            y: 14.8,
-            w: 25.3,
-            d: 8.4,
-            door: 'west',
-        },
-        // Annex, west side (north to south)
-        {
-            key: 'ait-annex-west-1',
-            name: 'Annex – west room 1',
-            kind: 'lab',
-            x: 15.7,
-            y: 30,
-            w: 7,
-            d: 5.2,
-            door: 'east',
-        },
-        {
-            key: 'ait-annex-west-2',
-            name: 'Annex – west room 2',
-            kind: 'lab',
-            x: 15.7,
-            y: 35.2,
-            w: 7,
-            d: 5.2,
-            door: 'east',
-        },
-        {
-            key: 'ait-annex-west-3',
-            name: 'Annex – west room 3',
-            kind: 'lab',
-            x: 15.7,
-            y: 40.4,
-            w: 7,
-            d: 5.3,
-            door: 'east',
-        },
-        // Annex, east side (north to south)
-        {
-            key: 'ait-annex-east-1',
-            name: 'Annex – east room 1',
-            kind: 'lab',
-            x: 28.7,
-            y: 30,
-            w: 13.2,
-            d: 5.2,
-            door: 'west',
-        },
-        {
-            key: 'ait-annex-east-2',
-            name: 'Annex – east room 2',
-            kind: 'lab',
-            x: 28.7,
-            y: 35.2,
-            w: 13.2,
-            d: 5.2,
-            door: 'west',
-        },
-        {
-            key: 'ait-annex-east-3',
-            name: 'Annex – east room 3',
-            kind: 'lab',
-            x: 28.7,
-            y: 40.4,
-            w: 13.2,
-            d: 5.3,
-            door: 'west',
-        },
-    ],
-    halls: [
-        { x: 20.7, y: 0, w: 8.5, d: 30 }, // central spine through both wings
-        { x: 22.7, y: 30, w: 6, d: 15.7 }, // annex hallway
-    ],
-    entrances: [
-        {
-            key: 'south',
-            name: 'the entrance at the end of the covered walk',
-            at: { x: 25.7, y: 45.6 },
-            inward: 'north',
-        },
-    ],
-};
-
-export const FLOOR_PLANS: FloorPlan[] = [MAIN_BUILDING_GROUND, AIT_BUILDING];
-
-export function floorPlanFor(buildingName: string | null | undefined) {
-    if (!buildingName) {
-        return null;
-    }
-
-    const name = buildingName.trim().toLowerCase();
-
-    return FLOOR_PLANS.find((p) => p.building.toLowerCase() === name) ?? null;
-}
+export const SIDES = ['north', 'south', 'east', 'west'] as const;
+export type Side = (typeof SIDES)[number];
 
 export function roomByKey(plan: FloorPlan, key: string | null | undefined) {
     return plan.rooms.find((r) => r.key === key) ?? null;
@@ -814,4 +455,81 @@ export function planIndoorWalk(
     });
 
     return { plan, room, entrance, points, guide, steps };
+}
+
+/**
+ * Keys of the rooms whose door can be reached from at least one entrance
+ * along the hallways — the editor's check that a drawn plan actually routes.
+ * Same grid and walkable floor as indoorRoute, as a plain flood fill.
+ */
+export function reachableRooms(plan: FloorPlan): Set<string> {
+    const cols = Math.ceil(plan.width / CELL) + 1;
+    const rows = Math.ceil(plan.depth / CELL) + 1;
+    const doors = plan.rooms.map((room) => ({
+        key: room.key,
+        at: doorPoint(room),
+    }));
+    const walkable = new Uint8Array(cols * rows);
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = c * CELL;
+            const y = r * CELL;
+
+            if (
+                plan.halls.some((h) => inRect(x, y, h)) ||
+                doors.some(
+                    (d) => Math.hypot(x - d.at.x, y - d.at.y) <= CELL * 1.5,
+                )
+            ) {
+                walkable[r * cols + c] = 1;
+            }
+        }
+    }
+
+    const toIndex = (p: MapPoint) =>
+        Math.min(rows - 1, Math.max(0, Math.round(p.y / CELL))) * cols +
+        Math.min(cols - 1, Math.max(0, Math.round(p.x / CELL)));
+    const seen = new Uint8Array(cols * rows);
+    const queue: number[] = [];
+
+    for (const entrance of plan.entrances) {
+        const start = toIndex(entrance.at);
+
+        if (!seen[start]) {
+            seen[start] = 1;
+            queue.push(start);
+        }
+    }
+
+    for (let i = 0; i < queue.length; i++) {
+        const cell = queue[i];
+        const c = cell % cols;
+        const r = Math.floor(cell / cols);
+
+        for (const [dc, dr] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+        ]) {
+            const nc = c + dc;
+            const nr = r + dr;
+            const next = nr * cols + nc;
+
+            if (
+                nc >= 0 &&
+                nr >= 0 &&
+                nc < cols &&
+                nr < rows &&
+                walkable[next] &&
+                !seen[next]
+            ) {
+                seen[next] = 1;
+                queue.push(next);
+            }
+        }
+    }
+
+    return new Set(doors.filter((d) => seen[toIndex(d.at)]).map((d) => d.key));
 }

@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { destinationRooms, floorPlanFor } from '@/lib/floor-plans';
+import type { RoomKind } from '@/lib/floor-plans';
 import { index as directoryIndex } from '@/routes/admin/directory-entries';
 
 type Category = 'office' | 'hotline';
@@ -45,6 +45,12 @@ type Entry = {
 
 type Location = { id: number; name: string };
 
+type PlanRooms = {
+    campus_location_id: number;
+    floor: string;
+    rooms: { key: string; name: string; kind: RoomKind }[];
+};
+
 const SECTIONS: { value: Category; label: string; hint: string }[] = [
     {
         value: 'office',
@@ -65,11 +71,13 @@ function EntryFields({
     entry,
     category,
     locations,
+    floorPlans,
     errors,
 }: {
     entry?: Entry;
     category: Category;
     locations: Location[];
+    floorPlans: PlanRooms[];
     errors: Partial<Record<string, string>>;
 }) {
     const [kind, setKind] = useState<Category>(entry?.category ?? category);
@@ -81,10 +89,13 @@ function EntryFields({
     const [floorRoom, setFloorRoom] = useState(
         entry?.floor_room ?? NO_LOCATION,
     );
-    const plan = floorPlanFor(
-        locations.find((l) => String(l.id) === locationId)?.name,
+    const plan = floorPlans.find(
+        (p) => String(p.campus_location_id) === locationId,
     );
-    const planRooms = plan ? destinationRooms(plan) : [];
+    // Rooms people would be sent to (not stairs or open areas).
+    const planRooms = plan
+        ? plan.rooms.filter((r) => r.kind !== 'stairs' && r.kind !== 'open')
+        : [];
     // A room from another building's plan doesn't count.
     const shownFloorRoom = planRooms.some((r) => r.key === floorRoom)
         ? floorRoom
@@ -289,9 +300,11 @@ function EntryFields({
 export default function DirectoryIndex({
     entries,
     locations,
+    floorPlans,
 }: {
     entries: Entry[];
     locations: Location[];
+    floorPlans: PlanRooms[];
 }) {
     const [creating, setCreating] = useState<Category | null>(null);
     const [editing, setEditing] = useState<Entry | null>(null);
@@ -460,6 +473,7 @@ export default function DirectoryIndex({
                                     <EntryFields
                                         category={creating}
                                         locations={locations}
+                                        floorPlans={floorPlans}
                                         errors={errors}
                                     />
                                     <DialogFooter>
@@ -504,6 +518,7 @@ export default function DirectoryIndex({
                                         entry={editing}
                                         category={editing.category}
                                         locations={locations}
+                                        floorPlans={floorPlans}
                                         errors={errors}
                                     />
                                     <DialogFooter>

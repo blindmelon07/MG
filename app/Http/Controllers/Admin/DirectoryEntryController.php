@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveDirectoryEntryRequest;
 use App\Models\CampusLocation;
 use App\Models\DirectoryEntry;
+use App\Models\FloorPlan;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +23,17 @@ class DirectoryEntryController extends Controller
             'locations' => CampusLocation::orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            // Rooms an office can be placed in, per building.
+            'floorPlans' => FloorPlan::get(['id', 'campus_location_id', 'floor', 'rooms'])
+                ->map(fn (FloorPlan $plan) => [
+                    'campus_location_id' => $plan->campus_location_id,
+                    'floor' => $plan->floor,
+                    'rooms' => array_map(fn (array $room) => [
+                        'key' => $room['key'],
+                        'name' => $room['name'],
+                        'kind' => $room['kind'],
+                    ], $plan->rooms),
+                ]),
         ]);
     }
 

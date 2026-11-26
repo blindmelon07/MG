@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ManualSeeder::class,
             AnnouncementSeeder::class,
             CampusLocationSeeder::class,
+            FloorPlanSeeder::class,
             DirectoryEntrySeeder::class,
         ]);
     }

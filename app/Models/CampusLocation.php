@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'description', 'x', 'y', 'sort_order'])]
@@ -28,6 +29,16 @@ class CampusLocation extends Model
             'x' => 'float',
             'y' => 'float',
         ];
+    }
+
+    /**
+     * The building's indoor floor plan, if one has been drawn.
+     *
+     * @return HasOne<FloorPlan, $this>
+     */
+    public function floorPlan(): HasOne
+    {
+        return $this->hasOne(FloorPlan::class);
     }
 
     /**

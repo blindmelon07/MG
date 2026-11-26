@@ -7,6 +7,7 @@ use App\Models\Announcement;
 use App\Models\CampusLocation;
 use App\Models\CampusPanorama;
 use App\Models\DirectoryEntry;
+use App\Models\FloorPlan;
 use App\Models\MapReferencePoint;
 use App\Support\KioskPosition;
 use Illuminate\Http\Request;
@@ -33,6 +34,10 @@ class HomeController extends Controller
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name', 'description', 'phone', 'office_hours', 'room', 'floor_room', 'campus_location_id']),
+            // Indoor plans: offices placed on one get walked to their door.
+            'floorPlans' => FloorPlan::with('campusLocation:id,name')
+                ->get()
+                ->map(fn (FloorPlan $plan) => $plan->toWayfinding()),
             'kioskPosition' => KioskPosition::current(),
             // Turns map percent into real metres for walking distances, and
             // places the 360° photos along a route.

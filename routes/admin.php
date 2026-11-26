@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CampusLocationController;
 use App\Http\Controllers\Admin\CampusPanoramaController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\DirectoryEntryController;
+use App\Http\Controllers\Admin\FloorPlanController;
 use App\Http\Controllers\Admin\GradeAuditController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\GradeImportController;
@@ -51,6 +52,9 @@ Route::middleware(['auth', 'verified', 'two_factor'])->prefix('admin')->name('ad
 
         Route::resource('directory-entries', DirectoryEntryController::class)
             ->only(['index', 'store', 'update', 'destroy']);
+
+        Route::resource('floor-plans', FloorPlanController::class)
+            ->except(['show']);
 
         Route::resource('map-reference-points', MapReferencePointController::class)
             ->only(['store', 'update', 'destroy']);
