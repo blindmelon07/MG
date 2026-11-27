@@ -605,16 +605,16 @@ export default function KioskHome({
                                             setUseMyLocation(!useMyLocation);
                                         }}
                                         className={cn(
-                                            'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur transition-colors',
+                                            'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur transition-colors',
                                             fromDevice
                                                 ? 'border-sky-300 bg-sky-500 text-white'
                                                 : 'border-gold-400/60 bg-brand-950/85 text-white hover:bg-brand-900',
                                         )}
                                     >
                                         {useMyLocation ? (
-                                            <LocateOff className="size-4" />
+                                            <LocateOff className="size-3.5" />
                                         ) : (
-                                            <LocateFixed className="size-4 text-gold-300" />
+                                            <LocateFixed className="size-3.5 text-gold-300" />
                                         )}
                                         {useMyLocation
                                             ? 'Stop using my location'
@@ -632,8 +632,8 @@ export default function KioskHome({
                             )}
 
                             {!destination && (
-                                <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-gold-400/60 bg-brand-950/85 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur">
-                                    <MousePointerClick className="size-4 text-gold-300" />
+                                <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full border border-gold-400/60 bg-brand-950/85 px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur">
+                                    <MousePointerClick className="size-3.5 text-gold-300" />
                                     Touch a place to see how to get there
                                 </div>
                             )}

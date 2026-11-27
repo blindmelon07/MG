@@ -2312,7 +2312,7 @@ export function CampusMap({
                     {labeledPins ? (
                         <span
                             className={cn(
-                                'flex items-center gap-1 rounded-full border py-0.5 pr-2.5 pl-1 text-xs font-semibold whitespace-nowrap shadow-lg transition-transform hover:scale-105',
+                                'flex items-center gap-0.5 rounded-full border py-px pr-1.5 pl-0.5 text-[8px] leading-tight font-semibold whitespace-nowrap shadow-lg transition-transform hover:scale-105',
                                 activeId === point.id
                                     ? 'scale-110 border-gold-300 bg-gold-400 text-brand-950'
                                     : 'border-white/30 bg-brand-900/90 text-white',
@@ -2320,7 +2320,7 @@ export function CampusMap({
                         >
                             <MapPin
                                 className={cn(
-                                    'size-4',
+                                    'size-[11px]',
                                     activeId === point.id
                                         ? 'fill-brand-900 text-gold-200'
                                         : 'fill-gold-400 text-brand-900',
@@ -2399,19 +2399,30 @@ export function CampusMap({
                 <div
                     ref={userRef}
                     style={{ display: 'none' }}
-                    className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2"
+                    className={cn(
+                        'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2',
+                        labeledPins ? 'size-3' : 'size-4',
+                    )}
                 >
                     {!userLocation.stale && (
                         <span className="absolute inset-0 animate-ping rounded-full bg-sky-400 opacity-75" />
                     )}
                     <span
                         className={cn(
-                            'relative block size-4 rounded-full border-2 border-white shadow-md',
+                            'relative block rounded-full border-2 border-white shadow-md',
+                            labeledPins ? 'size-3' : 'size-4',
                             userLocation.stale ? 'bg-slate-400' : 'bg-sky-500',
                         )}
                     />
                     {userLocation.label ? (
-                        <span className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded-full bg-sky-600 px-2.5 py-1 text-xs font-bold whitespace-nowrap text-white shadow-lg">
+                        <span
+                            className={cn(
+                                'absolute bottom-full left-1/2 -translate-x-1/2 rounded-full bg-sky-600 font-bold whitespace-nowrap text-white shadow-lg',
+                                labeledPins
+                                    ? 'mb-1 px-1.5 py-0.5 text-[8px] leading-tight'
+                                    : 'mb-1.5 px-2.5 py-1 text-xs',
+                            )}
+                        >
                             {userLocation.label}
                         </span>
                     ) : (
